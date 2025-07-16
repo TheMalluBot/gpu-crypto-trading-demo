@@ -1,0 +1,50 @@
+@import './z-index.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body {
+    @apply h-full overflow-hidden;
+  }
+  
+  * {
+    @apply box-border;
+  }
+}
+
+@layer components {
+  .glass-morphic {
+    @apply backdrop-blur-xl bg-white/10 rounded-3xl border border-white/20 shadow-2xl;
+  }
+  
+  .glass-card {
+    @apply backdrop-blur-lg bg-white/5 rounded-xl border border-white/10 shadow-lg;
+  }
+  
+  .gradient-bg {
+    background: linear-gradient(135deg, 
+      rgba(15, 23, 42, 0.9) 0%, 
+      rgba(88, 28, 135, 0.8) 25%, 
+      rgba(15, 23, 42, 0.9) 50%, 
+      rgba(30, 58, 138, 0.8) 75%, 
+      rgba(15, 23, 42, 0.9) 100%
+    );
+  }
+}
+
+@layer utilities {
+  .text-glow {
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+  }
+  
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+}

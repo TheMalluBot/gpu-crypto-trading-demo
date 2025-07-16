@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Trader - Live Preview</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📈</text></svg>">
+</head>
+<body>
+    <!-- Animated Background Particles -->
+    <div class="particles" id="particles"></div>
+    
+    <!-- Title Bar -->
+    <div class="fixed top-0 left-0 right-0 h-8 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-between px-4">
+        <div class="flex items-center space-x-2">
+            <div class="w-4 h-4 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full"></div>
+            <span class="text-white/80 text-sm font-medium">Crypto Trader</span>
+        </div>
+        <div class="flex items-center space-x-2">
+            <button class="w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center hover:bg-yellow-400 transition-colors">
+                <div class="w-2 h-0.5 bg-yellow-900"></div>
+            </button>
+            <button class="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center hover:bg-green-400 transition-colors">
+                <div class="w-2 h-2 border border-green-900"></div>
+            </button>
+            <button class="w-4 h-4 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-400 transition-colors">
+                <div class="w-2 h-2 text-red-900 text-xs leading-none">×</div>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="relative z-10 pt-12 pb-20 min-h-screen">
+        <!-- Trading Interface -->
+        <div id="trade-panel" class="max-w-6xl mx-auto p-6 space-y-6">
+            <!-- Price Display -->
+            <div class="glass-morphic p-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <select id="symbol-select" class="glass-card px-4 py-2 text-white bg-transparent border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg">
+                            <option value="BTCUSDT" class="bg-gray-800">BTCUSDT</option>
+                            <option value="ETHUSDT" class="bg-gray-800">ETHUSDT</option>
+                            <option value="ADAUSDT" class="bg-gray-800">ADAUSDT</option>
+                            <option value="DOTUSDT" class="bg-gray-800">DOTUSDT</option>
+                            <option value="LINKUSDT" class="bg-gray-800">LINKUSDT</option>
+                        </select>
+                        <div class="current-price text-3xl font-bold text-white">$67,234.50</div>
+                        <div class="price-change flex items-center space-x-1 price-up">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            <span>+2.45%</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <span class="text-white/80">Paper Trading</span>
+                        <button id="paper-trading-toggle" class="w-12 h-6 bg-blue-500 rounded-full p-1 transition-colors">
+                            <div class="w-4 h-4 bg-white rounded-full ml-auto transition-transform duration-300"></div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Order Form -->
+                <div class="glass-morphic p-6">
+                    <h3 class="text-xl font-bold text-white mb-4">Place Order</h3>
+                    <div class="space-y-4">
+                        <!-- Side Selection -->
+                        <div>
+                            <label class="block text-sm font-medium text-white/80 mb-2">Side</label>
+                            <div class="flex space-x-2">
+                                <button id="long-btn" class="flex-1 py-2 px-4 bg-green-500 text-white rounded-lg trade-btn">
+                                    <svg class="w-4 h-4 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Long
+                                </button>
+                                <button id="short-btn" class="flex-1 py-2 px-4 glass-card text-white/80 rounded-lg trade-btn">
+                                    <svg class="w-4 h-4 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M14.707 12.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 14.586V3a1 1 0 012 0v11.586l2.293-2.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Short
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Order Type -->
+                        <div>
+                            <label class="block text-sm font-medium text-white/80 mb-2">Order Type</label>
+                            <select class="w-full glass-card px-4 py-2 text-white bg-transparent border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg">
+                                <option value="Market" class="bg-gray-800">Market</option>
+                                <option value="Limit" class="bg-gray-800">Limit</option>
+                            </select>
+                        </div>
+
+                        <!-- Quantity -->
+                        <div>
+                            <label class="block text-sm font-medium text-white/80 mb-2">
+                                <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"></path>
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"></path>
+                                </svg>
+                                Quantity (USDT)
+                            </label>
+                            <input id="quantity-input" type="number" value="100" min="1" class="w-full glass-card px-4 py-2 text-white bg-transparent border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg">
+                        </div>
+
+                        <!-- Take Profit -->
+                        <div>
+                            <label class="block text-sm font-medium text-white/80 mb-2">
+                                <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clip-rule="evenodd"></path>
+                                </svg>
+                                Take Profit (%)
+                            </label>
+                            <input type="number" value="2.0" step="0.1" min="0" class="w-full glass-card px-4 py-2 text-white bg-transparent border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg">
+                        </div>
+
+                        <!-- Stop Loss -->
+                        <div>
+                            <label class="block text-sm font-medium text-white/80 mb-2">
+                                <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"></path>
+                                </svg>
+                                Stop Loss (%)
+                            </label>
+                            <input type="number" value="1.0" step="0.1" min="0" class="w-full glass-card px-4 py-2 text-white bg-transparent border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg">
+                        </div>
+
+                        <!-- Place Order Button -->
+                        <button id="place-order-btn" class="w-full py-3 px-4 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg trade-btn">
+                            Place Long Order
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Portfolio Panel -->
+                <div class="glass-morphic p-6">
+                    <h3 class="text-xl font-bold text-white mb-4">Portfolio</h3>
+                    <div class="space-y-4">
+                        <div class="glass-card p-4 stat-card">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-white/80">Total P/L</span>
+                                <span class="total-pnl text-xl font-bold price-up">$1,234.29</span>
+                            </div>
+                            <div class="text-sm text-white/60">3 open positions</div>
+                        </div>
+
+                        <div class="space-y-2 max-h-60 overflow-y-auto">
+                            <div class="glass-card p-3">
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="text-white font-medium">BTCUSDT</span>
+                                    <span class="text-sm price-up">LONG</span>
+                                </div>
+                                <div class="flex items-center justify-between text-sm text-white/60">
+                                    <span>Entry: $66,800.00</span>
+                                    <span>Qty: 100</span>
+                                </div>
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-white/60">P/L:</span>
+                                    <span class="font-medium price-up">$434.50</span>
+                                </div>
+                            </div>
+
+                            <div class="glass-card p-3">
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="text-white font-medium">ETHUSDT</span>
+                                    <span class="text-sm price-down">SHORT</span>
+                                </div>
+                                <div class="flex items-center justify-between text-sm text-white/60">
+                                    <span>Entry: $3,420.00</span>
+                                    <span>Qty: 200</span>
+                                </div>
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-white/60">P/L:</span>
+                                    <span class="font-medium price-down">-$45.23</span>
+                                </div>
+                            </div>
+
+                            <div class="glass-card p-3">
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="text-white font-medium">ADAUSDT</span>
+                                    <span class="text-sm price-up">LONG</span>
+                                </div>
+                                <div class="flex items-center justify-between text-sm text-white/60">
+                                    <span>Entry: $0.45</span>
+                                    <span>Qty: 500</span>
+                                </div>
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-white/60">P/L:</span>
+                                    <span class="font-medium price-up">$845.02</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Panel -->
+        <div id="analytics-panel" class="max-w-6xl mx-auto p-6 space-y-6 hidden">
+            <div class="glass-morphic p-6">
+                <h2 class="text-2xl font-bold text-white mb-6">Portfolio Analytics</h2>
+                
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="glass-card p-4 stat-card">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="p-2 bg-white/10 rounded-lg">
+                                <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"></path>
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <span class="text-sm font-medium price-up">+$1,234.29</span>
+                        </div>
+                        <div class="space-y-1">
+                            <p class="text-2xl font-bold text-white">$1,234.29</p>
+                            <p class="text-sm text-white/60">Total P/L</p>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-4 stat-card">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="p-2 bg-white/10 rounded-lg">
+                                <svg class="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="space-y-1">
+                            <p class="text-2xl font-bold text-white">$892.34</p>
+                            <p class="text-sm text-white/60">Realized P/L</p>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-4 stat-card">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="p-2 bg-white/10 rounded-lg">
+                                <svg class="w-5 h-5 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <span class="text-sm font-medium price-up">16/24</span>
+                        </div>
+                        <div class="space-y-1">
+                            <p class="text-2xl font-bold text-white">66.7%</p>
+                            <p class="text-sm text-white/60">Win Rate</p>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-4 stat-card">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="p-2 bg-white/10 rounded-lg">
+                                <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="space-y-1">
+                            <p class="text-2xl font-bold text-white">24</p>
+                            <p class="text-sm text-white/60">Total Trades</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive Chart -->
+                <div class="glass-card p-4">
+                    <h3 class="text-lg font-semibold text-white mb-4">P/L Over Time</h3>
+                    <div class="h-64 bg-white/5 rounded-lg flex items-center justify-center">
+                        <svg class="w-full h-full" viewBox="0 0 800 300">
+                            <defs>
+                                <linearGradient id="gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0.3" />
+                                    <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:0" />
+                                </linearGradient>
+                            </defs>
+                            
+                            <!-- Grid lines -->
+                            <line x1="0" y1="250" x2="800" y2="250" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+                            <line x1="0" y1="200" x2="800" y2="200" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+                            <line x1="0" y1="150" x2="800" y2="150" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+                            <line x1="0" y1="100" x2="800" y2="100" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+                            <line x1="0" y1="50" x2="800" y2="50" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+                            
+                            <!-- Animated chart line -->
+                            <polyline fill="none" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="0,250 100,220 200,180 300,160 400,140 500,110 600,90 700,70 800,50">
+                                <animate attributeName="stroke-dasharray" values="0,2000;2000,0;0,2000" dur="4s" repeatCount="indefinite"/>
+                            </polyline>
+                            
+                            <!-- Fill area -->
+                            <polygon fill="url(#gradient)" points="0,250 100,220 200,180 300,160 400,140 500,110 600,90 700,70 800,50 800,250">
+                                <animate attributeName="opacity" values="0.3;0.6;0.3" dur="3s" repeatCount="indefinite"/>
+                            </polygon>
+                            
+                            <!-- Animated data points -->
+                            <g>
+                                <circle cx="100" cy="220" r="4" fill="#3b82f6">
+                                    <animate attributeName="r" values="4;6;4" dur="2s" repeatCount="indefinite"/>
+                                </circle>
+                                <circle cx="200" cy="180" r="4" fill="#3b82f6">
+                                    <animate attributeName="r" values="4;6;4" dur="2s" begin="0.3s" repeatCount="indefinite"/>
+                                </circle>
+                                <circle cx="300" cy="160" r="4" fill="#3b82f6">
+                                    <animate attributeName="r" values="4;6;4" dur="2s" begin="0.6s" repeatCount="indefinite"/>
+                                </circle>
+                                <circle cx="400" cy="140" r="4" fill="#3b82f6">
+                                    <animate attributeName="r" values="4;6;4" dur="2s" begin="0.9s" repeatCount="indefinite"/>
+                                </circle>
+                                <circle cx="500" cy="110" r="4" fill="#3b82f6">
+                                    <animate attributeName="r" values="4;6;4" dur="2s" begin="1.2s" repeatCount="indefinite"/>
+                                </circle>
+                                <circle cx="600" cy="90" r="4" fill="#3b82f6">
+                                    <animate attributeName="r" values="4;6;4" dur="2s" begin="1.5s" repeatCount="indefinite"/>
+                                </circle>
+                                <circle cx="700" cy="70" r="4" fill="#3b82f6">
+                                    <animate attributeName="r" values="4;6;4" dur="2s" begin="1.8s" repeatCount="indefinite"/>
+                                </circle>
+                                <circle cx="800" cy="50" r="4" fill="#3b82f6">
+                                    <animate attributeName="r" values="4;6;4" dur="2s" begin="2.1s" repeatCount="indefinite"/>
+                                </circle>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+                
+                <!-- Recent Trades Table -->
+                <div class="glass-card p-4">
+                    <h3 class="text-lg font-semibold text-white mb-4">Recent Trades</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="text-white/60 text-sm">
+                                    <th class="text-left py-2">Symbol</th>
+                                    <th class="text-left py-2">Side</th>
+                                    <th class="text-left py-2">Quantity</th>
+                                    <th class="text-left py-2">Entry</th>
+                                    <th class="text-left py-2">Exit</th>
+                                    <th class="text-left py-2">P/L</th>
+                                    <th class="text-left py-2">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="border-t border-white/10">
+                                    <td class="py-3 text-white font-medium">BTCUSDT</td>
+                                    <td class="py-3">
+                                        <span class="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">LONG</span>
+                                    </td>
+                                    <td class="py-3 text-white">100</td>
+                                    <td class="py-3 text-white">$66,800.00</td>
+                                    <td class="py-3 text-white">-</td>
+                                    <td class="py-3">
+                                        <span class="font-medium price-up">$434.50</span>
+                                    </td>
+                                    <td class="py-3">
+                                        <span class="px-2 py-1 rounded-full text-xs bg-blue-500/20 text-blue-400">OPEN</span>
+                                    </td>
+                                </tr>
+                                <tr class="border-t border-white/10">
+                                    <td class="py-3 text-white font-medium">ETHUSDT</td>
+                                    <td class="py-3">
+                                        <span class="px-2 py-1 rounded-full text-xs bg-red-500/20 text-red-400">SHORT</span>
+                                    </td>
+                                    <td class="py-3 text-white">200</td>
+                                    <td class="py-3 text-white">$3,420.00</td>
+                                    <td class="py-3 text-white">$3,375.00</td>
+                                    <td class="py-3">
+                                        <span class="font-medium price-up">$90.00</span>
+                                    </td>
+                                    <td class="py-3">
+                                        <span class="px-2 py-1 rounded-full text-xs bg-gray-500/20 text-gray-400">CLOSED</span>
+                                    </td>
+                                </tr>
+                                <tr class="border-t border-white/10">
+                                    <td class="py-3 text-white font-medium">ADAUSDT</td>
+                                    <td class="py-3">
+                                        <span class="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">LONG</span>
+                                    </td>
+                                    <td class="py-3 text-white">500</td>
+                                    <td class="py-3 text-white">$0.45</td>
+                                    <td class="py-3 text-white">-</td>
+                                    <td class="py-3">
+                                        <span class="font-medium price-up">$845.02</span>
+                                    </td>
+                                    <td class="py-3">
+                                        <span class="px-2 py-1 rounded-full text-xs bg-blue-500/20 text-blue-400">OPEN</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Panel -->
+        <div id="settings-panel" class="max-w-2xl mx-auto p-6 space-y-6 hidden">
+            <div class="glass-morphic p-6">
+                <div class="flex items-center space-x-3 mb-6">
+                    <svg class="w-6 h-6 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path>
+                    </svg>
+                    <h2 class="text-2xl font-bold text-white">Trading Settings</h2>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-white/80 mb-2">
+                            <svg class="w-4 h-4 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            API Key *
+                        </label>
+                        <input type="password" value="•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••" class="w-full glass-card px-4 py-2 text-white bg-transparent border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg" placeholder="Enter your Binance API Key">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-white/80 mb-2">
+                            <svg class="w-4 h-4 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            API Secret *
+                        </label>
+                        <input type="password" value="•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••" class="w-full glass-card px-4 py-2 text-white bg-transparent border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg" placeholder="Enter your Binance API Secret">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-white/80 mb-2">
+                            <svg class="w-4 h-4 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                            </svg>
+                            Base URL
+                        </label>
+                        <input type="text" value="https://api.binance.com" class="w-full glass-card px-4 py-2 text-white bg-transparent border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg">
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <label class="flex items-center space-x-2 text-white/80">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span>Use Testnet</span>
+                        </label>
+                        <button class="w-12 h-6 bg-white/20 rounded-full p-1 transition-colors">
+                            <div class="w-4 h-4 bg-white rounded-full transition-transform duration-300"></div>
+                        </button>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <label class="flex items-center space-x-2 text-white/80">
+                            <span>Disable Background Animation</span>
+                        </label>
+                        <button id="animation-toggle" class="w-12 h-6 bg-blue-500 rounded-full p-1 transition-colors">
+                            <div class="w-4 h-4 bg-white rounded-full ml-auto transition-transform duration-300"></div>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex space-x-4 mt-6">
+                    <button class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg trade-btn">
+                        Save Settings
+                    </button>
+                    <button class="flex-1 bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg trade-btn flex items-center justify-center space-x-2">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span>Connected</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Account Info -->
+            <div class="glass-morphic p-6">
+                <h3 class="text-xl font-bold text-white mb-4">Account Information</h3>
+                <div class="space-y-3">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-white/80">Trading Enabled:</span>
+                        <span class="font-medium text-green-400">Yes</span>
+                    </div>
+                    <div>
+                        <span class="text-white/80 block mb-2">Balances:</span>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="glass-card p-2 stat-card">
+                                <div class="text-white font-medium">USDT</div>
+                                <div class="text-white/60 text-sm">Free: 1,234.5678</div>
+                            </div>
+                            <div class="glass-card p-2 stat-card">
+                                <div class="text-white font-medium">BTC</div>
+                                <div class="text-white/60 text-sm">Free: 0.1500</div>
+                            </div>
+                            <div class="glass-card p-2 stat-card">
+                                <div class="text-white font-medium">ETH</div>
+                                <div class="text-white/60 text-sm">Free: 2.4500</div>
+                            </div>
+                            <div class="glass-card p-2 stat-card">
+                                <div class="text-white font-medium">BNB</div>
+                                <div class="text-white/60 text-sm">Free: 15.6000</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FPS Counter -->
+    <div class="fixed top-20 right-4 z-50">
+        <div class="glass-card p-3">
+            <div class="flex items-center space-x-3">
+                <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse-custom"></div>
+                <span class="fps-counter text-white/70 text-sm font-medium">62.3 FPS</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
+        <div class="glass-morphic p-2">
+            <div class="flex items-center space-x-2">
+                <button id="trade-btn" class="nav-tab active px-4 py-2 rounded-full transition-all">
+                    <div class="flex items-center space-x-2">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-sm font-medium">Trade</span>
+                    </div>
+                </button>
+                <button id="analytics-btn" class="nav-tab text-white/70 hover:text-white hover:bg-white/10 px-4 py-2 rounded-full transition-all">
+                    <div class="flex items-center space-x-2">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path>
+                        </svg>
+                        <span class="text-sm font-medium">Analytics</span>
+                    </div>
+                </button>
+                <button id="settings-btn" class="nav-tab text-white/70 hover:text-white hover:bg-white/10 px-4 py-2 rounded-full transition-all">
+                    <div class="flex items-center space-x-2">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-sm font-medium">Settings</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>

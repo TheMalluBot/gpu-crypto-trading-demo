@@ -1,0 +1,29 @@
+[package]
+name = "crypto_trader"
+version = "0.1.0"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "1.5", features = [] }
+
+[dependencies]
+tauri = { version = "1.5", features = ["api-all"] }
+wgpu = "0.19"
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+bytemuck = { version = "1.4", features = ["derive"] }
+tauri-plugin-store = "0.1"
+tokio-tungstenite = "0.21"
+reqwest = { version = "0.12", features = ["json"] }
+rust_decimal = "1.35"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+futures-util = "0.3"
+rand = "0.8"
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]
