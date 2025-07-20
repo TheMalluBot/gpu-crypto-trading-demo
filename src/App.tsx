@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { listen } from '@tauri-apps/api/event';
-import { invoke } from '@tauri-apps/api/tauri';
+import { safeInvoke, isTauriApp } from './utils/tauri';
+import { ThemeProvider } from './contexts/ThemeContext';
 import ParticleCanvas from './components/ParticleCanvas';
 import TitleBar from './components/TitleBar';
 import Navigation from './components/Navigation';
@@ -10,6 +12,8 @@ import SettingsPanel from './components/SettingsPanel';
 import PnLChart from './components/PnLChart';
 import SwingBotPanel from './components/SwingBotPanel';
 import Dashboard from './components/Dashboard';
+import NotificationContainer from './components/common/NotificationContainer';
+import FloatingHelpButton from './components/common/FloatingHelpButton';
 
 interface SystemStats {
   fps: number;
@@ -28,94 +32,143 @@ function App() {
     gpu_frame_time: 0
   });
 
-  const [currentRoute, setCurrentRoute] = useState('/trade');
   const [settings, setSettings] = useState<AppSettings>({ disable_animations: false });
 
   useEffect(() => {
-    const unlisten = listen('stats-update', (event) => {
-      setStats(event.payload as SystemStats);
-    });
+    if (isTauriApp()) {
+      const unlisten = listen('stats-update', (event) => {
+        setStats(event.payload as SystemStats);
+      });
 
-    loadSettings();
+      loadSettings();
 
-    return () => {
-      unlisten.then(fn => fn());
-    };
+      return () => {
+        unlisten.then(fn => fn());
+      };
+    }
   }, []);
 
   const loadSettings = async () => {
-    try {
-      const appSettings = await invoke('load_settings');
-      setSettings(appSettings as AppSettings);
-    } catch (error) {
-      console.error('Failed to load settings:', error);
+    const appSettings = await safeInvoke<AppSettings>('load_settings');
+    if (appSettings) {
+      setSettings(appSettings);
     }
   };
 
-  const renderCurrentPage = () => {
-    switch (currentRoute) {
-      case '/trade':
-        return <TradePanel />;
-      case '/bot':
-        return <SwingBotPanel />;
-      case '/dashboard':
-        return <Dashboard />;
-      case '/analytics':
-        return <PnLChart />;
-      case '/settings':
-        return <SettingsPanel />;
-      default:
-        return <TradePanel />;
-    }
-  };
 
   return (
-    <div className="h-screen w-full bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden relative">
-      {/* Particle Canvas Background - conditionally rendered */}
-      {!settings.disable_animations && (
-        <div className="absolute inset-0 z-0">
-          <ParticleCanvas />
+    <ThemeProvider>
+      <Router>
+        <div className="min-h-safe-screen w-full gradient-bg overflow-hidden relative">
+        {/* Skip to main content link for accessibility */}
+        <a href="#main-content" className="skip-link focus-enhanced">
+          Skip to main content
+        </a>
+        {/* Particle Canvas Background - conditionally rendered */}
+        {!settings.disable_animations && (
+          <div className="absolute inset-0 z-background">
+            <ParticleCanvas />
+          </div>
+        )}
+
+        {/* Custom Title Bar */}
+        <div className="relative z-titlebar">
+          <TitleBar />
         </div>
-      )}
 
-      {/* Custom Title Bar */}
-      <TitleBar />
+        {/* Main Content */}
+        <main id="main-content" className="relative z-content min-h-screen pt-8 pb-24 md:pb-20 overflow-y-auto safe-area-bottom" role="main">
+          <Routes>
+            <Route path="/" element={<Navigate to="/trade" replace />} />
+            <Route path="/trade" element={
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="min-h-full"
+              >
+                <TradePanel />
+              </motion.div>
+            } />
+            <Route path="/bot" element={
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="min-h-full"
+              >
+                <SwingBotPanel />
+              </motion.div>
+            } />
+            <Route path="/dashboard" element={
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="min-h-full"
+              >
+                <Dashboard />
+              </motion.div>
+            } />
+            <Route path="/analytics" element={
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="min-h-full"
+              >
+                <PnLChart />
+              </motion.div>
+            } />
+            <Route path="/settings" element={
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="min-h-full"
+              >
+                <SettingsPanel />
+              </motion.div>
+            } />
+          </Routes>
+        </main>
 
-      {/* Main Content */}
-      <div className="relative z-content h-full pt-8 pb-24 md:pb-20 overflow-y-auto">
-        <motion.div
-          key={currentRoute}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.3 }}
-          className="min-h-full"
-        >
-          {renderCurrentPage()}
-        </motion.div>
-      </div>
-
-      {/* Navigation */}
-      <Navigation currentRoute={currentRoute} onRouteChange={setCurrentRoute} />
-
-      {/* System Stats (for background animation) */}
-      {!settings.disable_animations && (
-        <div className="fixed top-20 right-4 z-header">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-3"
-          >
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <span className="text-white/70 text-sm font-medium">
-                {stats.fps.toFixed(1)} FPS
-              </span>
-            </div>
-          </motion.div>
+        {/* Navigation */}
+        <div className="relative z-navigation">
+          <Navigation />
         </div>
-      )}
-    </div>
+
+        {/* System Stats (for background animation) */}
+        {!settings.disable_animations && (
+          <div className="fixed top-20 right-4 z-header hidden md:block">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-3"
+            >
+              <div className="flex items-center space-x-3">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" aria-hidden="true"></div>
+                <span className="text-white/70 text-sm font-medium" aria-label={`Current FPS: ${stats.fps.toFixed(1)}`}>
+                  {stats.fps.toFixed(1)} FPS
+                </span>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Notification Container */}
+        <NotificationContainer />
+        
+          {/* Floating Help Button */}
+          <FloatingHelpButton />
+        </div>
+      </Router>
+    </ThemeProvider>
   );
 }
 

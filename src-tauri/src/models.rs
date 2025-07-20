@@ -209,3 +209,13 @@ pub enum LiquidityType {
     Resistance, // Large ask wall
     WhaleOrder, // Exceptionally large order
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PriceData {
+    pub timestamp: DateTime<Utc>,
+    pub open: Decimal,
+    pub high: Decimal,
+    pub low: Decimal,
+    pub close: Decimal,
+    pub volume: Decimal,
+}

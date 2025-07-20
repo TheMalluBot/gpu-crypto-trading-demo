@@ -1,4 +1,5 @@
 export interface LROConfig {
+  timeframe: string;
   period: number;
   signal_period: number;
   overbought: number;

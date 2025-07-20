@@ -1,19 +1,26 @@
-use tauri::Manager;
+use tauri::{Manager, Emitter};
 use std::sync::Arc;
 use tokio::sync::{RwLock, Mutex};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 mod gpu_renderer;
+mod gpu_trading;
+mod gpu_risk_manager;
 mod cpu_worker;
 mod commands;
 mod models;
 mod websocket;
-mod binance_client;
 mod trading_strategy;
+mod rate_limiter;
+mod secure_storage;
+mod binance_client;
+mod secure_commands;
+mod logging;
 
 use gpu_renderer::GpuRenderer;
+use gpu_trading::GpuTradingAccelerator;
 use cpu_worker::CpuWorker;
-use websocket::BinanceWebSocket;
+use websocket::ImprovedBinanceWebSocket;
 use models::Trade;
 use trading_strategy::{SwingTradingBot, LROConfig};
 
@@ -28,8 +35,9 @@ type AppState = Arc<RwLock<SystemStats>>;
 
 pub struct TradingState {
     pub paper_trades: Arc<RwLock<Vec<Trade>>>,
-    pub websocket: Arc<BinanceWebSocket>,
+    pub websocket: Arc<ImprovedBinanceWebSocket>,
     pub swing_bot: Arc<RwLock<SwingTradingBot>>,
+    pub gpu_accelerator: Arc<RwLock<Option<GpuTradingAccelerator>>>,
     // Concurrency control
     pub bot_operation_lock: Arc<Mutex<()>>, // Ensures atomic bot operations
     pub is_processing_signal: Arc<AtomicBool>, // Prevents concurrent signal processing
@@ -46,8 +54,9 @@ pub fn run() {
         })))
         .manage(TradingState {
             paper_trades: Arc::new(RwLock::new(Vec::new())),
-            websocket: Arc::new(BinanceWebSocket::new()),
+            websocket: Arc::new(ImprovedBinanceWebSocket::new()),
             swing_bot: Arc::new(RwLock::new(SwingTradingBot::new(LROConfig::default()))),
+            gpu_accelerator: Arc::new(RwLock::new(None)), // Initialize as None, will be set up in setup
             // Initialize concurrency control
             bot_operation_lock: Arc::new(Mutex::new(())),
             is_processing_signal: Arc::new(AtomicBool::new(false)),
@@ -71,70 +80,42 @@ pub fn run() {
             commands::get_bot_status,
             commands::get_lro_signals,
             commands::feed_price_data,
-            commands::simulate_market_data,
             commands::get_all_symbols,
             commands::search_symbols,
             commands::get_market_stats,
-            commands::get_popular_symbols
+            commands::get_popular_symbols,
+            commands::trigger_emergency_stop,
+            commands::reset_emergency_stop,
+            commands::set_account_balance,
+            commands::set_max_position_hold_hours,
+            commands::get_safety_status,
+            commands::reset_daily_loss_tracker,
+            commands::update_safety_config,
+            commands::get_bot_performance_history,
+            commands::analyze_market_conditions,
+            commands::get_order_book_depth,
+            commands::feed_order_book_data,
+            commands::get_market_depth_analysis,
+            commands::get_liquidity_levels,
+            commands::enable_depth_analysis,
+            commands::start_order_book_feed
         ])
         .setup(|app| {
-            let app_handle = app.handle();
-            let state = app_handle.state::<AppState>();
-            let trading_state = app_handle.state::<TradingState>();
+            // Initialize logging system
+            let log_file_path = app.path().app_data_dir()
+                .ok()
+                .map(|dir| dir.join("trading_bot.log"))
+                .and_then(|path| path.to_str().map(|s| s.to_string()));
             
-            // Spawn GPU renderer thread (keep for background animation)
-            let gpu_state = state.clone();
-            let gpu_app_handle = app_handle.clone();
-            tokio::spawn(async move {
-                let mut renderer = GpuRenderer::new().await;
-                loop {
-                    let frame_time = renderer.render_frame().await;
-                    
-                    // Update GPU stats
-                    {
-                        let mut stats = gpu_state.write().await;
-                        stats.gpu_frame_time = frame_time;
-                        stats.fps = 1000.0 / frame_time;
-                    }
-                    
-                    // Emit stats to frontend
-                    let stats = gpu_state.read().await;
-                    let _ = gpu_app_handle.emit_all("stats-update", &*stats);
-                    
-                    tokio::time::sleep(tokio::time::Duration::from_millis(16)).await;
-                }
-            });
+            let _ = logging::init_logger(
+                logging::LogLevel::Info,
+                log_file_path.as_deref(),
+                true // console enabled for development
+            );
             
-            // Spawn CPU worker thread
-            let cpu_state = state.clone();
-            let cpu_app_handle = app_handle.clone();
-            tokio::spawn(async move {
-                let mut worker = CpuWorker::new();
-                loop {
-                    let cpu_load = worker.generate_samples().await;
-                    
-                    // Update CPU stats
-                    {
-                        let mut stats = cpu_state.write().await;
-                        stats.cpu_load = cpu_load;
-                    }
-                    
-                    // Emit stats to frontend
-                    let stats = cpu_state.read().await;
-                    let _ = cpu_app_handle.emit_all("stats-update", &*stats);
-                    
-                    tokio::time::sleep(tokio::time::Duration::from_millis(16)).await;
-                }
-            });
+            log_info!(logging::LogCategory::Configuration, "Trading bot starting up...");
             
-            // Initialize WebSocket connection for price feeds
-            let ws_handle = app_handle.clone();
-            let websocket = trading_state.websocket.clone();
-            tokio::spawn(async move {
-                if let Err(e) = websocket.connect(ws_handle).await {
-                    eprintln!("WebSocket connection failed: {}", e);
-                }
-            });
+            // Initialization will be handled by commands when needed
             
             Ok(())
         })

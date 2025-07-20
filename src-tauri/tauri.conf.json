@@ -1,87 +1,30 @@
 {
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Crypto Trader",
+  "version": "0.1.0",
+  "identifier": "com.example.crypto-trader",
   "build": {
     "beforeBuildCommand": "npm run build",
     "beforeDevCommand": "npm run dev",
-    "devPath": "http://localhost:1420",
-    "distDir": "../dist",
-    "withGlobalTauri": false
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420"
   },
-  "package": {
-    "productName": "Crypto Trader",
-    "version": "0.1.0"
+  "bundle": {
+    "active": false
   },
-  "tauri": {
-    "allowlist": {
-      "all": false,
-      "shell": {
-        "all": false,
-        "open": true
-      },
-      "window": {
-        "all": false,
-        "close": true,
-        "hide": true,
-        "show": true,
-        "maximize": true,
-        "minimize": true,
-        "unmaximize": true,
-        "unminimize": true,
-        "startDragging": true
-      }
-    },
-    "bundle": {
-      "active": true,
-      "category": "DeveloperTool",
-      "copyright": "",
-      "deb": {
-        "depends": []
-      },
-      "externalBin": [],
-      "icon": [
-        "icons/32x32.png",
-        "icons/128x128.png",
-        "icons/128x128@2x.png",
-        "icons/icon.icns",
-        "icons/icon.ico"
-      ],
-      "identifier": "com.example.gpu-cpu-demo",
-      "longDescription": "",
-      "macOS": {
-        "entitlements": null,
-        "exceptionDomain": "",
-        "frameworks": [],
-        "providerShortName": null,
-        "signingIdentity": null
-      },
-      "resources": [],
-      "shortDescription": "",
-      "targets": "all",
-      "windows": {
-        "certificateThumbprint": null,
-        "digestAlgorithm": "sha256",
-        "timestampUrl": ""
-      }
-    },
+  "app": {
     "security": {
-      "csp": null
-    },
-    "updater": {
-      "active": false
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://api.binance.com https://testnet.binance.vision wss://stream.binance.com wss://testnet.binance.vision; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';"
     },
     "windows": [
       {
-        "fullscreen": false,
-        "resizable": true,
         "title": "Crypto Trader",
         "width": 1200,
         "height": 800,
         "minWidth": 800,
         "minHeight": 600,
-        "decorations": false,
-        "transparent": true,
-        "alwaysOnTop": false,
         "center": true,
-        "skipTaskbar": false
+        "resizable": true
       }
     ]
   }

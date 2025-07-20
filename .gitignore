@@ -61,3 +61,25 @@ coverage/
 
 # Claude specific
 .claude/
+
+# Large binary files
+*.tar.gz
+*.zip
+*.rar
+*.7z
+
+# Build artifacts
+portable_builds/
+
+# Generated files
+src-tauri/gen/
+
+# Data files
+data/
+*.dat
+
+# Sensitive files
+*secret*
+*key*
+!src/components/common/*key*
+!node_modules/**/*key*

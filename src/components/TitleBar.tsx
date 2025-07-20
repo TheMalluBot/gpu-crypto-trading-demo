@@ -1,9 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Minus, Square, X } from 'lucide-react';
-import { appWindow } from '@tauri-apps/api/window';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 
 const TitleBar: React.FC = () => {
+  const appWindow = getCurrentWindow();
+
   const handleMinimize = () => {
     appWindow.minimize();
   };

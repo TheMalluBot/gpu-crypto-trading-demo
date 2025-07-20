@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { invoke } from '@tauri-apps/api/tauri';
+import { useState, useEffect, useCallback } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 import {
   BotStatus,
   LROSignal,
@@ -12,6 +12,7 @@ import {
 } from '../types/bot';
 
 const defaultConfig: LROConfig = {
+  timeframe: "1h",
   period: 25,
   signal_period: 9,
   overbought: 0.8,
@@ -44,29 +45,17 @@ export const useBotData = () => {
   const [config, setConfig] = useState<LROConfig>(defaultConfig);
   const [loading, setLoading] = useState(false);
   
-  // Performance optimization refs
-  const lastDataHash = useRef<{ [key: string]: string }>({});
-  const pollingInterval = useRef<NodeJS.Timeout | null>(null);
-  const dataCache = useRef<{ [key: string]: { data: any; timestamp: number } }>({});
 
   const generateMockBotStatus = useCallback(() => {
     const mockStatus: BotStatus = {
-      is_active: Math.random() > 0.5,
-      current_position: Math.random() > 0.6 ? {
-        symbol: 'BTCUSDT',
-        side: Math.random() > 0.5 ? 'Long' : 'Short',
-        entry_price: 45000 + Math.random() * 10000,
-        quantity: 0.1 + Math.random() * 0.5,
-        entry_time: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000).toISOString(),
-        stop_loss: 44000 + Math.random() * 8000,
-        take_profit: 48000 + Math.random() * 12000,
-      } : undefined,
+      is_active: false, // NEVER auto-start in mock mode - user must explicitly start
+      current_position: undefined, // No positions when bot is inactive
       latest_signal: {
         timestamp: new Date().toISOString(),
-        lro_value: (Math.random() - 0.5) * 1.8,
-        signal_line: (Math.random() - 0.5) * 1.6,
-        signal_type: ['Buy', 'Sell', 'StrongBuy', 'StrongSell', 'Hold'][Math.floor(Math.random() * 5)] as any,
-        strength: Math.random(),
+        lro_value: 0,
+        signal_line: 0,
+        signal_type: 'Hold' as any, // Always Hold when bot is inactive
+        strength: 0,
         market_condition: {
           trend_strength: Math.random(),
           volatility: Math.random(),
@@ -75,25 +64,25 @@ export const useBotData = () => {
         }
       },
       performance: {
-        total_trades: 45 + Math.floor(Math.random() * 50),
-        winning_trades: 28 + Math.floor(Math.random() * 25),
-        total_pnl: (Math.random() - 0.3) * 500,
-        max_drawdown: -Math.random() * 150,
-        sharpe_ratio: 0.5 + Math.random() * 1.5,
-        avg_hold_time: 2 + Math.random() * 10,
-        success_rate: 0.5 + Math.random() * 0.3,
+        total_trades: 0, // No trades when bot is inactive
+        winning_trades: 0,
+        total_pnl: 0,
+        max_drawdown: 0,
+        sharpe_ratio: 0,
+        avg_hold_time: 0,
+        success_rate: 0,
       },
       config: config,
       emergency_stop_triggered: false,
-      circuit_breaker_count: Math.floor(Math.random() * 3),
-      circuit_breaker_active: Math.random() > 0.8,
-      account_balance: 10000 + Math.random() * 5000,
-      daily_loss_tracker: Math.random() * 50,
+      circuit_breaker_count: 0, // Clean state when inactive
+      circuit_breaker_active: false,
+      account_balance: config.virtual_balance, // Use configured balance
+      daily_loss_tracker: 0, // No losses when inactive
       max_position_hold_hours: config.max_position_hold_hours,
-      current_daily_loss: Math.random() * 25,
-      positions_auto_closed: Math.floor(Math.random() * 5),
+      current_daily_loss: 0,
+      positions_auto_closed: 0,
       daily_reset_time: new Date().toISOString(),
-      last_circuit_breaker_time: Math.random() > 0.8 ? new Date(Date.now() - Math.random() * 60 * 60 * 1000).toISOString() : undefined,
+      last_circuit_breaker_time: undefined,
       depth_analysis_enabled: true,
     };
     
@@ -409,6 +398,7 @@ export const useBotData = () => {
       case 'scalping':
         newConfig = {
           ...newConfig,
+          timeframe: "5m",
           period: 10,
           signal_period: 5,
           stop_loss_percent: 0.5,
@@ -420,6 +410,7 @@ export const useBotData = () => {
       case 'swing':
         newConfig = {
           ...newConfig,
+          timeframe: "1d",
           period: 25,
           signal_period: 9,
           stop_loss_percent: 2.0,
@@ -430,6 +421,7 @@ export const useBotData = () => {
       case 'trend':
         newConfig = {
           ...newConfig,
+          timeframe: "4h",
           period: 50,
           signal_period: 20,
           stop_loss_percent: 3.0,
@@ -441,6 +433,7 @@ export const useBotData = () => {
       case 'range':
         newConfig = {
           ...newConfig,
+          timeframe: "2h",
           period: 20,
           signal_period: 7,
           stop_loss_percent: 1.5,

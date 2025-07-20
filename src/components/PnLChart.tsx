@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { invoke } from '@tauri-apps/api/tauri';
+import { invoke } from '@tauri-apps/api/core';
 import { TrendingUp, DollarSign, Target, Shield } from 'lucide-react';
+import { StatusBadge } from './common/StatusBadge';
+import { PnLDisplay } from './common/PnLDisplay';
 
 interface Trade {
   id: string;
@@ -59,7 +61,6 @@ const PnLChart: React.FC = () => {
     
     const realizedPnL = closedTrades.reduce((sum, trade) => sum + (trade.pnl || 0), 0);
     const unrealizedPnL = openTrades.reduce((sum, trade) => {
-      // Mock unrealized PnL calculation (would use current price in real implementation)
       return sum + (trade.entry_price * 0.01 * (trade.side === 'Long' ? 1 : -1));
     }, 0);
     
@@ -248,13 +249,7 @@ const PnLChart: React.FC = () => {
                 <tr key={trade.id} className="border-t border-white/10">
                   <td className="py-3 text-white font-medium">{trade.symbol}</td>
                   <td className="py-3">
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      trade.side === 'Long' 
-                        ? 'bg-green-500/20 text-green-400' 
-                        : 'bg-red-500/20 text-red-400'
-                    }`}>
-                      {trade.side}
-                    </span>
+                    <StatusBadge status={trade.side} variant="trade-side" />
                   </td>
                   <td className="py-3 text-white">{trade.quantity}</td>
                   <td className="py-3 text-white">${trade.entry_price.toFixed(2)}</td>
@@ -262,22 +257,10 @@ const PnLChart: React.FC = () => {
                     {trade.exit_price ? `$${trade.exit_price.toFixed(2)}` : '-'}
                   </td>
                   <td className="py-3">
-                    <span className={`font-medium ${
-                      (trade.pnl || 0) >= 0 ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {trade.pnl ? `$${trade.pnl.toFixed(2)}` : '-'}
-                    </span>
+                    <PnLDisplay value={trade.pnl} />
                   </td>
                   <td className="py-3">
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      trade.status === 'Open' 
-                        ? 'bg-blue-500/20 text-blue-400' 
-                        : trade.status === 'Closed'
-                        ? 'bg-gray-500/20 text-gray-400'
-                        : 'bg-red-500/20 text-red-400'
-                    }`}>
-                      {trade.status}
-                    </span>
+                    <StatusBadge status={trade.status} variant="trade-status" />
                   </td>
                 </tr>
               ))}

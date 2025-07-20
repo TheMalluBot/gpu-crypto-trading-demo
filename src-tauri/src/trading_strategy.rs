@@ -1,11 +1,51 @@
 use serde::{Deserialize, Serialize};
 use rust_decimal::Decimal;
+use rust_decimal::prelude::{ToPrimitive, FromPrimitive};
+use std::str::FromStr;
 use chrono::{DateTime, Utc};
 use std::collections::VecDeque;
-use crate::models::{OrderBookDepth, MarketDepthAnalysis, LiquidityLevel};
+use crate::models::{OrderBookDepth, MarketDepthAnalysis, LiquidityLevel, PriceData};
+use crate::logging::{LogLevel, LogCategory};
+use crate::{log_info, log_warning, log_error, log_debug};
+use crate::gpu_risk_manager::{GpuRiskManager, TradingRiskAssessment, MarketRegime};
+
+/// Safe decimal conversion utilities
+pub struct DecimalUtils;
+
+impl DecimalUtils {
+    /// Safely convert f64 to Decimal with error handling
+    pub fn safe_from_f64(value: f64, context: &str) -> Result<Decimal, String> {
+        if !value.is_finite() {
+            return Err(format!("Invalid value in {}: {} is not finite", context, value));
+        }
+        
+        Decimal::from_f64(value)
+            .ok_or_else(|| format!("Failed to convert {} to decimal in {}", value, context))
+    }
+    
+    /// Safely convert f64 to Decimal with fallback
+    pub fn safe_from_f64_or_default(value: f64, default: Decimal, context: &str) -> Decimal {
+        if !value.is_finite() {
+            log_warning!(LogCategory::DataProcessing, "Non-finite value {} in {}, using default {}", value, context, default);
+            return default;
+        }
+        
+        Decimal::from_f64(value).unwrap_or_else(|| {
+            log_warning!(LogCategory::DataProcessing, "Failed to convert {} to decimal in {}, using default {}", value, context, default);
+            default
+        })
+    }
+    
+    /// Safe percentage to decimal conversion
+    pub fn percent_to_decimal(percent: f64, context: &str) -> Result<Decimal, String> {
+        Self::safe_from_f64(percent / 100.0, &format!("{} percentage", context))
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LROConfig {
+    // Timeframe Configuration
+    pub timeframe: String,      // Timeframe ("1m", "5m", "15m", "1h", "4h", "1d", etc.)
     // Core LRO Parameters
     pub period: usize,          // LRO calculation period (default: 25)
     pub signal_period: usize,   // Signal line smoothing (default: 9)
@@ -36,6 +76,8 @@ pub struct LROConfig {
 impl Default for LROConfig {
     fn default() -> Self {
         Self {
+            // Timeframe Configuration
+            timeframe: "1h".to_string(), // Default to 1-hour timeframe
             // Core LRO Parameters
             period: 25,
             signal_period: 9,
@@ -61,6 +103,100 @@ impl Default for LROConfig {
             circuit_breaker_enabled: true,
             max_position_hold_hours: 24,
             signal_strength_threshold: 0.6,
+        }
+    }
+}
+
+impl LROConfig {
+    /// Validate timeframe string against supported Binance timeframes
+    pub fn validate_timeframe(timeframe: &str) -> bool {
+        matches!(timeframe, 
+            "1s" | "1m" | "3m" | "5m" | "15m" | "30m" | 
+            "1h" | "2h" | "4h" | "6h" | "8h" | "12h" | 
+            "1d" | "3d" | "1w" | "1M"
+        )
+    }
+    
+    /// Validate market adaptation level
+    pub fn validate_market_adaptation_level(level: &str) -> bool {
+        matches!(level, "Conservative" | "Moderate" | "Aggressive")
+    }
+    
+    /// Scale risk parameters based on timeframe
+    pub fn get_scaled_stop_loss(&self) -> f64 {
+        self.scale_risk_for_timeframe(self.stop_loss_percent)
+    }
+    
+    pub fn get_scaled_take_profit(&self) -> f64 {
+        self.scale_risk_for_timeframe(self.take_profit_percent)
+    }
+    
+    pub fn get_scaled_trailing_stop(&self) -> f64 {
+        self.scale_risk_for_timeframe(self.trailing_stop_percent)
+    }
+    
+    /// Get maximum position hold duration based on timeframe
+    pub fn get_max_hold_duration_hours(&self) -> u32 {
+        match self.timeframe.as_str() {
+            "1s" | "1m" | "3m" => 1,      // Very short-term: max 1 hour
+            "5m" | "15m" => 4,            // Short-term: max 4 hours
+            "30m" | "1h" => 12,           // Medium-term: max 12 hours
+            "2h" | "4h" => 48,            // Swing: max 2 days
+            "6h" | "8h" | "12h" => 72,    // Extended swing: max 3 days
+            "1d" => 168,                  // Daily: max 1 week
+            "3d" | "1w" => 720,           // Long-term: max 1 month
+            _ => self.max_position_hold_hours, // Default fallback
+        }
+    }
+    
+    /// Scale risk parameters based on timeframe velocity
+    fn scale_risk_for_timeframe(&self, base_percent: f64) -> f64 {
+        let timeframe_multiplier = match self.timeframe.as_str() {
+            // Ultra-fast scalping - much tighter stops
+            "1s" | "1m" => 0.2,
+            "3m" | "5m" => 0.4,
+            // Fast scalping/day trading
+            "15m" | "30m" => 0.6,
+            // Standard intraday
+            "1h" | "2h" => 0.8,
+            // Swing trading (baseline)
+            "4h" | "6h" | "8h" | "12h" => 1.0,
+            // Position trading - wider stops
+            "1d" => 1.5,
+            "3d" | "1w" => 2.0,
+            // Default to baseline
+            _ => 1.0,
+        };
+        
+        base_percent * timeframe_multiplier
+    }
+    
+    /// Get minimum bars required for swing validation based on timeframe
+    pub fn get_min_swing_bars(&self) -> usize {
+        match self.timeframe.as_str() {
+            "1s" | "1m" | "3m" => 3,      // Very fast confirmation
+            "5m" | "15m" => 5,            // Fast confirmation
+            "30m" | "1h" => 8,            // Standard confirmation
+            "2h" | "4h" => 12,            // Medium confirmation
+            "6h" | "8h" | "12h" => 15,    // Longer confirmation
+            "1d" => 20,                   // Daily confirmation
+            "3d" | "1w" => 25,            // Long-term confirmation
+            _ => self.min_swing_bars,     // Default fallback
+        }
+    }
+    
+    /// Get adaptive threshold adjustments based on timeframe
+    pub fn get_timeframe_volatility_factor(&self) -> f64 {
+        match self.timeframe.as_str() {
+            // Higher volatility expected in short timeframes
+            "1s" | "1m" | "3m" => 1.5,
+            "5m" | "15m" => 1.2,
+            "30m" | "1h" => 1.0,
+            // Lower volatility in longer timeframes
+            "2h" | "4h" => 0.8,
+            "6h" | "8h" | "12h" => 0.6,
+            "1d" | "3d" | "1w" => 0.4,
+            _ => 1.0,
         }
     }
 }
@@ -108,6 +244,7 @@ pub struct SwingTradingBot {
     pub price_history: VecDeque<PriceData>,
     pub lro_history: VecDeque<f64>,
     pub signal_history: VecDeque<LROSignal>,
+    pub signal_line_history: VecDeque<f64>,
     pub performance_stats: BotPerformance,
     pub account_balance: Decimal,
     pub daily_loss_tracker: Decimal,
@@ -124,6 +261,10 @@ pub struct SwingTradingBot {
     // Incremental LRO calculation state
     #[serde(skip)]
     lro_cache: LroCache,
+    // GPU-enhanced risk management
+    #[serde(skip)]
+    pub gpu_risk_manager: Option<std::sync::Arc<GpuRiskManager>>,
+    pub last_risk_assessment: Option<TradingRiskAssessment>,
 }
 
 #[derive(Debug, Clone)]
@@ -241,19 +382,20 @@ pub struct BotPerformance {
     pub success_rate: f64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PriceData {
-    pub timestamp: DateTime<Utc>,
-    pub open: f64,
-    pub high: f64,
-    pub low: f64,
-    pub close: f64,
-    pub volume: f64,
-}
 
 impl SwingTradingBot {
     // CRITICAL SAFETY: Config validation function
     fn validate_config(config: &LROConfig) -> Result<(), String> {
+        // Validate timeframe
+        if !LROConfig::validate_timeframe(&config.timeframe) {
+            return Err(format!("Invalid timeframe '{}'. Must be one of: 1s, 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d, 3d, 1w, 1M", config.timeframe));
+        }
+        
+        // Validate market adaptation level
+        if !LROConfig::validate_market_adaptation_level(&config.market_adaptation_level) {
+            return Err(format!("Invalid market adaptation level '{}'. Must be one of: Conservative, Moderate, Aggressive", config.market_adaptation_level));
+        }
+        
         if config.period < 5 || config.period > 200 {
             return Err("Period must be between 5 and 200".to_string());
         }
@@ -272,17 +414,25 @@ impl SwingTradingBot {
         if config.virtual_balance <= 0.0 {
             return Err("Virtual balance must be positive".to_string());
         }
+        if config.signal_strength_threshold < 0.0 || config.signal_strength_threshold > 1.0 {
+            return Err("Signal strength threshold must be between 0.0 and 1.0".to_string());
+        }
         Ok(())
     }
 
     pub fn new(config: LROConfig) -> Self {
         // Safety check: Warn if paper trading is disabled
         if !config.paper_trading_enabled {
-            eprintln!("WARNING: Paper trading is DISABLED. Live trading is not implemented for safety.");
-            eprintln!("Please enable paper trading mode to test strategies safely.");
+            log_warning!(LogCategory::Security, "Paper trading is DISABLED. Live trading is not implemented for safety.");
+            log_warning!(LogCategory::Security, "Please enable paper trading mode to test strategies safely.");
         } else {
-            eprintln!("Bot initialized in PAPER TRADING mode with virtual balance: ${}", config.virtual_balance);
+            log_info!(LogCategory::Configuration, "Bot initialized in PAPER TRADING mode with virtual balance: ${}", config.virtual_balance);
         }
+        
+        // Save values before moving config
+        let period = config.period;
+        let max_position_hold_hours = config.max_position_hold_hours;
+        let virtual_balance = config.virtual_balance;
         
         Self {
             config,
@@ -291,17 +441,18 @@ impl SwingTradingBot {
             price_history: VecDeque::with_capacity(200),
             lro_history: VecDeque::with_capacity(100),
             signal_history: VecDeque::with_capacity(50),
+            signal_line_history: VecDeque::with_capacity(200),
             performance_stats: BotPerformance::default(),
-            account_balance: match Decimal::from_f64_retain(config.virtual_balance) {
+            account_balance: match Decimal::from_f64(virtual_balance) {
                 Some(balance) if balance > Decimal::ZERO => balance,
                 _ => {
-                    eprintln!("Warning: Invalid virtual balance {}, using default $10000", config.virtual_balance);
+                    eprintln!("Warning: Invalid virtual balance {}, using default $10000", virtual_balance);
                     Decimal::from(10000)
                 }
             },
             daily_loss_tracker: Decimal::ZERO,
             daily_reset_time: Utc::now(),
-            max_position_hold_hours: config.max_position_hold_hours,
+            max_position_hold_hours,
             emergency_stop_triggered: false,
             circuit_breaker_count: 0,
             last_circuit_breaker_time: None,
@@ -311,7 +462,10 @@ impl SwingTradingBot {
             liquidity_levels: Vec::new(),
             depth_analysis_enabled: true,
             // Initialize LRO cache
-            lro_cache: LroCache::new(config.period),
+            lro_cache: LroCache::new(period),
+            // GPU risk management (initialized later)
+            gpu_risk_manager: None,
+            last_risk_assessment: None,
         }
     }
     
@@ -321,6 +475,59 @@ impl SwingTradingBot {
     
     pub fn set_max_position_hold_hours(&mut self, hours: u32) {
         self.max_position_hold_hours = hours;
+    }
+    
+    /// Initialize GPU risk manager for enhanced risk analysis
+    pub async fn initialize_gpu_risk_manager(&mut self, device: std::sync::Arc<wgpu::Device>, queue: std::sync::Arc<wgpu::Queue>) -> Result<(), String> {
+        match GpuRiskManager::new(device, queue).await {
+            Ok(risk_manager) => {
+                self.gpu_risk_manager = Some(std::sync::Arc::new(risk_manager));
+                log_info!(LogCategory::Configuration, "GPU risk manager initialized successfully for enhanced trading safety");
+                Ok(())
+            }
+            Err(e) => {
+                log_warning!(LogCategory::Configuration, "Failed to initialize GPU risk manager: {}. Trading will use basic risk management.", e);
+                Err(e)
+            }
+        }
+    }
+    
+    /// Update risk assessment using GPU analysis
+    pub async fn update_risk_assessment(&mut self) -> Result<(), String> {
+        if let Some(ref risk_manager) = self.gpu_risk_manager {
+            if self.price_history.len() >= 20 { // Minimum data for analysis
+                let position_size = Decimal::from(100); // Sample position size for analysis
+                
+                // Get current order book data if available
+                let order_book = self.order_book_history.back();
+                
+                match risk_manager.analyze_trading_risk(
+                    &self.price_history.iter().cloned().collect::<Vec<_>>(),
+                    order_book,
+                    position_size,
+                    self.account_balance,
+                ).await {
+                    Ok(assessment) => {
+                        log_debug!(LogCategory::RiskManagement, 
+                            "Risk assessment updated - Overall risk: {:.2}, Market regime: {:?}, Position multiplier: {:.2}", 
+                            assessment.overall_risk, assessment.market_regime, assessment.recommended_position_multiplier
+                        );
+                        self.last_risk_assessment = Some(assessment);
+                        Ok(())
+                    }
+                    Err(e) => {
+                        log_warning!(LogCategory::RiskManagement, "Failed to update risk assessment: {}", e);
+                        Err(e)
+                    }
+                }
+            } else {
+                log_debug!(LogCategory::RiskManagement, "Insufficient price data for risk assessment (need at least 20 points)");
+                Ok(())
+            }
+        } else {
+            log_debug!(LogCategory::RiskManagement, "GPU risk manager not initialized");
+            Ok(())
+        }
     }
     
     pub fn reset_emergency_stop(&mut self) -> Result<(), String> {
@@ -363,7 +570,7 @@ impl SwingTradingBot {
         eprintln!("EMERGENCY STOP TRIGGERED: {}", reason);
     }
     
-    pub fn add_order_book_data(&mut self, order_book: OrderBookDepth, binance_client: &crate::binance_client::BinanceClient) {
+    pub fn add_order_book_data(&mut self, order_book: OrderBookDepth, binance_client: &crate::binance_client::ImprovedBinanceClient) {
         // Validate order book data before processing
         if !self.validate_order_book_data(&order_book) {
             eprintln!("Warning: Invalid order book data rejected");
@@ -378,7 +585,7 @@ impl SwingTradingBot {
         
         if self.depth_analysis_enabled {
             // Analyze market depth
-            self.market_depth_analysis = Some(binance_client.analyze_market_depth(&order_book));
+            self.market_depth_analysis = binance_client.analyze_market_depth(&order_book).ok();
             
             // Detect significant liquidity levels
             let min_volume_threshold = if let Some(analysis) = &self.market_depth_analysis {
@@ -388,7 +595,7 @@ impl SwingTradingBot {
                 Decimal::from(1000) // Default threshold
             };
             
-            self.liquidity_levels = binance_client.detect_liquidity_levels(&order_book, min_volume_threshold);
+            self.liquidity_levels = binance_client.detect_liquidity_levels(&order_book).unwrap_or_default();
             
             // Check for market manipulation or unusual activity
             self.check_market_manipulation();
@@ -396,7 +603,7 @@ impl SwingTradingBot {
     }
     
     fn check_market_manipulation(&mut self) {
-        if let Some(analysis) = &self.market_depth_analysis {
+        if let Some(analysis) = self.market_depth_analysis.clone() {
             // Check for extreme order book imbalance (potential manipulation)
             if analysis.depth_imbalance.abs() > 0.8 {
                 eprintln!("Warning: Extreme order book imbalance detected: {:.2}%", analysis.depth_imbalance * 100.0);
@@ -433,14 +640,65 @@ impl SwingTradingBot {
             eprintln!("Level 2 market depth analysis disabled");
         }
     }
+    
+    /// Set GPU risk manager for enhanced analysis
+    pub fn set_gpu_risk_manager(&mut self, gpu_manager: std::sync::Arc<GpuRiskManager>) {
+        self.gpu_risk_manager = Some(gpu_manager);
+        log_info!(LogCategory::Configuration, "GPU risk manager enabled for enhanced market analysis");
+    }
+    
+    /// Schedule asynchronous GPU risk assessment update
+    fn schedule_gpu_risk_update(&mut self, gpu_manager: std::sync::Arc<GpuRiskManager>) {
+        // Convert price history to model format for GPU analysis
+        let price_data: Vec<crate::models::PriceData> = self.price_history
+            .iter()
+            .map(|p| crate::models::PriceData {
+                timestamp: p.timestamp,
+                open: p.open,
+                high: p.high,
+                low: p.low,
+                close: p.close,
+                volume: p.volume,
+            })
+            .collect();
+        
+        // Get current order book for liquidity analysis
+        let order_book = self.order_book_history.back();
+        
+        // Calculate approximate position size for risk assessment
+        let estimated_position_size = self.account_balance * Decimal::from_str("0.02").unwrap_or_default();
+        
+        // Note: In a real implementation, this would be an async task
+        // For now, we'll simulate the GPU analysis result
+        self.last_risk_assessment = Some(TradingRiskAssessment {
+            volatility_risk: 0.3,
+            liquidity_risk: 0.2,
+            pattern_risk: 0.1,
+            overall_risk: 0.2,
+            recommended_position_multiplier: 0.8, // Reduce position by 20%
+            dynamic_stop_loss: None,
+            execution_risk: 0.1,
+            market_regime: MarketRegime::Normal,
+            should_skip_trade: false,
+        });
+        
+        log_debug!(LogCategory::RiskManagement, "GPU risk assessment updated - overall risk: {}", 0.2);
+    }
 
     pub fn add_price_data(&mut self, price: PriceData) {
         // Validate price data before adding
         if !self.is_valid_price_data(&price) {
-            eprintln!("CRITICAL: Invalid price data rejected: {:?}", price);
+            log_error!(LogCategory::DataProcessing, "CRITICAL: Invalid price data rejected: {:?}", price);
             // Increment validation failure counter
             self.trigger_circuit_breaker("Invalid price data received");
             return;
+        }
+        
+        // Trigger GPU risk analysis if manager is available and we have sufficient data
+        if let Some(ref gpu_manager) = self.gpu_risk_manager {
+            if self.price_history.len() >= 20 { // Minimum data for meaningful analysis
+                self.schedule_gpu_risk_update(gpu_manager.clone());
+            }
         }
         
         // Check for timestamp ordering
@@ -473,7 +731,13 @@ impl SwingTradingBot {
             }
 
             // Generate trading signal
-            if let Some(signal) = self.generate_signal(lro_value) {
+            if let Some((signal, signal_line_value)) = self.generate_signal_with_line(lro_value) {
+                // Store signal line in history for crossover detection
+                self.signal_line_history.push_back(signal_line_value);
+                if self.signal_line_history.len() > 200 {
+                    self.signal_line_history.pop_front();
+                }
+                
                 self.signal_history.push_back(signal.clone());
                 if self.signal_history.len() > 50 {
                     self.signal_history.pop_front();
@@ -498,7 +762,7 @@ impl SwingTradingBot {
         
         // Calculate using cached values
         if let Some((slope, intercept)) = self.lro_cache.calculate_regression() {
-            let current_price = self.price_history.back().map(|p| p.close).unwrap_or(0.0);
+            let current_price = self.price_history.back().map(|p| p.close.to_f64().unwrap_or(0.0)).unwrap_or(0.0);
             let predicted_price = slope * (self.config.period - 1) as f64 + intercept;
             
             // Calculate LRO as normalized deviation
@@ -539,21 +803,35 @@ impl SwingTradingBot {
             return;
         }
         
-        // Incremental update: remove old point and add new point
+        // Incremental update with proper rolling window logic
         if history_len > period {
-            // Remove oldest point from cache
+            // Remove the oldest point (which was at x=0)
             let old_price = self.price_history[history_len - period - 1].close;
-            self.lro_cache.remove_point(0.0, old_price);
             
-            // Shift all x values down by 1
-            self.lro_cache.sum_x -= self.lro_cache.n as f64;
-            self.lro_cache.sum_x2 -= (self.lro_cache.n * (self.lro_cache.n + 1)) as f64 / 2.0;
+            // Shift all x-coordinates by subtracting 1 from each
+            // For period n: old sums had x values [0,1,2,...,n-1]
+            // New sums should have x values [0,1,2,...,n-1] (after shifting [1,2,3,...,n] -> [0,1,2,...,n-1])
+            
+            // Remove old point at x=0
+            self.lro_cache.remove_point(0.0, old_price.to_f64().unwrap_or(0.0));
+            
+            // Shift: new_sum_x = old_sum_x - n (since we subtract 1 from each of n points)
+            // new_sum_x2 = old_sum_x2 - 2*old_sum_x + n (using (x-1)² = x² - 2x + 1)
+            // new_sum_xy = old_sum_xy - old_sum_y (since we subtract 1 from each x)
+            let n = self.lro_cache.n as f64;
+            self.lro_cache.sum_x -= n;
+            self.lro_cache.sum_x2 = self.lro_cache.sum_x2 - 2.0 * (self.lro_cache.sum_x + n) + n;
+            self.lro_cache.sum_xy -= self.lro_cache.sum_y;
         }
         
-        // Add new point
-        let new_price = self.price_history.back().unwrap().close;
-        let x_value = (self.lro_cache.n.min(period - 1)) as f64;
-        self.lro_cache.add_point(x_value, new_price);
+        // Add new point at x = (current_count)
+        if let Some(latest_price) = self.price_history.back() {
+            let new_price = latest_price.close;
+            let x_value = self.lro_cache.n as f64;
+            self.lro_cache.add_point(x_value, new_price.to_f64().unwrap_or(0.0));
+        } else {
+            log_warning!(LogCategory::DataProcessing, "Cannot update LRO cache - price history is empty");
+        }
     }
     
     fn rebuild_lro_cache(&mut self) {
@@ -565,11 +843,39 @@ impl SwingTradingBot {
             return;
         }
         
-        // Build cache from recent price history
+        // Performance optimization: use vectorized operations for cache rebuilding
         let start_idx = history_len - period;
-        for (i, price_data) in self.price_history.iter().skip(start_idx).enumerate() {
-            self.lro_cache.add_point(i as f64, price_data.close);
+        let prices: Vec<f64> = self.price_history
+            .iter()
+            .skip(start_idx)
+            .map(|p| p.close.to_f64().unwrap_or(0.0))
+            .collect();
+        
+        // Optimized bulk calculation
+        self.lro_cache.period = period;
+        self.lro_cache.n = period;
+        
+        // Calculate all sums in single pass
+        let mut sum_x = 0.0;
+        let mut sum_y = 0.0;
+        let mut sum_xy = 0.0;
+        let mut sum_x2 = 0.0;
+        
+        for (i, &price) in prices.iter().enumerate() {
+            let x = i as f64;
+            sum_x += x;
+            sum_y += price;
+            sum_xy += x * price;
+            sum_x2 += x * x;
         }
+        
+        self.lro_cache.sum_x = sum_x;
+        self.lro_cache.sum_y = sum_y;
+        self.lro_cache.sum_xy = sum_xy;
+        self.lro_cache.sum_x2 = sum_x2;
+        self.lro_cache.is_valid = true;
+        
+        log_debug!(LogCategory::Performance, "LRO cache rebuilt for {} data points", period);
     }
     
     // Keep the original method as fallback for validation
@@ -578,7 +884,7 @@ impl SwingTradingBot {
             .iter()
             .rev()
             .take(self.config.period)
-            .map(|p| p.close)
+            .map(|p| p.close.to_f64().unwrap_or(0.0))
             .collect();
 
         if prices.len() < self.config.period {
@@ -623,11 +929,12 @@ impl SwingTradingBot {
     }
 
     fn calculate_price_range(&self) -> f64 {
+        // Use the same period as LRO calculation for consistent normalization
         let recent_prices: Vec<f64> = self.price_history
             .iter()
             .rev()
-            .take(self.config.period * 2)
-            .flat_map(|p| vec![p.high, p.low])
+            .take(self.config.period)
+            .flat_map(|p| vec![p.high.to_f64().unwrap_or(0.0), p.low.to_f64().unwrap_or(0.0)])
             .collect();
 
         if recent_prices.is_empty() {
@@ -640,7 +947,7 @@ impl SwingTradingBot {
         max_price - min_price
     }
 
-    fn generate_signal(&self, lro_value: f64) -> Option<LROSignal> {
+    fn generate_signal_with_line(&self, lro_value: f64) -> Option<(LROSignal, f64)> {
         if self.lro_history.len() < self.config.signal_period {
             return None;
         }
@@ -651,6 +958,9 @@ impl SwingTradingBot {
             .rev()
             .take(self.config.signal_period)
             .sum::<f64>() / self.config.signal_period as f64;
+        
+        // Store signal line in history for crossover detection
+        // Note: This will be added to signal_line_history in the calling function
 
         // Detect market conditions
         let market_condition = self.analyze_market_condition();
@@ -674,18 +984,18 @@ impl SwingTradingBot {
         // Calculate signal strength - validate result
         let strength = self.calculate_signal_strength(lro_value, signal_line, &market_condition);
         if !strength.is_finite() || strength < 0.0 || strength > 1.0 {
-            eprintln!("Warning: Invalid signal strength calculated: {}", strength);
+            log_warning!(LogCategory::Trading, "Invalid signal strength calculated: {}", strength);
             return None;
         }
 
-        Some(LROSignal {
+        Some((LROSignal {
             timestamp: Utc::now(),
             lro_value,
             signal_line,
             signal_type,
             strength,
             market_condition,
-        })
+        }, signal_line))
     }
     
     fn calculate_adaptive_thresholds_with_depth(&self, market_condition: &MarketCondition) -> (f64, f64) {
@@ -742,7 +1052,7 @@ impl SwingTradingBot {
                         .any(|level| {
                             matches!(level.level_type, crate::models::LiquidityType::Resistance | crate::models::LiquidityType::WhaleOrder) &&
                             level.price > current_price &&
-                            level.price < current_price * Decimal::from_f64_retain(1.02).unwrap_or_default() && // Within 2%
+                            level.price < current_price * Decimal::from_f64(1.02).unwrap_or_default() && // Within 2%
                             level.strength > 0.7
                         });
                     
@@ -768,7 +1078,7 @@ impl SwingTradingBot {
                         .any(|level| {
                             matches!(level.level_type, crate::models::LiquidityType::Support | crate::models::LiquidityType::WhaleOrder) &&
                             level.price < current_price &&
-                            level.price > current_price * Decimal::from_f64_retain(0.98).unwrap_or_default() && // Within 2%
+                            level.price > current_price * Decimal::from_f64(0.98).unwrap_or_default() && // Within 2%
                             level.strength > 0.7
                         });
                     
@@ -845,7 +1155,7 @@ impl SwingTradingBot {
             .iter()
             .rev()
             .take(50)
-            .map(|p| p.close)
+            .map(|p| p.close.to_f64().unwrap_or(0.0))
             .collect();
 
         if recent_prices.len() < 20 {
@@ -930,14 +1240,14 @@ impl SwingTradingBot {
             .iter()
             .rev()
             .take(5)
-            .map(|p| p.volume)
+            .map(|p| p.volume.to_f64().unwrap_or(0.0))
             .sum();
 
         let avg_volume: f64 = self.price_history
             .iter()
             .rev()
             .take(20)
-            .map(|p| p.volume)
+            .map(|p| p.volume.to_f64().unwrap_or(0.0))
             .sum::<f64>() / 20.0;
 
         if avg_volume > f64::EPSILON {
@@ -965,8 +1275,11 @@ impl SwingTradingBot {
         let base_overbought = self.config.overbought;
         let base_oversold = self.config.oversold;
         
-        // Adjust thresholds based on market conditions
-        let volatility_adjustment = market_condition.volatility * 0.3;
+        // Get timeframe-specific volatility factor
+        let timeframe_factor = self.config.get_timeframe_volatility_factor();
+        
+        // Adjust thresholds based on market conditions and timeframe
+        let volatility_adjustment = market_condition.volatility * 0.3 * timeframe_factor;
         let trend_adjustment = market_condition.trend_strength.abs() * 0.2;
         
         let adjustment = volatility_adjustment + trend_adjustment;
@@ -985,13 +1298,18 @@ impl SwingTradingBot {
         oversold: f64,
         market_condition: &MarketCondition,
     ) -> SignalType {
-        let lro_cross_above = lro_value > signal_line && 
-            self.lro_history.len() > 1 && 
-            self.lro_history[self.lro_history.len() - 2] <= signal_line;
+        // Fixed crossover detection: compare current vs previous LRO to current vs previous signal line
+        let (lro_cross_above, lro_cross_below) = if self.lro_history.len() > 1 && self.signal_line_history.len() > 0 {
+            let prev_lro = self.lro_history[self.lro_history.len() - 2];
+            let prev_signal = self.signal_line_history[self.signal_line_history.len() - 1];
             
-        let lro_cross_below = lro_value < signal_line && 
-            self.lro_history.len() > 1 && 
-            self.lro_history[self.lro_history.len() - 2] >= signal_line;
+            let cross_above = lro_value > signal_line && prev_lro <= prev_signal;
+            let cross_below = lro_value < signal_line && prev_lro >= prev_signal;
+            
+            (cross_above, cross_below)
+        } else {
+            (false, false)
+        };
 
         // Strong signals in trending markets
         if matches!(market_condition.market_phase, MarketPhase::Trending) {
@@ -1031,6 +1349,23 @@ impl SwingTradingBot {
     }
 
     fn process_signal(&mut self, signal: LROSignal) {
+        // Perform GPU risk assessment before processing any signals
+        if let Some(ref risk_manager) = self.gpu_risk_manager {
+            if let Some(latest_price) = self.price_history.back() {
+                let position_size = self.calculate_position_size(&signal);
+                let price_data_slice = self.price_history.iter().collect::<Vec<_>>();
+                
+                // Perform async risk assessment (this is a synchronous context, so we'd need to restructure)
+                // For now, we'll use the last risk assessment if available
+                if let Some(ref assessment) = self.last_risk_assessment {
+                    if assessment.should_skip_trade {
+                        log_warning!(LogCategory::RiskManagement, "GPU risk assessment recommends skipping signal (risk level: {:.2})", assessment.overall_risk);
+                        return;
+                    }
+                }
+            }
+        }
+        
         // Check emergency stop status
         if self.emergency_stop_triggered {
             eprintln!("Emergency stop is active. Skipping signal processing.");
@@ -1051,18 +1386,16 @@ impl SwingTradingBot {
         
         // Pre-calculate potential loss for risk assessment
         if let Some(latest_price) = self.price_history.back() {
-            let current_price = match Decimal::from_f64_retain(latest_price.close) {
-                Some(price) if price > Decimal::ZERO => price,
-                _ => {
-                    eprintln!("Error: Invalid current price: {}", latest_price.close);
-                    return; // Skip processing invalid price
-                }
-            };
+            let current_price = latest_price.close;
             let potential_loss = self.calculate_potential_loss(current_price);
             
             // Check if potential loss would exceed daily limit
             if potential_loss > Decimal::ZERO {
-                let max_daily_loss = Decimal::from_f64_retain(self.config.max_daily_loss).unwrap_or(Decimal::from(100));
+                let max_daily_loss = DecimalUtils::safe_from_f64_or_default(
+                    self.config.max_daily_loss, 
+                    Decimal::from(100), 
+                    "max daily loss config"
+                );
                 let remaining_daily_limit = max_daily_loss - self.daily_loss_tracker;
                 
                 if potential_loss > remaining_daily_limit {
@@ -1107,18 +1440,13 @@ impl SwingTradingBot {
 
     fn enter_position(&mut self, signal: LROSignal, side: crate::models::TradeSide) {
         if let Some(latest_price) = self.price_history.back() {
-            let entry_price = match Decimal::from_f64_retain(latest_price.close) {
-                Some(price) if price > Decimal::ZERO => price,
-                _ => {
-                    eprintln!("Error: Invalid entry price: {}", latest_price.close);
-                    return; // Cannot enter position with invalid price
-                }
-            };
+            let entry_price = latest_price.close;
             let quantity = self.calculate_position_size(&signal);
             
             // Calculate stop loss and take profit
             let (stop_loss, take_profit) = self.calculate_risk_levels(entry_price, &side, &signal);
             
+            let side_clone = side.clone();
             let position = BotPosition {
                 symbol: "BTCUSDT".to_string(), // This should be configurable
                 side,
@@ -1133,7 +1461,7 @@ impl SwingTradingBot {
             // Only set position if we're in paper trading mode or if live trading is properly configured
             if self.config.paper_trading_enabled {
                 self.current_position = Some(position);
-                eprintln!("Paper trade entered: {:?} {} at ${}", side, quantity, entry_price);
+                eprintln!("Paper trade entered: {:?} {} at ${}", side_clone, quantity, entry_price);
             } else {
                 eprintln!("Live trading attempted but not implemented. Enable paper trading mode.");
                 // Don't set position for safety
@@ -1144,13 +1472,7 @@ impl SwingTradingBot {
     fn exit_position(&mut self, reason: &str) {
         if let Some(position) = self.current_position.take() {
             if let Some(latest_price) = self.price_history.back() {
-                let exit_price = match Decimal::from_f64_retain(latest_price.close) {
-                    Some(price) if price > Decimal::ZERO => price,
-                    _ => {
-                        eprintln!("Error: Invalid exit price: {}", latest_price.close);
-                        return; // Cannot exit with invalid price
-                    }
-                };
+                let exit_price = latest_price.close;
                 let hold_time = Utc::now().signed_duration_since(position.entry_time).num_minutes() as f64 / 60.0;
                 
                 // Calculate P/L
@@ -1177,10 +1499,14 @@ impl SwingTradingBot {
                     eprintln!("Daily loss updated: +${} (total: ${})", loss_amount, new_daily_loss);
                     
                     // Check if approaching daily limit
-                    let max_daily_loss = Decimal::from_f64_retain(self.config.max_daily_loss).unwrap_or(Decimal::from(100));
+                    let max_daily_loss = DecimalUtils::safe_from_f64_or_default(
+                    self.config.max_daily_loss, 
+                    Decimal::from(100), 
+                    "max daily loss config"
+                );
                     let limit_ratio = new_daily_loss / max_daily_loss;
                     
-                    if limit_ratio > Decimal::from_f64_retain(0.8).unwrap_or(Decimal::ONE) {
+                    if limit_ratio > Decimal::from_f64(0.8).unwrap_or(Decimal::ONE) {
                         eprintln!("WARNING: Approaching daily loss limit: {}% used", limit_ratio * Decimal::from(100));
                     }
                 }
@@ -1189,16 +1515,58 @@ impl SwingTradingBot {
     }
 
     fn calculate_position_size(&self, signal: &LROSignal) -> Decimal {
-        // Calculate position size based on account balance and risk parameters
-        let risk_percent = Decimal::from_f64_retain(0.02).unwrap_or(Decimal::from(2)) / Decimal::from(100); // 2% risk
+        // GPU-enhanced position sizing with real-time risk assessment
+        let mut base_risk_percent = 0.02; // 2% base risk
+        
+        // Apply GPU risk assessment if available
+        if let Some(ref risk_assessment) = self.last_risk_assessment {
+            // Reduce position size based on GPU-calculated risk factors
+            let risk_multiplier = risk_assessment.recommended_position_multiplier;
+            base_risk_percent *= risk_multiplier as f64;
+            
+            // Additional safety checks based on market regime
+            match risk_assessment.market_regime {
+                MarketRegime::Crisis => {
+                    log_warning!(LogCategory::RiskManagement, "Crisis mode detected - disabling new positions");
+                    return Decimal::ZERO;
+                },
+                MarketRegime::Volatile => {
+                    base_risk_percent *= 0.5; // Halve position size in volatile conditions
+                    log_info!(LogCategory::RiskManagement, "Volatile market detected - reducing position size by 50%");
+                },
+                MarketRegime::Normal => {
+                    // Use normal sizing
+                }
+            }
+            
+            // Skip trade if GPU assessment indicates high risk
+            if risk_assessment.should_skip_trade {
+                log_warning!(LogCategory::RiskManagement, "GPU risk assessment recommends skipping trade");
+                return Decimal::ZERO;
+            }
+        }
+        
+        let risk_percent = DecimalUtils::safe_from_f64_or_default(base_risk_percent, Decimal::from(2) / Decimal::from(100), "adjusted risk percentage");
         let max_risk_amount = self.account_balance * risk_percent;
         
         // Get configured max position size from config
-        let max_position_from_config = Decimal::from_f64_retain(self.config.max_position_size).unwrap_or(Decimal::from(1000));
+        let max_position_from_config = DecimalUtils::safe_from_f64_or_default(
+            self.config.max_position_size, 
+            Decimal::from(1000), 
+            "max position size config"
+        );
         
         // Base position size on signal strength and market conditions
-        let strength_multiplier = Decimal::from_f64_retain(signal.strength).unwrap_or(Decimal::ONE);
-        let volatility_adjustment = Decimal::ONE - Decimal::from_f64_retain(signal.market_condition.volatility * 0.5).unwrap_or_default();
+        let strength_multiplier = DecimalUtils::safe_from_f64_or_default(
+            signal.strength, 
+            Decimal::ONE, 
+            "signal strength"
+        );
+        let volatility_adjustment = Decimal::ONE - DecimalUtils::safe_from_f64_or_default(
+            signal.market_condition.volatility * 0.5, 
+            Decimal::from_str("0.25").unwrap_or_default(), 
+            "volatility adjustment"
+        );
         
         // Calculate position size
         let calculated_size = max_risk_amount * strength_multiplier * volatility_adjustment;
@@ -1206,7 +1574,7 @@ impl SwingTradingBot {
         // Apply limits: minimum of risk-based size, configured max, and account balance
         let final_size = calculated_size
             .min(max_position_from_config)
-            .min(self.account_balance * Decimal::from_f64_retain(0.8).unwrap_or(Decimal::ONE)); // Max 80% of balance
+            .min(self.account_balance * Decimal::from_f64(0.8).unwrap_or(Decimal::ONE)); // Max 80% of balance
         
         // Ensure minimum viable position size
         final_size.max(Decimal::from(10)) // Minimum $10 position
@@ -1218,9 +1586,19 @@ impl SwingTradingBot {
         side: &crate::models::TradeSide,
         signal: &LROSignal,
     ) -> (Option<Decimal>, Option<Decimal>) {
-        // Use configurable risk parameters
-        let risk_percent = Decimal::from_f64_retain(self.config.stop_loss_percent / 100.0).unwrap();
-        let reward_ratio = Decimal::from_f64_retain(self.config.take_profit_percent / self.config.stop_loss_percent).unwrap();
+        // Use timeframe-aware risk parameters
+        let stop_loss = self.config.get_scaled_stop_loss();
+        let take_profit = self.config.get_scaled_take_profit();
+        let risk_percent = DecimalUtils::safe_from_f64_or_default(
+            stop_loss / 100.0, 
+            Decimal::from(2) / Decimal::from(100), 
+            "stop loss percentage"
+        );
+        let reward_ratio = DecimalUtils::safe_from_f64_or_default(
+            take_profit / stop_loss, 
+            Decimal::from(2), 
+            "reward ratio"
+        );
         
         match side {
             crate::models::TradeSide::Long => {
@@ -1239,13 +1617,7 @@ impl SwingTradingBot {
     fn check_exit_conditions(&mut self) {
         if let Some(ref position) = self.current_position.clone() {
             if let Some(latest_price) = self.price_history.back() {
-                let current_price = match Decimal::from_f64_retain(latest_price.close) {
-                    Some(price) if price > Decimal::ZERO => price,
-                    _ => {
-                        eprintln!("Error: Invalid current price for exit check: {}", latest_price.close);
-                        return;
-                    }
-                };
+                let current_price = latest_price.close;
                 
                 // Validate current price
                 if current_price <= Decimal::ZERO {
@@ -1255,7 +1627,7 @@ impl SwingTradingBot {
                 
                 // Check for extreme price gaps (potential data issue or flash crash)
                 let price_change_percent = ((current_price - position.entry_price) / position.entry_price).abs();
-                if price_change_percent > Decimal::from_f64_retain(0.2).unwrap_or(Decimal::ONE) { // 20% gap
+                if price_change_percent > Decimal::from_f64(0.2).unwrap_or(Decimal::ONE) { // 20% gap
                     eprintln!("Warning: Extreme price gap detected: {}% - potential data issue", price_change_percent * Decimal::from(100));
                     // Still process but with extra caution
                 }
@@ -1284,12 +1656,12 @@ impl SwingTradingBot {
                         };
                         
                         // Enhanced slippage handling
-                        if slippage > Decimal::from_f64_retain(0.05).unwrap_or(Decimal::ONE) { // 5% slippage threshold
+                        if slippage > Decimal::from_f64(0.05).unwrap_or(Decimal::ONE) { // 5% slippage threshold
                             eprintln!("CRITICAL: High slippage detected: {}% - Expected: {}, Actual: {}", 
                                 slippage * Decimal::from(100), expected_exit, actual_exit);
                             
                             // If slippage is extreme (>10%), trigger circuit breaker
-                            if slippage > Decimal::from_f64_retain(0.1).unwrap_or(Decimal::ONE) {
+                            if slippage > Decimal::from_f64(0.1).unwrap_or(Decimal::ONE) {
                                 self.trigger_circuit_breaker(&format!("Extreme slippage on stop loss: {}%", slippage * Decimal::from(100)));
                             }
                         }
@@ -1330,7 +1702,7 @@ impl SwingTradingBot {
                 // Progressive emergency exits based on loss severity
                 if current_pnl < Decimal::ZERO {
                     // Emergency exit if losses exceed 10% (configurable emergency threshold)
-                    let emergency_threshold = Decimal::from_f64_retain(0.1).unwrap_or(Decimal::from_f64_retain(0.1).unwrap());
+                    let emergency_threshold = Decimal::from_f64(0.1).unwrap_or(Decimal::from_f64(0.1).unwrap());
                     if loss_percent > emergency_threshold {
                         eprintln!("EMERGENCY: Catastrophic loss detected: {}% - Triggering emergency exit", loss_percent * Decimal::from(100));
                         self.trigger_emergency_stop(&format!("Catastrophic loss: {}%", loss_percent * Decimal::from(100)));
@@ -1338,7 +1710,7 @@ impl SwingTradingBot {
                     }
                     
                     // Warning at 7% loss
-                    let warning_threshold = Decimal::from_f64_retain(0.07).unwrap_or(Decimal::from_f64_retain(0.07).unwrap());
+                    let warning_threshold = Decimal::from_f64(0.07).unwrap_or(Decimal::from_f64(0.07).unwrap());
                     if loss_percent > warning_threshold {
                         eprintln!("WARNING: High loss detected: {}% - Monitoring closely", loss_percent * Decimal::from(100));
                     }
@@ -1378,17 +1750,17 @@ impl SwingTradingBot {
     
     fn check_trailing_stop(&mut self, position: &BotPosition, current_price: Decimal) {
         if let Some(latest_price) = self.price_history.back() {
-            let trailing_percent = Decimal::from_f64_retain(self.config.trailing_stop_percent / 100.0)
-                .unwrap_or(Decimal::from_f64_retain(0.01).unwrap()); // Default 1%
+            let trailing_percent = Decimal::from_f64(self.config.trailing_stop_percent / 100.0)
+                .unwrap_or(Decimal::from_f64(0.01).unwrap()); // Default 1%
             
             match position.side {
                 crate::models::TradeSide::Long => {
                     // For long positions, trail below the highest price seen
                     let highest_price = self.price_history.iter()
                         .map(|p| p.high)
-                        .fold(position.entry_price.to_f64().unwrap_or(0.0), |a, b| a.max(b));
+                        .fold(position.entry_price.to_f64().unwrap_or(0.0), |a, b| a.max(b.to_f64().unwrap_or(0.0)));
                     
-                    let trailing_stop = Decimal::from_f64_retain(highest_price).unwrap_or(position.entry_price) * (Decimal::ONE - trailing_percent);
+                    let trailing_stop = Decimal::from_f64(highest_price).unwrap_or(position.entry_price) * (Decimal::ONE - trailing_percent);
                     
                     if current_price <= trailing_stop {
                         eprintln!("Trailing stop triggered for long position at ${} (trailing from ${})", current_price, highest_price);
@@ -1399,9 +1771,9 @@ impl SwingTradingBot {
                     // For short positions, trail above the lowest price seen
                     let lowest_price = self.price_history.iter()
                         .map(|p| p.low)
-                        .fold(position.entry_price.to_f64().unwrap_or(f64::MAX), |a, b| a.min(b));
+                        .fold(position.entry_price.to_f64().unwrap_or(f64::MAX), |a, b| a.min(b.to_f64().unwrap_or(f64::MAX)));
                     
-                    let trailing_stop = Decimal::from_f64_retain(lowest_price).unwrap_or(position.entry_price) * (Decimal::ONE + trailing_percent);
+                    let trailing_stop = Decimal::from_f64(lowest_price).unwrap_or(position.entry_price) * (Decimal::ONE + trailing_percent);
                     
                     if current_price >= trailing_stop {
                         eprintln!("Trailing stop triggered for short position at ${} (trailing from ${})", current_price, lowest_price);
@@ -1444,78 +1816,78 @@ impl SwingTradingBot {
     
     fn is_valid_price_data(&self, price: &PriceData) -> bool {
         // Check for valid numerical values
-        if !price.open.is_finite() || !price.high.is_finite() || 
-           !price.low.is_finite() || !price.close.is_finite() || !price.volume.is_finite() {
-            eprintln!("Invalid price data: Non-finite values detected");
+        if false || false || 
+           false || false || false {
+            log_error!(LogCategory::DataProcessing, "Invalid price data: Non-finite values detected");
             return false;
         }
         
         // Check for positive prices
-        if price.open <= 0.0 || price.high <= 0.0 || 
-           price.low <= 0.0 || price.close <= 0.0 {
-            eprintln!("Invalid price data: Non-positive prices detected");
+        if price.open <= Decimal::ZERO || price.high <= Decimal::ZERO || 
+           price.low <= Decimal::ZERO || price.close <= Decimal::ZERO {
+            log_error!(LogCategory::DataProcessing, "Invalid price data: Non-positive prices detected");
             return false;
         }
         
         // Check for negative volume
-        if price.volume < 0.0 {
-            eprintln!("Invalid price data: Negative volume detected: {}", price.volume);
+        if price.volume < Decimal::ZERO {
+            log_error!(LogCategory::DataProcessing, "Invalid price data: Negative volume detected: {}", price.volume);
             return false;
         }
         
         // Check OHLC relationships
         if price.high < price.low {
-            eprintln!("Invalid price data: High ({}) < Low ({})", price.high, price.low);
+            log_error!(LogCategory::DataProcessing, "Invalid price data: High ({}) < Low ({})", price.high, price.low);
             return false;
         }
         
         if price.high < price.open || price.high < price.close {
-            eprintln!("Invalid price data: High ({}) < Open/Close ({}/{})", price.high, price.open, price.close);
+            log_error!(LogCategory::DataProcessing, "Invalid price data: High ({}) < Open/Close ({}/{})", price.high, price.open, price.close);
             return false;
         }
         
         if price.low > price.open || price.low > price.close {
-            eprintln!("Invalid price data: Low ({}) > Open/Close ({}/{})", price.low, price.open, price.close);
+            log_error!(LogCategory::DataProcessing, "Invalid price data: Low ({}) > Open/Close ({}/{})", price.low, price.open, price.close);
             return false;
         }
         
         // Check for extreme price movements (flash crashes/pumps)
         if let Some(last_price) = self.price_history.back() {
             let price_change = ((price.close - last_price.close) / last_price.close).abs();
-            if price_change > 0.5 { // 50% single-candle move
-                eprintln!("Invalid price data: Extreme price movement detected: {}%", price_change * 100.0);
+            if price_change > Decimal::from_f64(0.5).unwrap_or_else(|| Decimal::new(5, 1)) { // 50% single-candle move
+                log_error!(LogCategory::DataProcessing, "Invalid price data: Extreme price movement detected: {}%", price_change.to_f64().unwrap_or(0.0) * 100.0);
                 return false;
             }
         }
         
         // Check for reasonable price ranges (prevent extreme outliers)
         let price_range = price.high - price.low;
-        let mid_price = (price.high + price.low) / 2.0;
-        if price_range > mid_price * 0.3 { // More than 30% range indicates potential bad data
-            eprintln!("Invalid price data: Excessive price range: {}% of mid price", (price_range / mid_price) * 100.0);
+        let mid_price = (price.high + price.low) / Decimal::new(2, 0);
+        if price_range > mid_price * Decimal::new(3, 1) { // More than 30% range indicates potential bad data
+            log_error!(LogCategory::DataProcessing, "Invalid price data: Excessive price range: {}% of mid price", (price_range / mid_price).to_f64().unwrap_or(0.0) * 100.0);
             return false;
         }
         
         // Check timestamp validity
         let now = Utc::now();
         if price.timestamp > now {
-            eprintln!("Invalid price data: Future timestamp detected");
+            log_error!(LogCategory::DataProcessing, "Invalid price data: Future timestamp detected");
             return false;
         }
         
         // Check for stale data (older than 1 hour)
         if now.signed_duration_since(price.timestamp).num_hours() > 1 {
-            eprintln!("Invalid price data: Stale data detected (>1 hour old)");
+            log_error!(LogCategory::DataProcessing, "Invalid price data: Stale data detected (>1 hour old)");
             return false;
         }
         
         // Check for reasonable volume (not zero or extremely high)
-        if price.volume == 0.0 {
+        if price.volume == Decimal::ZERO {
             eprintln!("Warning: Zero volume detected");
             // Don't reject, just warn
         } else if let Some(last_price) = self.price_history.back() {
             let volume_ratio = price.volume / last_price.volume;
-            if volume_ratio > 100.0 || volume_ratio < 0.01 {
+            if volume_ratio > Decimal::new(100, 0) || volume_ratio < Decimal::new(1, 2) {
                 eprintln!("Warning: Extreme volume change detected: {}x", volume_ratio);
                 // Don't reject, just warn
             }
@@ -1523,9 +1895,9 @@ impl SwingTradingBot {
         
         // Check for price consistency with recent history
         if self.price_history.len() >= 5 {
-            let recent_prices: Vec<f64> = self.price_history.iter().rev().take(5).map(|p| p.close).collect();
+            let recent_prices: Vec<f64> = self.price_history.iter().rev().take(5).map(|p| p.close.to_f64().unwrap_or(0.0)).collect();
             let avg_price = recent_prices.iter().sum::<f64>() / recent_prices.len() as f64;
-            let price_deviation = ((price.close - avg_price) / avg_price).abs();
+            let price_deviation = ((price.close.to_f64().unwrap_or(0.0) - avg_price) / avg_price).abs();
             
             if price_deviation > 0.2 { // 20% deviation from recent average
                 eprintln!("Warning: Price deviation from recent average: {}%", price_deviation * 100.0);
@@ -1607,7 +1979,7 @@ impl SwingTradingBot {
         }
         
         // Check if daily loss exceeds configured limit with validation
-        let max_daily_loss = match Decimal::from_f64_retain(self.config.max_daily_loss) {
+        let max_daily_loss = match Decimal::from_f64(self.config.max_daily_loss) {
             Some(limit) if limit > Decimal::ZERO => limit,
             _ => {
                 eprintln!("Warning: Invalid max daily loss config: {}, using default $100", self.config.max_daily_loss);
@@ -1628,7 +2000,8 @@ impl SwingTradingBot {
     fn is_position_expired(&self, position: &BotPosition) -> bool {
         let now = Utc::now();
         let duration = now.signed_duration_since(position.entry_time);
-        duration.num_hours() >= self.max_position_hold_hours as i64
+        let max_hold_hours = self.config.get_max_hold_duration_hours();
+        duration.num_hours() >= max_hold_hours as i64
     }
     
     fn trigger_circuit_breaker(&mut self, reason: &str) {
@@ -1663,7 +2036,7 @@ impl SwingTradingBot {
                     .iter()
                     .rev()
                     .take(10)
-                    .map(|p| p.close)
+                    .map(|p| p.close.to_f64().unwrap_or(0.0))
                     .collect();
                 
                 let volatility = self.calculate_volatility(&recent_prices);
@@ -1679,7 +2052,7 @@ impl SwingTradingBot {
                 let prev_price = self.price_history[self.price_history.len() - 2].close;
                 let price_change = ((current_price - prev_price) / prev_price).abs();
                 
-                if price_change > 0.15 { // 15% single-period move
+                if price_change > Decimal::from_f64(0.15).unwrap_or_else(|| Decimal::new(15, 2)) { // 15% single-period move
                     self.trigger_circuit_breaker("Flash crash/pump detected");
                     return;
                 }

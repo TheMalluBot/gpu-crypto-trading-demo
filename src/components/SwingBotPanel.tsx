@@ -1,19 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ErrorBoundary } from './bot/ErrorBoundary';
-import { BotControlPanel } from './bot/BotControlPanel';
+import { BotStatusPanel } from './bot/BotStatusPanel';
+import { BotOnboardingModal } from './bot/BotOnboardingModal';
 import { MarketConditions } from './bot/MarketConditions';
-import { BotConfigForm } from './bot/BotConfigForm';
+import ImprovedBotConfigForm from './bot/ImprovedBotConfigForm';
 import { SignalChart } from './bot/SignalChart';
 import { VirtualPortfolio } from './bot/VirtualPortfolio';
 import { PositionStatus } from './bot/PositionStatus';
 import { PerformanceMetrics } from './bot/PerformanceMetrics';
 import { RecentSignals } from './bot/RecentSignals';
 import { useBotData } from '../hooks/useBotData';
-import { getSignalColor, getMarketPhaseColor } from '../utils/botHelpers';
+import { getSignalColor, getMarketPhaseColor } from '../utils/formatters';
+import HelpButton from './common/HelpButton';
+import { HELP_CONTENT } from '../utils/helpContent';
 
 const SwingBotPanel: React.FC = () => {
   const [showConfig, setShowConfig] = useState(false);
   const [showChart, setShowChart] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const {
     botStatus,
@@ -27,19 +31,39 @@ const SwingBotPanel: React.FC = () => {
     setConfig,
     toggleBot,
     triggerEmergencyStop,
-    resetEmergencyStop,
     updateAccountBalance,
     resetVirtualPortfolio,
-    simulateData,
-    applyStrategyPreset,
   } = useBotData();
+
+  // Check if user has seen onboarding
+  useEffect(() => {
+    const hasSeenOnboarding = localStorage.getItem('bot-onboarding-completed');
+    if (!hasSeenOnboarding && botStatus) {
+      setShowOnboarding(true);
+    }
+  }, [botStatus]);
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem('bot-onboarding-completed', 'true');
+    setShowOnboarding(false);
+  };
+
+  const handleShowOnboarding = () => {
+    setShowOnboarding(true);
+  };
 
   if (!botStatus) {
     return (
       <div className="max-w-6xl mx-auto p-6">
         <div className="glass-morphic p-6 flex items-center justify-center">
-          <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-          <span className="ml-3 text-white">Loading bot status...</span>
+          <div 
+            className="animate-spin w-8 h-8 border-2 rounded-full"
+            style={{
+              borderColor: `rgba(var(--color-primary-500), 0.2)`,
+              borderTopColor: `rgb(var(--color-primary-500))`
+            }}
+          ></div>
+          <span className="ml-3 text-theme-primary">Loading bot status...</span>
         </div>
       </div>
     );
@@ -48,18 +72,42 @@ const SwingBotPanel: React.FC = () => {
   return (
     <ErrorBoundary>
       <div className="max-w-6xl mx-auto p-6 space-y-6">
-        {/* Bot Control Header */}
-        <BotControlPanel
+        {/* Page Header with Help */}
+        <div className="flex justify-between items-center">
+          <div className="flex items-center space-x-4">
+            <h1 className="text-hierarchy-primary">Trading Bot</h1>
+            {/* Paper Mode Badge */}
+            {botStatus?.config.paper_trading_enabled && (
+              <div className="flex items-center space-x-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full">
+                <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
+                <span className="text-sm font-semibold text-blue-400">PAPER TRADING</span>
+                <span className="text-xs text-blue-300/70">No Real Money</span>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={handleShowOnboarding}
+              className="btn-theme-secondary"
+            >
+              Getting Started
+            </button>
+            <button
+              onClick={() => setShowConfig(!showConfig)}
+              className="btn-theme-primary"
+            >
+              {showConfig ? 'Hide Config' : 'Configure Bot'}
+            </button>
+            <HelpButton helpContent={HELP_CONTENT.bot} />
+          </div>
+        </div>
+        {/* Bot Status Panel */}
+        <BotStatusPanel
           botStatus={botStatus}
-          config={config}
+          onStart={toggleBot}
+          onStop={toggleBot}
+          onEmergencyStop={() => triggerEmergencyStop('User initiated emergency stop')}
           loading={loading}
-          showConfig={showConfig}
-          setShowConfig={setShowConfig}
-          toggleBot={toggleBot}
-          simulateData={simulateData}
-          triggerEmergencyStop={triggerEmergencyStop}
-          resetEmergencyStop={resetEmergencyStop}
-          getSignalColor={getSignalColor}
         />
 
         {/* Market Conditions */}
@@ -71,13 +119,12 @@ const SwingBotPanel: React.FC = () => {
 
         {/* Configuration Panel */}
         {showConfig && (
-          <BotConfigForm
+          <ImprovedBotConfigForm
             config={config}
             setConfig={setConfig}
             botStatus={botStatus}
             marketConditions={marketConditions}
             updateAccountBalance={updateAccountBalance}
-            applyStrategyPreset={applyStrategyPreset}
           />
         )}
 
@@ -115,6 +162,13 @@ const SwingBotPanel: React.FC = () => {
           config={config}
           getSignalColor={getSignalColor}
           getMarketPhaseColor={getMarketPhaseColor}
+        />
+
+        {/* Onboarding Modal */}
+        <BotOnboardingModal
+          isOpen={showOnboarding}
+          onClose={() => setShowOnboarding(false)}
+          onComplete={handleOnboardingComplete}
         />
       </div>
     </ErrorBoundary>

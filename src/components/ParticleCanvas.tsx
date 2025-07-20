@@ -1,36 +1,41 @@
-import React, { useEffect, useRef, useCallback, useMemo } from 'react';
-import { invoke } from '@tauri-apps/api/tauri';
+import React, { useEffect, useRef, useCallback } from 'react';
+import { safeInvoke, isTauriApp } from '../utils/tauri';
+import { useTheme } from '../contexts/ThemeContext';
 
-const ParticleCanvas: React.FC = () => {
+const ParticleCanvas: React.FC = React.memo(() => {
+  const { currentTheme } = useTheme();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
   const tempCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const lastTextureHash = useRef<string | null>(null);
   const imageDataRef = useRef<ImageData | null>(null);
 
-  useEffect(() => {
+  // Define resize function outside useEffect
+  const resizeCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+  }, []);
+
+  // Define animate function outside useEffect
+  const animate = useCallback(async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Set canvas size with debouncing
-    const resizeCanvas = useCallback(() => {
-      if (canvas) {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-      }
-    }, [canvas]);
-
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-
-    // Animation loop
-    const animate = useCallback(async () => {
-      try {
+    try {
+      // Check if we're in Tauri environment
+      if (isTauriApp()) {
         // Get texture data from GPU renderer
-        const textureData = await invoke('get_texture_data') as number[];
+        const textureData = await safeInvoke<number[]>('get_texture_data');
+        
+        if (!textureData) {
+          throw new Error('No texture data available');
+        }
         
         // Create hash to check if texture changed
         const textureHash = textureData.slice(0, 100).join(',');
@@ -64,8 +69,9 @@ const ParticleCanvas: React.FC = () => {
           }
         }
         
-        // Clear canvas with dark background
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.1)';
+        // Clear canvas with theme-aware background
+        const bgColor = currentTheme.colors.background.primary;
+        ctx.fillStyle = `rgba(${bgColor}, 0.1)`;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
         // Draw cached texture
@@ -78,13 +84,17 @@ const ParticleCanvas: React.FC = () => {
           
           ctx.drawImage(tempCanvasRef.current, x, y, scaledWidth, scaledHeight);
         }
-      } catch (error) {
-        // Fallback animation if GPU texture unavailable
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.05)';
+      } else {
+        // Fallback animation for browser development with theme colors
+        const bgColor = currentTheme.colors.background.primary;
+        ctx.fillStyle = `rgba(${bgColor}, 0.05)`;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        // Draw simple animated particles
+        // Draw simple animated particles using theme colors
         const time = Date.now() * 0.001;
+        const primaryColor = currentTheme.colors.primary[500];
+        const secondaryColor = currentTheme.colors.secondary[500];
+        const accentColor = currentTheme.colors.accent[500];
         
         for (let i = 0; i < 100; i++) {
           const angle = (i / 100) * Math.PI * 2 + time * 0.5;
@@ -92,19 +102,59 @@ const ParticleCanvas: React.FC = () => {
           const x = canvas.width / 2 + Math.cos(angle) * radius;
           const y = canvas.height / 2 + Math.sin(angle) * radius;
           
-          const hue = (i / 100) * 360 + time * 50;
           const alpha = 0.3 + Math.sin(time * 2 + i * 0.1) * 0.2;
+          
+          // Use theme colors instead of HSL
+          let color;
+          if (i % 3 === 0) {
+            color = `rgba(${primaryColor}, ${alpha})`;
+          } else if (i % 3 === 1) {
+            color = `rgba(${secondaryColor}, ${alpha})`;
+          } else {
+            color = `rgba(${accentColor}, ${alpha})`;
+          }
           
           ctx.beginPath();
           ctx.arc(x, y, 2, 0, Math.PI * 2);
-          ctx.fillStyle = `hsla(${hue}, 70%, 60%, ${alpha})`;
+          ctx.fillStyle = color;
           ctx.fill();
         }
       }
+    } catch (error) {
+      // Fallback animation if GPU texture unavailable
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.05)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
       
-      animationRef.current = requestAnimationFrame(animate);
-    }, []);
+      // Draw simple animated particles
+      const time = Date.now() * 0.001;
+      
+      for (let i = 0; i < 100; i++) {
+        const angle = (i / 100) * Math.PI * 2 + time * 0.5;
+        const radius = 200 + Math.sin(time + i * 0.1) * 50;
+        const x = canvas.width / 2 + Math.cos(angle) * radius;
+        const y = canvas.height / 2 + Math.sin(angle) * radius;
+        
+        const hue = (i / 100) * 360 + time * 50;
+        const alpha = 0.3 + Math.sin(time * 2 + i * 0.1) * 0.2;
+        
+        ctx.beginPath();
+        ctx.arc(x, y, 2, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${hue}, 70%, 60%, ${alpha})`;
+        ctx.fill();
+      }
+    }
+    
+    animationRef.current = requestAnimationFrame(animate);
+  }, [currentTheme]);
 
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Start animation loop
     animate();
 
     return () => {
@@ -116,7 +166,7 @@ const ParticleCanvas: React.FC = () => {
       lastTextureHash.current = null;
       imageDataRef.current = null;
     };
-  }, []);
+  }, [resizeCanvas, animate, currentTheme]);
 
   return (
     <canvas
@@ -125,6 +175,6 @@ const ParticleCanvas: React.FC = () => {
       style={{ filter: 'blur(0.5px)' }}
     />
   );
-};
+});
 
 export default ParticleCanvas;

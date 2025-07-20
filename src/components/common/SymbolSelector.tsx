@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, TrendingUp, TrendingDown, Star, Filter } from 'lucide-react';
-import { invoke } from '@tauri-apps/api/tauri';
+import { safeInvoke } from '../../utils/tauri';
 import { SymbolInfo } from '../../types/bot';
 
 interface SymbolSelectorProps {
@@ -27,7 +28,6 @@ export const SymbolSelector: React.FC<SymbolSelectorProps> = ({
   const [loading, setLoading] = useState(false);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
-  const [dropdownPosition, setDropdownPosition] = useState<'below' | 'above'>('below');
   
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -58,25 +58,27 @@ export const SymbolSelector: React.FC<SymbolSelectorProps> = ({
   };
 
   const loadPopularSymbols = async () => {
-    try {
-      setLoading(true);
-      const settings = JSON.parse(localStorage.getItem('app-settings') || '{}');
-      const popularSymbols = await invoke<SymbolInfo[]>('get_popular_symbols', { settings });
+    setLoading(true);
+    const settings = JSON.parse(localStorage.getItem('app-settings') || '{}');
+    const popularSymbols = await safeInvoke<SymbolInfo[]>('get_popular_symbols', { settings });
+    
+    if (popularSymbols) {
       setSymbols(popularSymbols);
       setFilteredSymbols(popularSymbols);
-    } catch (error) {
-      console.error('Error loading symbols:', error);
+    } else {
       // Fallback to popular symbols
-      setSymbols([
+      const fallbackSymbols = [
         { symbol: 'BTCUSDT', base_asset: 'BTC', quote_asset: 'USDT', status: 'TRADING', price: 43000, price_change_percent: 2.5, volume: 1000000, is_spot_trading_allowed: true, is_margin_trading_allowed: true, filters: [] },
         { symbol: 'ETHUSDT', base_asset: 'ETH', quote_asset: 'USDT', status: 'TRADING', price: 2600, price_change_percent: 3.2, volume: 800000, is_spot_trading_allowed: true, is_margin_trading_allowed: true, filters: [] },
         { symbol: 'SOLUSDT', base_asset: 'SOL', quote_asset: 'USDT', status: 'TRADING', price: 100, price_change_percent: -1.5, volume: 500000, is_spot_trading_allowed: true, is_margin_trading_allowed: true, filters: [] },
         { symbol: 'ADAUSDT', base_asset: 'ADA', quote_asset: 'USDT', status: 'TRADING', price: 0.45, price_change_percent: 1.8, volume: 300000, is_spot_trading_allowed: true, is_margin_trading_allowed: true, filters: [] },
         { symbol: 'DOTUSDT', base_asset: 'DOT', quote_asset: 'USDT', status: 'TRADING', price: 6.5, price_change_percent: 0.8, volume: 200000, is_spot_trading_allowed: true, is_margin_trading_allowed: true, filters: [] },
-      ]);
-    } finally {
-      setLoading(false);
+      ];
+      setSymbols(fallbackSymbols);
+      setFilteredSymbols(fallbackSymbols);
     }
+    
+    setLoading(false);
   };
 
   const searchSymbols = async (query: string) => {
@@ -85,17 +87,17 @@ export const SymbolSelector: React.FC<SymbolSelectorProps> = ({
       return;
     }
 
-    try {
-      setLoading(true);
-      const settings = JSON.parse(localStorage.getItem('app-settings') || '{}');
-      const results = await invoke<SymbolInfo[]>('search_symbols', { 
-        settings, 
-        query: query.trim(),
-        limit: 50 
-      });
+    setLoading(true);
+    const settings = JSON.parse(localStorage.getItem('app-settings') || '{}');
+    const results = await safeInvoke<SymbolInfo[]>('search_symbols', { 
+      settings, 
+      query: query.trim(),
+      limit: 50 
+    });
+    
+    if (results) {
       setFilteredSymbols(results);
-    } catch (error) {
-      console.error('Error searching symbols:', error);
+    } else {
       // Fallback to local filtering
       const filtered = symbols.filter(symbol =>
         symbol.symbol.toLowerCase().includes(query.toLowerCase()) ||
@@ -103,9 +105,9 @@ export const SymbolSelector: React.FC<SymbolSelectorProps> = ({
         symbol.quote_asset.toLowerCase().includes(query.toLowerCase())
       );
       setFilteredSymbols(filtered);
-    } finally {
-      setLoading(false);
     }
+    
+    setLoading(false);
   };
 
   // Filter symbols based on selected filter
@@ -172,16 +174,32 @@ export const SymbolSelector: React.FC<SymbolSelectorProps> = ({
   // Close dropdown when clicking outside and handle positioning
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) && 
+          containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    const handleResize = () => {
+      if (isOpen) {
+        setIsOpen(false); // Close on resize to avoid positioning issues
+      }
+    };
 
-  // Position dropdown based on available space
+    document.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('scroll', handleResize);
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleResize);
+    };
+  }, [isOpen]);
+
+  // Position dropdown based on available space and calculate fixed position
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+  
   useEffect(() => {
     if (isOpen && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
@@ -189,9 +207,23 @@ export const SymbolSelector: React.FC<SymbolSelectorProps> = ({
       const spaceAbove = rect.top - 100; // 100px buffer
       
       if (spaceBelow < 400 && spaceAbove > 400) {
-        setDropdownPosition('above');
+        setDropdownStyle({
+          position: 'fixed',
+          top: rect.top - 400,
+          left: rect.left,
+          width: rect.width,
+          maxHeight: '380px',
+          zIndex: 9999
+        });
       } else {
-        setDropdownPosition('below');
+        setDropdownStyle({
+          position: 'fixed',
+          top: rect.bottom + 8,
+          left: rect.left,
+          width: rect.width,
+          maxHeight: '400px',
+          zIndex: 9999
+        });
       }
     }
   }, [isOpen]);
@@ -211,7 +243,7 @@ export const SymbolSelector: React.FC<SymbolSelectorProps> = ({
   const selectedSymbolInfo = symbols.find(s => s.symbol === selectedSymbol);
 
   return (
-    <div className={`relative ${className}`} ref={containerRef}>
+    <div className={`dropdown-container ${className} ${isOpen ? 'open' : ''}`} ref={containerRef}>
       {/* Selected Symbol Display */}
       <div
         className="flex items-center justify-between p-3 glass-card hover:bg-white/10 rounded-lg cursor-pointer transition-colors"
@@ -251,14 +283,11 @@ export const SymbolSelector: React.FC<SymbolSelectorProps> = ({
       </div>
 
       {/* Dropdown */}
-      {isOpen && (
+      {isOpen && createPortal(
         <div 
           ref={dropdownRef}
-          className={`absolute left-0 right-0 glass-morphic rounded-lg shadow-2xl z-dropdown overflow-hidden ${
-            dropdownPosition === 'above' 
-              ? 'bottom-full mb-2 max-h-80' 
-              : 'top-full mt-2 max-h-96'
-          }`}
+          className="dropdown-menu glass-morphic rounded-lg shadow-2xl overflow-hidden"
+          style={dropdownStyle}
         >
           {/* Search Input */}
           <div className="p-3 border-b border-white/10">
@@ -372,7 +401,8 @@ export const SymbolSelector: React.FC<SymbolSelectorProps> = ({
               </>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
