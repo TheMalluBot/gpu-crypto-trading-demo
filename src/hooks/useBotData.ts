@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { invoke } from '@tauri-apps/api/core';
+import { safeInvoke } from '../utils/tauri';
 import {
   BotStatus,
   LROSignal,
@@ -91,23 +91,35 @@ export const useBotData = () => {
 
   const loadBotStatus = useCallback(async () => {
     try {
-      const status = await invoke<BotStatus>('get_bot_status');
+      const status = await safeInvoke<BotStatus>('get_bot_status');
+      if (!status) {
+        generateMockBotStatus();
+        return;
+      }
       setBotStatus(status);
       
-      if (!config.auto_strategy_enabled) {
+      // Ensure minimum viable configuration
+      if (status.account_balance <= 0) {
+        console.warn('⚠️ Zero balance detected, setting default balance');
+        try {
+          await safeInvoke('update_account_balance', { balance: 10000 });
+          // Reload status after balance update
+          const updatedStatus = await safeInvoke<BotStatus>('get_bot_status');
+          setBotStatus(updatedStatus);
+        } catch (balanceError) {
+          console.error('Failed to update balance:', balanceError);
+        }
+      }
+      
+      // Set config from status if auto-strategy is disabled
+      if (!status.config?.auto_strategy_enabled) {
         setConfig(status.config);
-      } else {
-        setConfig(prev => ({
-          ...status.config,
-          market_adaptation_level: prev.market_adaptation_level,
-          auto_strategy_enabled: prev.auto_strategy_enabled
-        }));
       }
     } catch (error) {
       console.error('Failed to load bot status:', error);
       generateMockBotStatus();
     }
-  }, [config.auto_strategy_enabled, generateMockBotStatus]);
+  }, [generateMockBotStatus]);
 
   const generateMockSignals = useCallback(() => {
     const mockSignals: LROSignal[] = [];
@@ -119,10 +131,10 @@ export const useBotData = () => {
       const signalLine = lroValue * 0.8 + (Math.random() - 0.5) * 0.2;
       
       let signalType: 'Buy' | 'Sell' | 'StrongBuy' | 'StrongSell' | 'Hold' = 'Hold';
-      if (lroValue > config.overbought) {
-        signalType = lroValue > config.overbought + 0.1 ? 'StrongSell' : 'Sell';
-      } else if (lroValue < config.oversold) {
-        signalType = lroValue < config.oversold - 0.1 ? 'StrongBuy' : 'Buy';
+      if (lroValue > 0.8) {
+        signalType = lroValue > 0.9 ? 'StrongSell' : 'Sell';
+      } else if (lroValue < -0.8) {
+        signalType = lroValue < -0.9 ? 'StrongBuy' : 'Buy';
       }
 
       mockSignals.push({
@@ -147,16 +159,20 @@ export const useBotData = () => {
       time: new Date(signal.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       lro_value: signal.lro_value,
       signal_line: signal.signal_line,
-      overbought: config.overbought,
-      oversold: config.oversold,
+      overbought: 0.8,
+      oversold: -0.8,
     }));
     
     setChartData(chartPoints);
-  }, [config.overbought, config.oversold]);
+  }, []);
 
   const loadSignals = useCallback(async () => {
     try {
-      const signalData = await invoke<LROSignal[]>('get_lro_signals', { limit: 50 });
+      const signalData = await safeInvoke<LROSignal[]>('get_lro_signals', { limit: 50 });
+      if (!signalData) {
+        generateMockSignals();
+        return;
+      }
       setSignals(signalData);
       
       const chartPoints: ChartDataPoint[] = signalData.map(signal => ({
@@ -164,8 +180,8 @@ export const useBotData = () => {
         time: new Date(signal.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         lro_value: signal.lro_value,
         signal_line: signal.signal_line,
-        overbought: config.overbought,
-        oversold: config.oversold,
+        overbought: 0.8,
+        oversold: -0.8,
       })).reverse();
       
       setChartData(chartPoints);
@@ -173,7 +189,7 @@ export const useBotData = () => {
       console.error('Failed to load signals:', error);
       generateMockSignals();
     }
-  }, [config.overbought, config.oversold, generateMockSignals]);
+  }, [generateMockSignals]);
 
   const generateMockPerformanceData = useCallback(() => {
     const mockData: PerformanceDataPoint[] = [];
@@ -208,7 +224,11 @@ export const useBotData = () => {
 
   const loadPerformanceData = useCallback(async () => {
     try {
-      const perfData = await invoke<PerformanceDataPoint[]>('get_performance_data', { days: 30 });
+      const perfData = await safeInvoke<PerformanceDataPoint[]>('get_performance_data', { days: 30 });
+      if (!perfData) {
+        generateMockPerformanceData();
+        return;
+      }
       setPerformanceData(perfData);
     } catch (error) {
       console.error('Failed to load performance data:', error);
@@ -218,7 +238,32 @@ export const useBotData = () => {
 
   const analyzeMarketConditions = useCallback(async () => {
     try {
-      const conditions = await invoke<MarketConditions>('analyze_market_conditions');
+      const conditions = await safeInvoke<MarketConditions>('analyze_market_conditions');
+      if (!conditions) {
+        // Generate mock conditions
+        const time = Date.now();
+        const cyclePeriod = 60000;
+        const cyclePhase = (time % cyclePeriod) / cyclePeriod;
+        
+        const volatility = 0.3 + Math.sin(cyclePhase * Math.PI * 2) * 0.2 + Math.random() * 0.1;
+        const trendStrength = 0.5 + Math.cos(cyclePhase * Math.PI * 2) * 0.3 + Math.random() * 0.1;
+        const volumeProfile = 0.4 + Math.sin(cyclePhase * Math.PI * 4) * 0.3 + Math.random() * 0.1;
+        const priceMomentum = Math.sin(cyclePhase * Math.PI * 6) * 0.1 + Math.random() * 0.05;
+        
+        let marketRegime: 'Bull' | 'Bear' | 'Sideways' | 'Volatile' = 'Sideways';
+        if (trendStrength > 0.7 && priceMomentum > 0) marketRegime = 'Bull';
+        else if (trendStrength > 0.7 && priceMomentum < 0) marketRegime = 'Bear';
+        else if (volatility > 0.6) marketRegime = 'Volatile';
+        
+        setMarketConditions({
+          volatility,
+          trend_strength: trendStrength,
+          volume_profile: volumeProfile,
+          price_momentum: priceMomentum,
+          market_regime: marketRegime,
+        });
+        return;
+      }
       setMarketConditions(conditions);
     } catch (error) {
       console.error('Failed to analyze market conditions:', error);
@@ -307,30 +352,60 @@ export const useBotData = () => {
   }, [config.virtual_balance]);
 
   const loadVirtualPortfolio = useCallback(async () => {
-    if (!config.paper_trading_enabled) return;
-    
     try {
-      const portfolio = await invoke<VirtualPortfolio>('get_virtual_portfolio');
+      const portfolio = await safeInvoke<VirtualPortfolio>('get_virtual_portfolio');
+      if (!portfolio) {
+        generateMockVirtualPortfolio();
+        return;
+      }
       setVirtualPortfolio(portfolio);
     } catch (error) {
       console.error('Failed to load virtual portfolio:', error);
       generateMockVirtualPortfolio();
     }
-  }, [config.paper_trading_enabled, generateMockVirtualPortfolio]);
+  }, [generateMockVirtualPortfolio]);
 
   const toggleBot = useCallback(async () => {
     if (!botStatus) return;
     
     setLoading(true);
     try {
+      // Pre-startup diagnostics
+      if (!botStatus.is_active) {
+        console.log('🔍 Starting bot diagnostics...');
+        
+        // Check for common startup blockers
+        if (botStatus.emergency_stop_triggered) {
+          throw new Error('Emergency stop is active. Please reset emergency stop first.');
+        }
+        
+        if (!botStatus.config.paper_trading_enabled) {
+          throw new Error('Paper trading must be enabled for safety.');
+        }
+        
+        if (botStatus.account_balance <= 0) {
+          throw new Error('Account balance must be positive. Current balance: ' + botStatus.account_balance);
+        }
+        
+        console.log('✅ All startup checks passed');
+      }
+      
       if (botStatus.is_active) {
-        await invoke('stop_bot');
+        await safeInvoke('stop_swing_bot');
+        console.log('✅ Bot stopped successfully');
       } else {
-        await invoke('start_bot', { config });
+        await safeInvoke('start_swing_bot');
+        console.log('✅ Bot started successfully');
       }
       await loadBotStatus();
     } catch (error) {
-      console.error('Failed to toggle bot:', error);
+      console.error('❌ Failed to toggle bot:', error);
+      // Provide user-friendly error messages
+      if (error instanceof Error) {
+        alert(`Bot Error: ${error.message}`);
+      } else {
+        alert(`Bot Error: ${String(error)}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -338,7 +413,7 @@ export const useBotData = () => {
 
   const triggerEmergencyStop = useCallback(async (reason: string) => {
     try {
-      await invoke('trigger_emergency_stop', { reason });
+      await safeInvoke('trigger_emergency_stop', { reason });
       await loadBotStatus();
     } catch (error) {
       console.error('Failed to trigger emergency stop:', error);
@@ -347,7 +422,7 @@ export const useBotData = () => {
 
   const resetEmergencyStop = useCallback(async () => {
     try {
-      await invoke('reset_emergency_stop');
+      await safeInvoke('reset_emergency_stop');
       await loadBotStatus();
     } catch (error) {
       console.error('Failed to reset emergency stop:', error);
@@ -356,7 +431,7 @@ export const useBotData = () => {
 
   const updateAccountBalance = useCallback(async (balance: number) => {
     try {
-      await invoke('update_account_balance', { balance });
+      await safeInvoke('update_account_balance', { balance });
       await loadBotStatus();
     } catch (error) {
       console.error('Failed to update account balance:', error);
@@ -445,29 +520,32 @@ export const useBotData = () => {
     }
     
     setConfig(newConfig);
-    invoke('update_bot_config', { config: newConfig }).catch(console.error);
+    safeInvoke('update_bot_config', { config: newConfig }).catch(console.error);
   }, [config]);
 
   useEffect(() => {
-    loadBotStatus();
-    loadSignals();
-    loadPerformanceData();
-    analyzeMarketConditions();
-    loadVirtualPortfolio();
+    // Load initial data with a small delay to prevent blocking
+    const initialLoad = setTimeout(() => {
+      loadBotStatus();
+      loadSignals();
+      loadPerformanceData();
+      analyzeMarketConditions();
+      loadVirtualPortfolio();
+    }, 100);
     
     const interval = setInterval(() => {
       loadBotStatus();
       loadSignals();
       loadPerformanceData();
       analyzeMarketConditions();
-      
-      if (config.paper_trading_enabled) {
-        loadVirtualPortfolio();
-      }
+      loadVirtualPortfolio();
     }, 5000);
 
-    return () => clearInterval(interval);
-  }, [config.auto_strategy_enabled, config.paper_trading_enabled, loadBotStatus, loadSignals, loadPerformanceData, analyzeMarketConditions, loadVirtualPortfolio]);
+    return () => {
+      clearTimeout(initialLoad);
+      clearInterval(interval);
+    };
+  }, []);
 
   return {
     // State

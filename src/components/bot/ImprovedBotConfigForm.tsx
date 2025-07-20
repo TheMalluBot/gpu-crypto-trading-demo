@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Target, Zap, Brain, Settings, Sparkles, AlertTriangle } from 'lucide-react';
-import { invoke } from '@tauri-apps/api/core';
+import { safeInvoke } from '../../utils/tauri';
 import { LROConfig, BotStatus, MarketConditions } from '../../types/bot';
 import ConfigurationSection from '../common/ConfigurationSection';
 import ConfigInput from '../common/ConfigInput';
@@ -30,13 +30,13 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
     const newConfig = { ...config, [key]: value };
     setConfig(newConfig);
     // Auto-save to backend
-    invoke('update_bot_config', { config: newConfig }).catch(console.error);
+    safeInvoke('update_bot_config', { config: newConfig }).catch(console.error);
   };
 
   const handlePresetSelect = (presetConfig: Partial<LROConfig>) => {
     const newConfig = { ...config, ...presetConfig };
     setConfig(newConfig);
-    invoke('update_bot_config', { config: newConfig }).catch(console.error);
+    safeInvoke('update_bot_config', { config: newConfig }).catch(console.error);
   };
 
   const calculateRiskScore = (): { score: number; level: string; color: string } => {

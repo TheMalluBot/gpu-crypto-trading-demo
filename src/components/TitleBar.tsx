@@ -1,21 +1,32 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Minus, Square, X } from 'lucide-react';
-import { getCurrentWindow } from '@tauri-apps/api/window';
+import { isTauriApp } from '../utils/tauri';
 
 const TitleBar: React.FC = () => {
-  const appWindow = getCurrentWindow();
+  const isInTauri = isTauriApp();
 
-  const handleMinimize = () => {
-    appWindow.minimize();
+  const handleMinimize = async () => {
+    if (isInTauri) {
+      const { getCurrentWindow } = await import('@tauri-apps/api/window');
+      getCurrentWindow().minimize();
+    }
   };
 
-  const handleMaximize = () => {
-    appWindow.toggleMaximize();
+  const handleMaximize = async () => {
+    if (isInTauri) {
+      const { getCurrentWindow } = await import('@tauri-apps/api/window');
+      getCurrentWindow().toggleMaximize();
+    }
   };
 
-  const handleClose = () => {
-    appWindow.close();
+  const handleClose = async () => {
+    if (isInTauri) {
+      const { getCurrentWindow } = await import('@tauri-apps/api/window');
+      getCurrentWindow().close();
+    } else {
+      window.close();
+    }
   };
 
   return (

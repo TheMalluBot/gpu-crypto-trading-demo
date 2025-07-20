@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { BotStatus } from '../../types/bot';
+import { formatCurrency, formatPercentage } from '../../utils/formatters';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
 import { StatusBadge } from '../common/StatusBadge';
 import { PnLDisplay } from '../common/PnLDisplay';
-import { formatCurrency, formatPercentage } from '../../utils/formatters';
 
 interface BotStatusPanelProps {
   botStatus: BotStatus | null;
@@ -21,33 +21,35 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
   onEmergencyStop,
   loading
 }) => {
+  console.log('BotStatusPanel render:', { botStatus, loading });
   const [showStartConfirm, setShowStartConfirm] = useState(false);
   const [showStopConfirm, setShowStopConfirm] = useState(false);
   const [showEmergencyConfirm, setShowEmergencyConfirm] = useState(false);
 
   const handleStartBot = () => {
-    setShowStartConfirm(false);
     onStart();
+    setShowStartConfirm(false);
   };
 
   const handleStopBot = () => {
-    setShowStopConfirm(false);
     onStop();
+    setShowStopConfirm(false);
   };
 
   const handleEmergencyStop = () => {
-    setShowEmergencyConfirm(false);
     onEmergencyStop();
+    setShowEmergencyConfirm(false);
   };
 
-  const getBotStatusInfo = () => {
+  // Determine status info
+  const getStatusInfo = () => {
     if (!botStatus) {
       return {
-        status: 'Disconnected',
-        color: 'text-gray-500',
-        bgColor: 'bg-gray-100',
-        icon: '🔌',
-        description: 'Unable to connect to trading bot. Check your connection.',
+        status: 'Loading...',
+        icon: '🔄',
+        color: 'text-gray-400',
+        bgColor: 'bg-gray-500/10 border-gray-500/20',
+        description: 'Loading bot status...',
         canStart: false,
         canStop: false
       };
@@ -56,83 +58,69 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
     if (botStatus.emergency_stop_triggered) {
       return {
         status: 'Emergency Stop',
-        color: 'text-red-600',
-        bgColor: 'bg-red-50 border-red-200',
         icon: '🚨',
-        description: 'Bot has been emergency stopped. Reset the emergency stop to continue.',
+        color: 'text-red-400',
+        bgColor: 'bg-red-500/10 border-red-500/20',
+        description: 'Bot stopped due to emergency conditions',
         canStart: false,
         canStop: false
       };
     }
 
-    if (botStatus.circuit_breaker_active) {
-      return {
-        status: 'Circuit Breaker Active',
-        color: 'text-orange-600',
-        bgColor: 'bg-orange-50 border-orange-200',
-        icon: '⚡',
-        description: 'Trading halted due to circuit breaker activation. Wait for reset or manual intervention.',
-        canStart: false,
-        canStop: true
-      };
-    }
-
     if (botStatus.is_active) {
       return {
-        status: 'Active & Trading',
-        color: 'text-green-600',
-        bgColor: 'bg-green-50 border-green-200',
+        status: 'Active',
         icon: '🟢',
-        description: 'Bot is actively monitoring markets and executing trades according to your strategy.',
+        color: 'text-green-400',
+        bgColor: 'bg-green-500/10 border-green-500/20',
+        description: 'Bot is actively monitoring markets',
         canStart: false,
         canStop: true
       };
     }
 
     return {
-      status: 'Stopped',
-      color: 'text-gray-600',
-      bgColor: 'bg-gray-50 border-gray-200',
-      icon: '⏸️',
-      description: 'Bot is ready to start trading. Click "Start Bot" to begin.',
+      status: 'Inactive',
+      icon: '🔴',
+      color: 'text-gray-400',
+      bgColor: 'bg-gray-500/10 border-gray-500/20',
+      description: 'Bot is stopped and not monitoring markets',
       canStart: true,
       canStop: false
     };
   };
 
-  const statusInfo = getBotStatusInfo();
-
+  const statusInfo = getStatusInfo();
 
   return (
-    <div className="glass-morphic">
+    <div className="glass-morphic overflow-x-hidden">
       {/* Header */}
-      <div className="p-6 border-b border-white/10">
-        <div className="flex items-center justify-between">
+      <div className="p-4 sm:p-6 border-b border-white/10">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="flex items-center space-x-3">
             <span className="text-2xl">{statusInfo.icon}</span>
             <div>
-              <h2 className="text-xl font-bold text-white">Trading Bot</h2>
-              <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusInfo.bgColor} ${statusInfo.color}`}>
+              <h2 className="text-lg sm:text-xl font-bold text-white">Trading Bot</h2>
+              <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${statusInfo.bgColor} ${statusInfo.color}`}>
                 {statusInfo.status}
               </div>
             </div>
           </div>
-          <div className="flex flex-col items-end space-y-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-end gap-2">
             {/* Paper Mode Indicator */}
-            {botStatus?.config.paper_trading_enabled && (
-              <div className="flex items-center space-x-2 px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full">
+            {botStatus?.config?.paper_trading_enabled && (
+              <div className="flex items-center space-x-1 px-2 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-xs">
                 <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                <span className="text-xs font-medium text-blue-400">PAPER MODE</span>
-                <span className="text-xs text-blue-300/70">Safe Trading</span>
+                <span className="font-medium text-blue-400">PAPER</span>
               </div>
             )}
             
-            <div className="flex space-x-2">
+            <div className="flex flex-wrap gap-2">
               {statusInfo.canStart && (
                 <Button
                   onClick={() => setShowStartConfirm(true)}
                   disabled={loading}
-                  className="bg-green-600 hover:bg-green-700 text-white"
+                  className="bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-2"
                   size="sm"
                 >
                   {loading ? 'Starting...' : 'Start Bot'}
@@ -142,7 +130,7 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
                 <Button
                   onClick={() => setShowStopConfirm(true)}
                   disabled={loading}
-                  className="bg-gray-600 hover:bg-gray-700 text-white"
+                  className="bg-gray-600 hover:bg-gray-700 text-white text-sm px-3 py-2"
                   size="sm"
                 >
                   {loading ? 'Stopping...' : 'Stop Bot'}
@@ -151,7 +139,7 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
               <Button
                 onClick={() => setShowEmergencyConfirm(true)}
                 disabled={loading}
-                className="bg-red-600 hover:bg-red-700 text-white"
+                className="bg-red-600 hover:bg-red-700 text-white text-sm px-3 py-2"
                 size="sm"
               >
                 Emergency Stop
@@ -164,44 +152,44 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
 
       {/* Status Details */}
       {botStatus && (
-        <div className="p-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="p-4 sm:p-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
             {/* Account Balance */}
             <div className="text-center p-3 glass-card">
-              <div className="text-sm text-white/70">Account Balance</div>
-              <div className="text-lg font-bold text-blue-400">
-                {formatCurrency(botStatus.account_balance)}
+              <div className="text-xs sm:text-sm text-white/70">Account Balance</div>
+              <div className="text-base sm:text-lg font-bold text-blue-400">
+                {formatCurrency(botStatus?.account_balance || 0)}
               </div>
             </div>
 
             {/* Daily P&L */}
             <div className="text-center p-3 glass-card">
-              <div className="text-sm text-white/70">Today's P&L</div>
-              <PnLDisplay value={botStatus.performance.total_pnl} size="lg" />
+              <div className="text-xs sm:text-sm text-white/70">Today's P&L</div>
+              <PnLDisplay value={botStatus?.performance?.total_pnl || 0} size="lg" />
             </div>
 
             {/* Total Trades */}
             <div className="text-center p-3 glass-card">
-              <div className="text-sm text-white/70">Total Trades</div>
-              <div className="text-lg font-bold text-purple-400">
-                {botStatus.performance.total_trades}
+              <div className="text-xs sm:text-sm text-white/70">Total Trades</div>
+              <div className="text-base sm:text-lg font-bold text-purple-400">
+                {botStatus?.performance?.total_trades || 0}
               </div>
             </div>
 
             {/* Success Rate */}
             <div className="text-center p-3 glass-card">
-              <div className="text-sm text-white/70">Success Rate</div>
-              <div className="text-lg font-bold text-emerald-400">
-                {formatPercentage(botStatus.performance.success_rate)}
+              <div className="text-xs sm:text-sm text-white/70">Success Rate</div>
+              <div className="text-base sm:text-lg font-bold text-emerald-400">
+                {formatPercentage(botStatus?.performance?.success_rate || 0)}
               </div>
             </div>
           </div>
 
           {/* Current Position */}
-          {botStatus.current_position ? (
-            <div className="p-4 glass-card mb-4">
-              <h3 className="font-semibold text-yellow-400 mb-2">📈 Current Position</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+          {botStatus?.current_position ? (
+            <div className="p-3 sm:p-4 glass-card mb-4">
+              <h3 className="font-semibold text-yellow-400 mb-2 text-sm sm:text-base">📈 Current Position</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 text-xs sm:text-sm">
                 <div>
                   <span className="text-white/70">Symbol:</span>
                   <span className="ml-1 font-medium text-white">{botStatus.current_position.symbol}</span>
@@ -224,23 +212,23 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
                 </div>
               </div>
             </div>
-          ) : botStatus.is_active ? (
-            <div className="p-4 glass-card mb-4">
-              <h3 className="font-semibold text-blue-400">📊 No Active Position</h3>
-              <p className="text-white/70 text-sm mt-1">Bot is monitoring markets for entry opportunities</p>
+          ) : botStatus?.is_active ? (
+            <div className="p-3 sm:p-4 glass-card mb-4">
+              <h3 className="font-semibold text-blue-400 text-sm sm:text-base">📊 No Active Position</h3>
+              <p className="text-white/70 text-xs sm:text-sm mt-1">Bot is monitoring markets for entry opportunities</p>
             </div>
           ) : (
-            <div className="p-4 glass-card mb-4">
-              <h3 className="font-semibold text-gray-400">⏸️ Bot Inactive</h3>
-              <p className="text-white/70 text-sm mt-1">Start the bot to begin monitoring markets</p>
+            <div className="p-3 sm:p-4 glass-card mb-4">
+              <h3 className="font-semibold text-gray-400 text-sm sm:text-base">⏸️ Bot Inactive</h3>
+              <p className="text-white/70 text-xs sm:text-sm mt-1">Start the bot to begin monitoring markets</p>
             </div>
           )}
 
           {/* Latest Signal */}
-          {botStatus.latest_signal && (
-            <div className="p-4 glass-card">
-              <h3 className="font-semibold text-white mb-2">📡 Latest Signal</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+          {botStatus?.latest_signal && (
+            <div className="p-3 sm:p-4 glass-card">
+              <h3 className="font-semibold text-white mb-2 text-sm sm:text-base">📡 Latest Signal</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 text-xs sm:text-sm">
                 <div>
                   <span className="text-white/70">Type:</span>
                   <span className="ml-1">
@@ -266,18 +254,18 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
           )}
 
           {/* Safety Status */}
-          {(botStatus.circuit_breaker_count > 0 || botStatus.current_daily_loss > 0) && (
-            <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-              <h3 className="font-semibold text-orange-800 mb-2">⚠️ Safety Status</h3>
-              <div className="grid grid-cols-2 gap-3 text-sm">
+          {(botStatus?.circuit_breaker_count > 0 || (botStatus?.current_daily_loss || 0) > 0) && (
+            <div className="mt-4 p-3 sm:p-4 bg-orange-50 border border-orange-200 rounded-lg">
+              <h3 className="font-semibold text-orange-800 mb-2 text-sm sm:text-base">⚠️ Safety Status</h3>
+              <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
                 <div>
                   <span className="text-gray-600">Circuit Breakers:</span>
-                  <span className="ml-1 font-medium text-orange-600">{botStatus.circuit_breaker_count}</span>
+                  <span className="ml-1 font-medium text-orange-600">{botStatus?.circuit_breaker_count || 0}</span>
                 </div>
                 <div>
                   <span className="text-gray-600">Daily Loss:</span>
                   <span className="ml-1 font-medium text-orange-600">
-                    {formatCurrency(botStatus.current_daily_loss)}
+                    {formatCurrency(botStatus?.current_daily_loss || 0)}
                   </span>
                 </div>
               </div>

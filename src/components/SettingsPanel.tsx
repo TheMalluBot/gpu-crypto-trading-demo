@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { invoke } from '@tauri-apps/api/core';
+import { safeInvoke } from '../utils/tauri';
 import { Settings, Key, Server, TestTube, CheckCircle, XCircle, Palette, Monitor } from 'lucide-react';
 import SecureStorage from '../utils/secureStorage';
 import NotificationManager from '../utils/notifications';
@@ -51,8 +51,10 @@ const SettingsPanel: React.FC = () => {
         setSettings(prev => ({ ...prev, ...secureSettings }));
       } else {
         // Fallback to Tauri backend
-        const loadedSettings = await invoke<AppSettings>('load_settings');
-        setSettings(loadedSettings);
+        const loadedSettings = await safeInvoke<AppSettings>('load_settings');
+        if (loadedSettings) {
+          setSettings(loadedSettings);
+        }
       }
     } catch (error) {
       NotificationManager.error(
@@ -80,7 +82,7 @@ const SettingsPanel: React.FC = () => {
       };
       
       await SecureStorage.store('app_settings', sensitiveData);
-      await invoke('save_settings', { settings: nonSensitiveData });
+      await safeInvoke('save_settings', { settings: nonSensitiveData });
       
       NotificationManager.success(
         'Settings Saved',
@@ -111,11 +113,13 @@ const SettingsPanel: React.FC = () => {
       setTestError('');
       setAccountInfo(null);
       
-      const connected = await invoke<boolean>('test_connection', { settings });
+      const connected = await safeInvoke<boolean>('test_connection', { settings });
       
       if (connected) {
-        const account = await invoke<AccountInfo>('get_account_info', { settings });
-        setAccountInfo(account);
+        const account = await safeInvoke<AccountInfo>('get_account_info', { settings });
+        if (account) {
+          setAccountInfo(account);
+        }
         setTestResult('success');
       } else {
         setTestError('Connection failed. Please check your API credentials and network connection.');
