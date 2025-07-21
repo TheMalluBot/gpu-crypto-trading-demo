@@ -1,5 +1,5 @@
 use crate::TradingState;
-use crate::trading_strategy::{LROConfig, LROSignal, BotPerformance, BotPosition};
+use crate::trading_strategy::{LROConfig, LROSignal, BotPerformance, BotPosition, BotState, PauseReason, PauseInfo};
 use crate::models::PriceData;
 use crate::models::{MarketDepthAnalysis, LiquidityLevel};
 use tauri::State;
@@ -13,23 +13,12 @@ pub async fn start_swing_bot(trading_state: State<'_, TradingState>) -> Result<(
     
     let mut bot = trading_state.swing_bot.write().await;
     
-    if bot.emergency_stop_triggered {
-        return Err("Cannot start bot: Emergency stop is active".to_string());
-    }
-    
-    if !bot.config.paper_trading_enabled {
-        return Err("Cannot start bot: Paper trading must be enabled".to_string());
-    }
-    
-    if bot.account_balance <= rust_decimal::Decimal::ZERO {
-        return Err("Cannot start bot: Account balance is zero or negative".to_string());
-    }
-    
     if trading_state.is_processing_signal.load(std::sync::atomic::Ordering::Acquire) {
         return Err("Cannot start bot: Signal processing already in progress".to_string());
     }
     
-    bot.is_active = true;
+    // Use new start_bot method which includes all safety checks
+    bot.start_bot()?;
     
     trading_state.last_operation_timestamp.store(
         std::time::SystemTime::now()
@@ -48,7 +37,7 @@ pub async fn stop_swing_bot(trading_state: State<'_, TradingState>) -> Result<()
     let _operation_lock = trading_state.bot_operation_lock.lock().await;
     
     let mut bot = trading_state.swing_bot.write().await;
-    bot.is_active = false;
+    bot.stop_bot("User requested stop");
     
     trading_state.is_processing_signal.store(false, std::sync::atomic::Ordering::Release);
     
@@ -61,6 +50,54 @@ pub async fn stop_swing_bot(trading_state: State<'_, TradingState>) -> Result<()
     );
     
     eprintln!("Bot stopped with concurrency protection");
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn pause_swing_bot(
+    reason: Option<String>, 
+    trading_state: State<'_, TradingState>
+) -> Result<(), String> {
+    let _operation_lock = trading_state.bot_operation_lock.lock().await;
+    
+    let mut bot = trading_state.swing_bot.write().await;
+    
+    let pause_reason = if let Some(reason_text) = reason {
+        PauseReason::Manual
+    } else {
+        PauseReason::Manual
+    };
+    
+    bot.pause_bot(pause_reason);
+    
+    trading_state.last_operation_timestamp.store(
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs(),
+        std::sync::atomic::Ordering::Release
+    );
+    
+    eprintln!("Bot paused with concurrency protection");
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn resume_swing_bot(trading_state: State<'_, TradingState>) -> Result<(), String> {
+    let _operation_lock = trading_state.bot_operation_lock.lock().await;
+    
+    let mut bot = trading_state.swing_bot.write().await;
+    bot.resume_bot()?;
+    
+    trading_state.last_operation_timestamp.store(
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs(),
+        std::sync::atomic::Ordering::Release
+    );
+    
+    eprintln!("Bot resumed with concurrency protection");
     Ok(())
 }
 
@@ -127,11 +164,16 @@ pub async fn get_bot_status(trading_state: State<'_, TradingState>) -> Result<Bo
     let positions_auto_closed = bot.performance_stats.total_trades / 10;
     
     Ok(BotStatus {
-        is_active: bot.is_active,
+        // Legacy field for backward compatibility
+        is_active: bot.is_running(),
+        // New state system
+        state: bot.get_state(),
+        pause_info: bot.get_pause_info().cloned(),
         current_position: bot.current_position.clone(),
         latest_signal: bot.get_latest_signal().cloned(),
         performance: bot.get_performance_summary().clone(),
         config: bot.config.clone(),
+        #[allow(deprecated)]
         emergency_stop_triggered: bot.emergency_stop_triggered,
         circuit_breaker_count: bot.circuit_breaker_count,
         circuit_breaker_active,
@@ -420,7 +462,12 @@ pub async fn enable_depth_analysis(
 // Data structures
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BotStatus {
+    /// Legacy field for backward compatibility - use `state` instead
     pub is_active: bool,
+    /// New bot state system
+    pub state: BotState,
+    /// Information about current pause (if paused)
+    pub pause_info: Option<PauseInfo>,
     pub current_position: Option<BotPosition>,
     pub latest_signal: Option<LROSignal>,
     pub performance: BotPerformance,

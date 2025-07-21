@@ -59,6 +59,7 @@ impl GpuLROCalculator {
             layout: None,
             module: &shader,
             entry_point: "main",
+            compilation_options: Default::default(),
         });
 
         // Create buffers
@@ -465,7 +466,7 @@ impl GpuTradingAccelerator {
         };
         
         limits.max_buffer_size = adapter_limits.max_buffer_size.min(max_buffer_size);
-        limits.max_storage_buffer_binding_size = adapter_limits.max_storage_buffer_binding_size.min(max_buffer_size / 2);
+        limits.max_storage_buffer_binding_size = adapter_limits.max_storage_buffer_binding_size.min((max_buffer_size / 2) as u32);
 
         println!("   Using buffer size limit: {} MB", limits.max_buffer_size / 1_000_000);
 

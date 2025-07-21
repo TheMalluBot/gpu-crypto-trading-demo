@@ -76,6 +76,8 @@ pub fn run() {
             commands::change_symbol,
             commands::start_swing_bot,
             commands::stop_swing_bot,
+            commands::pause_swing_bot,
+            commands::resume_swing_bot,
             commands::update_bot_config,
             commands::get_bot_status,
             commands::get_lro_signals,

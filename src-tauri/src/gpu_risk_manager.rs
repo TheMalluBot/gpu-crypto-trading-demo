@@ -311,6 +311,7 @@ impl GpuRiskManager {
             layout: None,
             module: &shader,
             entry_point: "main",
+            compilation_options: Default::default(),
         }))
     }
 

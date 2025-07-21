@@ -40,6 +40,7 @@ impl LogLevel {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum LogCategory {
     Trading,
+    TradingLogic,
     RiskManagement,
     DataProcessing,
     GPU,
@@ -53,6 +54,7 @@ impl LogCategory {
     pub fn as_str(&self) -> &'static str {
         match self {
             LogCategory::Trading => "TRADING",
+            LogCategory::TradingLogic => "TRADING_LOGIC",
             LogCategory::RiskManagement => "RISK",
             LogCategory::DataProcessing => "DATA",
             LogCategory::GPU => "GPU",

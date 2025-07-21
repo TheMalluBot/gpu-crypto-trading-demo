@@ -9,6 +9,80 @@ use crate::logging::{LogLevel, LogCategory};
 use crate::{log_info, log_warning, log_error, log_debug};
 use crate::gpu_risk_manager::{GpuRiskManager, TradingRiskAssessment, MarketRegime};
 
+/// Bot operational states - replaces simple boolean flags
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+pub enum BotState {
+    /// Bot is actively trading and processing signals
+    Running,
+    /// Bot is temporarily paused but maintains state - can auto-resume
+    Paused,
+    /// Bot is completely stopped - requires manual restart
+    Stopped,
+}
+
+impl Default for BotState {
+    fn default() -> Self {
+        BotState::Stopped
+    }
+}
+
+/// Reasons why the bot might be paused
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum PauseReason {
+    /// Market volatility exceeded safe threshold
+    HighVolatility { volatility: f64, threshold: f64 },
+    /// Invalid or stale price data detected
+    DataQuality { issue: String },
+    /// WebSocket connection issues
+    ConnectionIssue { reason: String },
+    /// Flash crash or extreme price movement detected
+    FlashCrash { movement_percent: f64 },
+    /// Daily loss limit approaching
+    RiskManagement { current_loss: f64, limit: f64 },
+    /// Manual pause requested by user
+    Manual,
+    /// Circuit breaker triggered
+    CircuitBreaker { trigger_count: u32 },
+}
+
+/// Pause state information
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PauseInfo {
+    pub reason: PauseReason,
+    pub paused_at: DateTime<Utc>,
+    pub auto_resume_at: Option<DateTime<Utc>>,
+    pub conditions_for_resume: Vec<String>,
+}
+
+/// Auto-resume configuration settings
+#[derive(Debug, Clone)]
+pub struct AutoResumeSettings {
+    pub enabled: bool,
+    pub volatility_threshold_multiplier: f64,
+    pub delays: AutoResumeDelays,
+    pub considers_trend_strength: bool,
+    pub requires_market_stability: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct AutoResumeDelays {
+    pub data_quality: u32,      // Minutes to wait after data quality issues
+    pub connection: u32,        // Minutes to wait after connection issues  
+    pub flash_crash: u32,       // Minutes to wait after flash crash
+    pub max_pause_hours: u32,   // Maximum hours before manual intervention required
+}
+
+impl Default for AutoResumeDelays {
+    fn default() -> Self {
+        Self {
+            data_quality: 2,
+            connection: 3,
+            flash_crash: 10,
+            max_pause_hours: 2,
+        }
+    }
+}
+
 /// Safe decimal conversion utilities
 pub struct DecimalUtils;
 
@@ -71,6 +145,13 @@ pub struct LROConfig {
     pub circuit_breaker_enabled: bool,
     pub max_position_hold_hours: u32,
     pub signal_strength_threshold: f64,
+    // Auto-Resume Settings
+    pub auto_resume_enabled: bool,
+    pub volatility_resume_threshold_multiplier: f64, // Multiplier for volatility threshold (0.5-1.5)
+    pub data_quality_resume_delay_minutes: u32,      // Minutes to wait before resuming after data quality issues
+    pub connection_resume_delay_minutes: u32,        // Minutes to wait before resuming after connection issues
+    pub flash_crash_resume_delay_minutes: u32,       // Minutes to wait before resuming after flash crash
+    pub max_auto_pause_duration_hours: u32,          // Max hours before requiring manual intervention
 }
 
 impl Default for LROConfig {
@@ -103,6 +184,13 @@ impl Default for LROConfig {
             circuit_breaker_enabled: true,
             max_position_hold_hours: 24,
             signal_strength_threshold: 0.6,
+            // Auto-Resume defaults - conservative settings
+            auto_resume_enabled: true,
+            volatility_resume_threshold_multiplier: 0.8, // Resume at 80% of pause threshold
+            data_quality_resume_delay_minutes: 2,        // 2 minutes for data quality issues
+            connection_resume_delay_minutes: 3,          // 3 minutes for connection issues
+            flash_crash_resume_delay_minutes: 10,        // 10 minutes for flash crashes
+            max_auto_pause_duration_hours: 2,            // Max 2 hours of auto-pause
         }
     }
 }
@@ -146,6 +234,69 @@ impl LROConfig {
             "1d" => 168,                  // Daily: max 1 week
             "3d" | "1w" => 720,           // Long-term: max 1 month
             _ => self.max_position_hold_hours, // Default fallback
+        }
+    }
+    
+    /// Get strategy-specific auto-resume settings based on timeframe and configuration
+    pub fn get_auto_resume_settings(&self) -> AutoResumeSettings {
+        // Base settings on timeframe (strategy type)
+        let (base_multiplier, base_delays) = match self.timeframe.as_str() {
+            // Scalping strategy (short timeframes) - more aggressive resume
+            "1m" | "3m" | "5m" => (
+                0.6, // Resume at 60% of pause threshold (more aggressive)
+                AutoResumeDelays {
+                    data_quality: 1,    // 1 minute - can't wait long
+                    connection: 2,      // 2 minutes
+                    flash_crash: 5,     // 5 minutes - shorter wait
+                    max_pause_hours: 1, // Max 1 hour pause
+                }
+            ),
+            // Swing trading (medium timeframes) - balanced resume
+            "15m" | "30m" | "1h" | "2h" => (
+                0.8, // Resume at 80% of pause threshold (balanced)
+                AutoResumeDelays {
+                    data_quality: 2,    // 2 minutes
+                    connection: 3,      // 3 minutes
+                    flash_crash: 10,    // 10 minutes
+                    max_pause_hours: 2, // Max 2 hours pause
+                }
+            ),
+            // Position/Swing trading (longer timeframes) - more conservative resume
+            "4h" | "6h" | "8h" | "12h" | "1d" | "3d" | "1w" => (
+                0.9, // Resume at 90% of pause threshold (more conservative)
+                AutoResumeDelays {
+                    data_quality: 5,    // 5 minutes - can afford to wait
+                    connection: 10,     // 10 minutes
+                    flash_crash: 30,    // 30 minutes - longer stabilization
+                    max_pause_hours: 6, // Max 6 hours pause
+                }
+            ),
+            _ => (0.8, AutoResumeDelays::default()) // Default to balanced
+        };
+        
+        // Adjust based on market adaptation level
+        let adaptation_multiplier = match self.market_adaptation_level.as_str() {
+            "Conservative" => 1.2,  // More conservative (higher thresholds)
+            "Moderate" => 1.0,      // Default
+            "Aggressive" => 0.8,    // More aggressive (lower thresholds)
+            _ => 1.0
+        };
+        
+        // Apply user-configured multiplier
+        let final_multiplier = base_multiplier * adaptation_multiplier * self.volatility_resume_threshold_multiplier;
+        
+        AutoResumeSettings {
+            enabled: self.auto_resume_enabled,
+            volatility_threshold_multiplier: final_multiplier.clamp(0.3, 1.5), // Clamp to sane range
+            delays: AutoResumeDelays {
+                data_quality: self.data_quality_resume_delay_minutes.max(base_delays.data_quality),
+                connection: self.connection_resume_delay_minutes.max(base_delays.connection),
+                flash_crash: self.flash_crash_resume_delay_minutes.max(base_delays.flash_crash),
+                max_pause_hours: self.max_auto_pause_duration_hours.max(base_delays.max_pause_hours),
+            },
+            // Additional strategy-specific factors
+            considers_trend_strength: matches!(self.timeframe.as_str(), "4h" | "6h" | "8h" | "12h" | "1d"),
+            requires_market_stability: matches!(self.timeframe.as_str(), "1m" | "3m" | "5m"),
         }
     }
     
@@ -239,7 +390,10 @@ pub enum SignalType {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SwingTradingBot {
     pub config: LROConfig,
-    pub is_active: bool,
+    /// New state system - replaces is_active and emergency_stop_triggered
+    pub state: BotState,
+    /// Information about current pause (if paused)
+    pub pause_info: Option<PauseInfo>,
     pub current_position: Option<BotPosition>,
     pub price_history: VecDeque<PriceData>,
     pub lro_history: VecDeque<f64>,
@@ -250,6 +404,8 @@ pub struct SwingTradingBot {
     pub daily_loss_tracker: Decimal,
     pub daily_reset_time: DateTime<Utc>,
     pub max_position_hold_hours: u32,
+    /// Deprecated - kept for backward compatibility, use state instead
+    #[deprecated(note = "Use state field instead")]
     pub emergency_stop_triggered: bool,
     pub circuit_breaker_count: u32,
     pub last_circuit_breaker_time: Option<DateTime<Utc>>,
@@ -417,6 +573,39 @@ impl SwingTradingBot {
         if config.signal_strength_threshold < 0.0 || config.signal_strength_threshold > 1.0 {
             return Err("Signal strength threshold must be between 0.0 and 1.0".to_string());
         }
+        
+        // Validate auto-resume parameters if auto-resume is enabled
+        if config.auto_resume_enabled {
+            if config.volatility_resume_threshold_multiplier < 0.3 || config.volatility_resume_threshold_multiplier > 1.5 {
+                return Err("Volatility resume threshold multiplier must be between 0.3 and 1.5".to_string());
+            }
+            
+            if config.data_quality_resume_delay_minutes < 1 || config.data_quality_resume_delay_minutes > 60 {
+                return Err("Data quality resume delay must be between 1 and 60 minutes".to_string());
+            }
+            
+            if config.connection_resume_delay_minutes < 1 || config.connection_resume_delay_minutes > 60 {
+                return Err("Connection resume delay must be between 1 and 60 minutes".to_string());
+            }
+            
+            if config.flash_crash_resume_delay_minutes < 1 || config.flash_crash_resume_delay_minutes > 120 {
+                return Err("Flash crash resume delay must be between 1 and 120 minutes".to_string());
+            }
+            
+            if config.max_auto_pause_duration_hours < 1 || config.max_auto_pause_duration_hours > 24 {
+                return Err("Max auto pause duration must be between 1 and 24 hours".to_string());
+            }
+            
+            // Validate that auto-resume is compatible with other safety settings
+            if !config.circuit_breaker_enabled {
+                log_warning!(LogCategory::Configuration, "Auto-resume is enabled but circuit breaker is disabled. This may lead to excessive trading during volatile conditions.");
+            }
+            
+            if !config.emergency_stop_enabled {
+                return Err("Auto-resume requires emergency stop to be enabled for safety".to_string());
+            }
+        }
+        
         Ok(())
     }
 
@@ -436,7 +625,8 @@ impl SwingTradingBot {
         
         Self {
             config,
-            is_active: false,
+            state: BotState::Stopped,
+            pause_info: None,
             current_position: None,
             price_history: VecDeque::with_capacity(200),
             lro_history: VecDeque::with_capacity(100),
@@ -453,6 +643,7 @@ impl SwingTradingBot {
             daily_loss_tracker: Decimal::ZERO,
             daily_reset_time: Utc::now(),
             max_position_hold_hours,
+            #[allow(deprecated)]
             emergency_stop_triggered: false,
             circuit_breaker_count: 0,
             last_circuit_breaker_time: None,
@@ -558,16 +749,465 @@ impl SwingTradingBot {
         Ok(())
     }
     
-    pub fn trigger_emergency_stop(&mut self, reason: &str) {
-        self.emergency_stop_triggered = true;
-        self.is_active = false;
+    /// Pause the bot temporarily - maintains state for auto-resume
+    pub fn pause_bot(&mut self, reason: PauseReason) {
+        log_warning!(LogCategory::TradingLogic, "Bot paused: {:?}", reason);
+        
+        // Get strategy-specific auto-resume settings
+        let resume_settings = self.config.get_auto_resume_settings();
+        
+        // Set auto-resume time based on reason and strategy
+        let auto_resume_at = if resume_settings.enabled {
+            match &reason {
+                PauseReason::HighVolatility { .. } => {
+                    // High volatility - wait longer for longer timeframes
+                    let delay_minutes = if resume_settings.requires_market_stability { 3 } else { 8 };
+                    Some(Utc::now() + chrono::Duration::minutes(delay_minutes))
+                },
+                PauseReason::DataQuality { .. } => {
+                    Some(Utc::now() + chrono::Duration::minutes(resume_settings.delays.data_quality as i64))
+                },
+                PauseReason::ConnectionIssue { .. } => {
+                    Some(Utc::now() + chrono::Duration::minutes(resume_settings.delays.connection as i64))
+                },
+                PauseReason::FlashCrash { .. } => {
+                    Some(Utc::now() + chrono::Duration::minutes(resume_settings.delays.flash_crash as i64))
+                },
+                PauseReason::RiskManagement { .. } => {
+                    // Risk management - more conservative for shorter timeframes
+                    let delay_minutes = if resume_settings.requires_market_stability { 5 } else { 15 };
+                    Some(Utc::now() + chrono::Duration::minutes(delay_minutes))
+                },
+                PauseReason::CircuitBreaker { .. } => {
+                    // Circuit breaker - strategy-aware delays
+                    let delay_minutes = if resume_settings.requires_market_stability { 15 } else { 30 };
+                    Some(Utc::now() + chrono::Duration::minutes(delay_minutes))
+                },
+                PauseReason::Manual => None, // Manual pause requires manual resume
+            }
+        } else {
+            None // Auto-resume disabled
+        };
+        
+        // Generate resume conditions
+        let conditions_for_resume = self.generate_resume_conditions(&reason);
+        
+        self.state = BotState::Paused;
+        self.pause_info = Some(PauseInfo {
+            reason,
+            paused_at: Utc::now(),
+            auto_resume_at,
+            conditions_for_resume,
+        });
+        
+        // NOTE: Unlike emergency stop, we do NOT close positions during pause
+        // This allows the bot to resume without losing position state
+    }
+    
+    /// Resume the bot from paused state
+    pub fn resume_bot(&mut self) -> Result<(), String> {
+        match self.state {
+            BotState::Paused => {
+                // Check if resume conditions are met
+                if let Some(pause_info) = &self.pause_info {
+                    if !self.can_auto_resume(&pause_info.reason) {
+                        return Err("Resume conditions not yet met".to_string());
+                    }
+                }
+                
+                log_info!(LogCategory::TradingLogic, "Bot resumed from pause");
+                self.state = BotState::Running;
+                self.pause_info = None;
+                Ok(())
+            },
+            BotState::Stopped => Err("Cannot resume - bot is stopped. Use start_bot() instead".to_string()),
+            BotState::Running => Err("Bot is already running".to_string()),
+        }
+    }
+    
+    /// Start the bot from stopped state
+    pub fn start_bot(&mut self) -> Result<(), String> {
+        match self.state {
+            BotState::Stopped => {
+                // Perform safety checks
+                if !self.config.paper_trading_enabled {
+                    return Err("Cannot start bot: Paper trading must be enabled".to_string());
+                }
+                
+                if self.account_balance <= Decimal::ZERO {
+                    return Err("Cannot start bot: Account balance is zero or negative".to_string());
+                }
+                
+                log_info!(LogCategory::TradingLogic, "Bot started");
+                self.state = BotState::Running;
+                self.pause_info = None;
+                #[allow(deprecated)]
+                { self.emergency_stop_triggered = false; }
+                Ok(())
+            },
+            BotState::Paused => {
+                // Try to resume instead
+                self.resume_bot()
+            },
+            BotState::Running => Err("Bot is already running".to_string()),
+        }
+    }
+    
+    /// Stop the bot completely - closes positions and requires manual restart
+    pub fn stop_bot(&mut self, reason: &str) {
+        log_warning!(LogCategory::TradingLogic, "Bot stopped: {}", reason);
+        
+        self.state = BotState::Stopped;
+        self.pause_info = None;
+        #[allow(deprecated)]
+        { self.emergency_stop_triggered = true; }
         
         // Close any open position immediately
         if self.current_position.is_some() {
-            self.exit_position(&format!("Emergency Stop: {}", reason));
+            self.exit_position(&format!("Bot Stopped: {}", reason));
+        }
+    }
+    
+    /// Legacy method for backward compatibility
+    pub fn trigger_emergency_stop(&mut self, reason: &str) {
+        self.stop_bot(reason);
+    }
+    
+    /// Check if bot can automatically resume based on current conditions
+    fn can_auto_resume(&self, pause_reason: &PauseReason) -> bool {
+        // Get strategy-specific auto-resume settings
+        let resume_settings = self.config.get_auto_resume_settings();
+        
+        // Check if auto-resume is enabled
+        if !resume_settings.enabled {
+            return false;
         }
         
-        eprintln!("EMERGENCY STOP TRIGGERED: {}", reason);
+        // Check if maximum pause duration has been exceeded
+        if let Some(pause_info) = &self.pause_info {
+            let pause_duration = Utc::now().signed_duration_since(pause_info.paused_at);
+            if pause_duration.num_hours() >= resume_settings.delays.max_pause_hours as i64 {
+                log_warning!(LogCategory::TradingLogic, 
+                    "Max auto-pause duration ({} hours) exceeded - manual intervention required", 
+                    resume_settings.delays.max_pause_hours);
+                return false;
+            }
+        }
+        
+        // Strategy-aware resume logic
+        match pause_reason {
+            PauseReason::HighVolatility { threshold, .. } => {
+                if let Some(current_volatility) = self.get_current_volatility() {
+                    let resume_threshold = threshold * resume_settings.volatility_threshold_multiplier;
+                    let volatility_ok = current_volatility < resume_threshold;
+                    
+                    // Additional checks for scalping strategies
+                    if resume_settings.requires_market_stability {
+                        volatility_ok && self.is_market_stable() && self.has_sufficient_liquidity()
+                    } else if resume_settings.considers_trend_strength {
+                        // For trend-following strategies, consider trend strength
+                        volatility_ok && (self.is_trend_strong() || self.is_market_stable())
+                    } else {
+                        volatility_ok
+                    }
+                } else {
+                    false
+                }
+            },
+            PauseReason::DataQuality { .. } => {
+                let basic_checks = !self.is_market_data_stale() && self.price_history.len() >= 3;
+                
+                if resume_settings.requires_market_stability {
+                    // Scalping needs more stringent data quality
+                    basic_checks && self.price_history.len() >= 5 && self.is_price_data_consistent()
+                } else {
+                    basic_checks
+                }
+            },
+            PauseReason::ConnectionIssue { .. } => {
+                // Connection issues - basic data freshness check
+                !self.is_market_data_stale()
+            },
+            PauseReason::FlashCrash { .. } => {
+                let market_stable = self.is_market_stable();
+                
+                if resume_settings.requires_market_stability {
+                    // Scalping requires extra stability after flash crash
+                    market_stable && self.has_sufficient_liquidity() && self.is_spread_reasonable()
+                } else {
+                    market_stable
+                }
+            },
+            PauseReason::RiskManagement { limit, .. } => {
+                let current_loss = self.daily_loss_tracker.to_f64().unwrap_or(0.0);
+                let loss_threshold = limit * 0.9; // Resume when loss drops to 90% of limit
+                
+                if resume_settings.requires_market_stability {
+                    // Scalping is more sensitive to losses
+                    current_loss < loss_threshold * 0.8 // Even more conservative
+                } else {
+                    current_loss < loss_threshold
+                }
+            },
+            PauseReason::CircuitBreaker { .. } => {
+                // Circuit breaker - always conservative
+                let basic_stability = self.is_market_stable() && !self.is_market_data_stale();
+                
+                if resume_settings.requires_market_stability {
+                    basic_stability && self.has_sufficient_liquidity() && self.is_spread_reasonable()
+                } else if resume_settings.considers_trend_strength {
+                    basic_stability && (self.is_trend_strong() || self.get_current_volatility().unwrap_or(1.0) < 0.3)
+                } else {
+                    basic_stability
+                }
+            },
+            PauseReason::Manual => false, // Manual pause requires manual resume
+        }
+    }
+    
+    /// Generate specific conditions needed for auto-resume
+    fn generate_resume_conditions(&self, reason: &PauseReason) -> Vec<String> {
+        match reason {
+            PauseReason::HighVolatility { threshold, .. } => {
+                vec![format!("Market volatility drops below {:.1}%", threshold * 80.0)]
+            },
+            PauseReason::DataQuality { issue } => {
+                vec![
+                    "Fresh price data received".to_string(),
+                    format!("Data quality issue resolved: {}", issue)
+                ]
+            },
+            PauseReason::ConnectionIssue { .. } => {
+                vec!["WebSocket connection stabilized".to_string()]
+            },
+            PauseReason::FlashCrash { .. } => {
+                vec![
+                    "Market volatility normalized".to_string(),
+                    "No extreme price movements for 10 minutes".to_string()
+                ]
+            },
+            PauseReason::RiskManagement { limit, .. } => {
+                vec![format!("Daily loss reduced below ${:.2}", limit * 0.9)]
+            },
+            PauseReason::CircuitBreaker { .. } => {
+                vec![
+                    "Market conditions stabilized".to_string(),
+                    "Data quality verified".to_string(),
+                    "Risk parameters within normal range".to_string()
+                ]
+            },
+            PauseReason::Manual => {
+                vec!["Manual resume required".to_string()]
+            },
+        }
+    }
+    
+    /// Check if market conditions are stable enough for auto-resume
+    fn is_market_stable(&self) -> bool {
+        // Check recent price movements for stability
+        if self.price_history.len() < 5 {
+            return false;
+        }
+        
+        let recent_prices: Vec<f64> = self.price_history
+            .iter()
+            .rev()
+            .take(5)
+            .map(|p| p.close.to_f64().unwrap_or(0.0))
+            .collect();
+        
+        // Calculate volatility of recent prices
+        if recent_prices.len() < 2 {
+            return false;
+        }
+        
+        let mean = recent_prices.iter().sum::<f64>() / recent_prices.len() as f64;
+        let variance = recent_prices.iter()
+            .map(|price| (*price - mean).powi(2))
+            .sum::<f64>() / recent_prices.len() as f64;
+        let volatility = variance.sqrt() / mean;
+        
+        // Market is stable if volatility is low
+        volatility < 0.02 // 2% volatility threshold
+    }
+    
+    /// Get current market volatility
+    fn get_current_volatility(&self) -> Option<f64> {
+        if self.price_history.len() < 10 {
+            return None;
+        }
+        
+        let recent_prices: Vec<f64> = self.price_history
+            .iter()
+            .rev()
+            .take(10)
+            .map(|p| p.close.to_f64().unwrap_or(0.0))
+            .collect();
+        
+        if recent_prices.len() < 2 {
+            return None;
+        }
+        
+        let mean = recent_prices.iter().sum::<f64>() / recent_prices.len() as f64;
+        let variance = recent_prices.iter()
+            .map(|price| (*price - mean).powi(2))
+            .sum::<f64>() / recent_prices.len() as f64;
+        let volatility = variance.sqrt() / mean;
+        
+        Some(volatility)
+    }
+    
+    /// Check if there's sufficient market liquidity for safe trading
+    fn has_sufficient_liquidity(&self) -> bool {
+        // Check recent volume levels
+        if self.price_history.len() < 5 {
+            return false;
+        }
+        
+        let recent_volumes: Vec<f64> = self.price_history
+            .iter()
+            .rev()
+            .take(5)
+            .map(|p| p.volume.to_f64().unwrap_or(0.0))
+            .collect();
+        
+        let avg_volume = recent_volumes.iter().sum::<f64>() / recent_volumes.len() as f64;
+        
+        // Minimum volume threshold based on strategy
+        let min_volume_threshold = match self.config.timeframe.as_str() {
+            "1m" | "3m" | "5m" => 100000.0,  // Scalping needs high liquidity
+            "15m" | "30m" | "1h" => 50000.0,  // Medium liquidity
+            _ => 10000.0                      // Lower requirement for longer timeframes
+        };
+        
+        avg_volume > min_volume_threshold
+    }
+    
+    /// Check if bid-ask spread is reasonable for trading
+    fn is_spread_reasonable(&self) -> bool {
+        // This is a simplified check - in a real implementation, you'd check actual bid-ask spread
+        // For now, we'll use recent price stability as a proxy
+        if self.price_history.len() < 3 {
+            return false;
+        }
+        
+        let recent_prices: Vec<f64> = self.price_history
+            .iter()
+            .rev()
+            .take(3)
+            .map(|p| p.close.to_f64().unwrap_or(0.0))
+            .collect();
+        
+        if recent_prices.len() < 2 {
+            return false;
+        }
+        
+        // Check if price changes are within reasonable bounds (proxy for tight spread)
+        let max_change = recent_prices.windows(2)
+            .map(|window| (window[0] - window[1]).abs() / window[1])
+            .fold(0.0, f64::max);
+        
+        // Spread is reasonable if price changes are small
+        max_change < 0.001 // 0.1% max change between recent prices
+    }
+    
+    /// Check if market trend is strong (for trend-following strategies)
+    fn is_trend_strong(&self) -> bool {
+        if self.price_history.len() < 20 {
+            return false;
+        }
+        
+        let recent_prices: Vec<f64> = self.price_history
+            .iter()
+            .rev()
+            .take(20)
+            .map(|p| p.close.to_f64().unwrap_or(0.0))
+            .collect();
+        
+        if recent_prices.len() < 10 {
+            return false;
+        }
+        
+        // Simple trend strength: compare first half vs second half
+        let first_half = &recent_prices[10..];
+        let second_half = &recent_prices[..10];
+        
+        let first_avg = first_half.iter().sum::<f64>() / first_half.len() as f64;
+        let second_avg = second_half.iter().sum::<f64>() / second_half.len() as f64;
+        
+        let trend_strength = (second_avg - first_avg).abs() / first_avg;
+        
+        // Strong trend if > 2% move over the period
+        trend_strength > 0.02
+    }
+    
+    /// Check if price data is consistent and reliable
+    fn is_price_data_consistent(&self) -> bool {
+        if self.price_history.len() < 5 {
+            return false;
+        }
+        
+        // Check for any anomalous price jumps
+        let recent_prices = self.price_history.iter().rev().take(5);
+        let mut prev_price: Option<f64> = None;
+        
+        for price_data in recent_prices {
+            let current_price = price_data.close.to_f64().unwrap_or(0.0);
+            
+            if let Some(prev) = prev_price {
+                let change: f64 = (current_price - prev).abs() / prev;
+                
+                // Flag as inconsistent if any single price jump > 5%
+                if change > 0.05 {
+                    return false;
+                }
+            }
+            
+            prev_price = Some(current_price);
+        }
+        
+        true
+    }
+    
+    /// Check if bot is running (not paused or stopped)
+    pub fn is_running(&self) -> bool {
+        self.state == BotState::Running
+    }
+    
+    /// Check if bot is paused
+    pub fn is_paused(&self) -> bool {
+        self.state == BotState::Paused
+    }
+    
+    /// Check if bot is stopped
+    pub fn is_stopped(&self) -> bool {
+        self.state == BotState::Stopped
+    }
+    
+    /// Get current bot state
+    pub fn get_state(&self) -> BotState {
+        self.state
+    }
+    
+    /// Get pause information if paused
+    pub fn get_pause_info(&self) -> Option<&PauseInfo> {
+        self.pause_info.as_ref()
+    }
+    
+    /// Check if bot should auto-resume from pause
+    pub fn should_auto_resume(&self) -> bool {
+        match (&self.state, &self.pause_info) {
+            (BotState::Paused, Some(pause_info)) => {
+                // Check if auto-resume time has passed
+                if let Some(auto_resume_at) = pause_info.auto_resume_at {
+                    if Utc::now() >= auto_resume_at {
+                        return self.can_auto_resume(&pause_info.reason);
+                    }
+                }
+                false
+            },
+            _ => false,
+        }
     }
     
     pub fn add_order_book_data(&mut self, order_book: OrderBookDepth, binance_client: &crate::binance_client::ImprovedBinanceClient) {
@@ -746,11 +1386,26 @@ impl SwingTradingBot {
                 // Check market conditions for circuit breaker triggers
                 self.check_market_conditions_for_circuit_breaker();
                 
-                // Execute trading logic if bot is active and data is fresh
-                if self.is_active && !self.is_market_data_stale() && !self.emergency_stop_triggered {
+                // Check for auto-resume opportunity
+                if self.should_auto_resume() {
+                    if let Err(e) = self.resume_bot() {
+                        log_debug!(LogCategory::TradingLogic, "Auto-resume failed: {}", e);
+                    } else {
+                        log_info!(LogCategory::TradingLogic, "Bot auto-resumed successfully");
+                    }
+                }
+                
+                // Execute trading logic if bot is running and data is fresh
+                if self.is_running() && !self.is_market_data_stale() {
                     self.process_signal(signal);
-                } else if self.is_active && self.is_market_data_stale() {
-                    eprintln!("Warning: Skipping signal processing due to stale market data");
+                } else if self.is_running() && self.is_market_data_stale() {
+                    // Pause due to stale data instead of just warning
+                    let pause_reason = PauseReason::DataQuality { 
+                        issue: "Stale market data detected".to_string() 
+                    };
+                    self.pause_bot(pause_reason);
+                } else if self.is_paused() {
+                    log_debug!(LogCategory::TradingLogic, "Bot paused - skipping signal processing");
                 }
             }
         }
@@ -1366,15 +2021,18 @@ impl SwingTradingBot {
             }
         }
         
-        // Check emergency stop status
-        if self.emergency_stop_triggered {
-            eprintln!("Emergency stop is active. Skipping signal processing.");
+        // Check bot state - should only process signals when running
+        if !self.is_running() {
+            log_debug!(LogCategory::TradingLogic, "Bot not running (state: {:?}). Skipping signal processing.", self.state);
             return;
         }
         
-        // Check circuit breaker status
+        // Check circuit breaker status - pause if still active
         if self.is_circuit_breaker_active() {
-            eprintln!("Circuit breaker is active. Skipping signal processing.");
+            let pause_reason = PauseReason::CircuitBreaker { 
+                trigger_count: self.circuit_breaker_count 
+            };
+            self.pause_bot(pause_reason);
             return;
         }
         
@@ -2008,11 +2666,18 @@ impl SwingTradingBot {
         self.circuit_breaker_count += 1;
         self.last_circuit_breaker_time = Some(Utc::now());
         
-        eprintln!("Circuit breaker #{} triggered: {}", self.circuit_breaker_count, reason);
+        log_warning!(LogCategory::RiskManagement, "Circuit breaker #{} triggered: {}", self.circuit_breaker_count, reason);
         
-        // If too many circuit breakers, trigger emergency stop
+        // Use pause instead of emergency stop for better continuity
         if self.circuit_breaker_count >= 3 {
-            self.trigger_emergency_stop("Multiple circuit breaker activations");
+            // Multiple circuit breakers - stop the bot completely for safety
+            self.stop_bot("Multiple circuit breaker activations - manual intervention required");
+        } else {
+            // Single/few circuit breakers - pause temporarily
+            let pause_reason = PauseReason::CircuitBreaker { 
+                trigger_count: self.circuit_breaker_count 
+            };
+            self.pause_bot(pause_reason);
         }
     }
     
@@ -2050,9 +2715,9 @@ impl SwingTradingBot {
             if self.price_history.len() >= 2 {
                 let current_price = latest_price.close;
                 let prev_price = self.price_history[self.price_history.len() - 2].close;
-                let price_change = ((current_price - prev_price) / prev_price).abs();
+                let price_change = ((current_price - prev_price) / prev_price).abs().to_f64().unwrap_or(0.0);
                 
-                if price_change > Decimal::from_f64(0.15).unwrap_or_else(|| Decimal::new(15, 2)) { // 15% single-period move
+                if price_change > 0.15 { // 15% single-period move
                     self.trigger_circuit_breaker("Flash crash/pump detected");
                     return;
                 }
