@@ -42,7 +42,7 @@ const Navigation: React.FC = () => {
                       navigate(route.path);
                     }
                   }}
-                  className="relative px-4 py-2 rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 touch-target shadow-lg"
+                  className="relative px-4 py-3 rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 touch-target shadow-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
                   style={{
                     backgroundColor: isActive ? `rgb(var(--color-primary-500))` : 'transparent',
                     color: isActive ? `rgb(var(--color-text-inverse))` : `rgb(var(--color-text-secondary))`,

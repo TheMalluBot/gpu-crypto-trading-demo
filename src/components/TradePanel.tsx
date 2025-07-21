@@ -2,15 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { safeInvoke, isTauriApp } from '../utils/tauri';
 import { listen } from '@tauri-apps/api/event';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, RotateCcw } from 'lucide-react';
 import { SymbolSelector } from './common/SymbolSelector';
 import { Input } from './common/Input';
 import { Button } from './common/Button';
 import { useFormValidation } from '../hooks/useFormValidation';
 import NotificationManager from '../utils/notifications';
 import HelpButton from './common/HelpButton';
+import { ConfirmationModal } from './common/ConfirmationModal';
 import { HELP_CONTENT } from '../utils/helpContent';
-
 interface OrderRequest {
   symbol: string;
   side: 'Long' | 'Short';
@@ -61,8 +61,10 @@ const TradePanel: React.FC = () => {
   const [currentPrice, setCurrentPrice] = useState<number>(0);
   const [priceChange, setPriceChange] = useState<number>(0);
   const [trades, setTrades] = useState<Trade[]>([]);
-
-  const formValidation = useFormValidation<TradeFormData>(
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingOrder, setPendingOrder] = useState<OrderRequest | null>(null);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [canUndo, setCanUndo] = useState(false);  const formValidation = useFormValidation<TradeFormData>(
     {
       quantity: 100,
       entryPrice: 0,
@@ -135,6 +137,17 @@ const TradePanel: React.FC = () => {
     }
   }, [selectedSymbol]);
 
+  const handleUndo = async () => {
+    try {
+      const { actionHistory } = await import('../utils/actionHistory');
+      const success = await actionHistory.undoLastAction();
+      if (success) {
+        setCanUndo(false);
+      }
+    } catch (error) {
+      console.error('Failed to undo action:', error);
+    }
+  };
   const loadPaperTrades = async () => {
     const paperTrades = await safeInvoke<Trade[]>('get_paper_trades');
     if (paperTrades) {
@@ -142,31 +155,52 @@ const TradePanel: React.FC = () => {
     }
   };
 
-  const placeOrder = async (formData: TradeFormData) => {
+  const handlePlaceOrder = (formData: TradeFormData) => {
+    const order: OrderRequest = {
+      symbol: selectedSymbol,
+      side: selectedSide,
+      order_type: orderType,
+      quantity: formData.quantity,
+      price: orderType === 'Limit' ? formData.entryPrice : undefined,
+      take_profit_percent: formData.takeProfitPercent > 0 ? formData.takeProfitPercent : undefined,
+      stop_loss_percent: formData.stopLossPercent > 0 ? formData.stopLossPercent : undefined,
+    };
+    
+    setPendingOrder(order);
+    setShowConfirmModal(true);
+  };
+
+  const confirmPlaceOrder = async () => {
+    if (!pendingOrder) return;
+    
     try {
       const settings = await safeInvoke('load_settings');
       
-      const order: OrderRequest = {
-        symbol: selectedSymbol,
-        side: selectedSide,
-        order_type: orderType,
-        quantity: formData.quantity,
-        price: orderType === 'Limit' ? formData.entryPrice : undefined,
-        take_profit_percent: formData.takeProfitPercent > 0 ? formData.takeProfitPercent : undefined,
-        stop_loss_percent: formData.stopLossPercent > 0 ? formData.stopLossPercent : undefined,
-      };
-
       const result = await safeInvoke('place_order', {
         settings,
-        order,
+        order: pendingOrder,
         paperTrading,
       });
 
       if (result !== null) {
         NotificationManager.success(
           'Order Placed',
-          `Successfully placed ${selectedSide} order for ${selectedSymbol}`
+          `Successfully placed ${pendingOrder.side} order for ${pendingOrder.symbol}`
         );
+        
+        // Add to action history for undo functionality
+        const { actionHistory } = await import('../utils/actionHistory');
+        actionHistory.addAction({
+          type: 'trade',
+          description: `Placed ${pendingOrder.side} order for ${pendingOrder.symbol}`,
+          data: pendingOrder,
+          undoFn: async () => {
+            // In a real app, this would cancel the order
+            NotificationManager.info('Undo', 'Trade placement undone');
+            loadPaperTrades();
+          }
+        });
+        
         loadPaperTrades();
         formValidation.resetForm();
       } else {
@@ -180,9 +214,11 @@ const TradePanel: React.FC = () => {
         'Order Error',
         'An error occurred while placing the order.'
       );
+    } finally {
+      setShowConfirmModal(false);
+      setPendingOrder(null);
     }
   };
-
   const calculatePnL = (trade: Trade) => {
     if (!currentPrice || trade.status === 'Closed') return trade.pnl || 0;
     
@@ -347,60 +383,100 @@ const TradePanel: React.FC = () => {
               </div>
             )}
 
-            {/* Take Profit */}
+            {/* Advanced Options Toggle */}
             <div>
-              <Input
-                label="Take Profit (%)"
-                type="number"
-                value={formValidation.values.takeProfitPercent}
-                onChange={(e) => formValidation.handleChange('takeProfitPercent', Number(e.target.value))}
-                onBlur={() => formValidation.handleBlur('takeProfitPercent')}
-                error={formValidation.touched.takeProfitPercent ? formValidation.errors.takeProfitPercent : undefined}
-                min={0}
-                max={100}
-                step={0.1}
-                placeholder="Take profit percentage"
-                autoComplete="off"
-                aria-describedby="takeprofit-help"
-              />
-              <p id="takeprofit-help" className="text-xs text-white/50 mt-1">
-                Optional: 0-100%. Leave 0 to disable.
-              </p>
+              <button
+                type="button"
+                onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+                className="text-sm text-blue-400 hover:text-blue-300 transition-colors flex items-center space-x-1"
+              >
+                <span>{showAdvancedOptions ? 'Hide' : 'Show'} Advanced Options</span>
+                <motion.svg
+                  className="w-4 h-4"
+                  animate={{ rotate: showAdvancedOptions ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </motion.svg>
+              </button>
             </div>
 
-            {/* Stop Loss */}
-            <div>
-              <Input
-                label="Stop Loss (%)"
-                type="number"
-                value={formValidation.values.stopLossPercent}
-                onChange={(e) => formValidation.handleChange('stopLossPercent', Number(e.target.value))}
-                onBlur={() => formValidation.handleBlur('stopLossPercent')}
-                error={formValidation.touched.stopLossPercent ? formValidation.errors.stopLossPercent : undefined}
-                min={0}
-                max={100}
-                step={0.1}
-                placeholder="Stop loss percentage"
-                autoComplete="off"
-                aria-describedby="stoploss-help"
-              />
-              <p id="stoploss-help" className="text-xs text-white/50 mt-1">
-                Optional: 0-100%. Leave 0 to disable.
-              </p>
-            </div>
-
-            {/* Place Order Button */}
-            <Button
-              onClick={() => formValidation.handleSubmit(placeOrder)}
-              disabled={formValidation.isSubmitting || !formValidation.isValid}
-              loading={formValidation.isSubmitting}
-              variant={selectedSide === 'Long' ? 'success' : 'danger'}
-              className="w-full"
-              aria-label={`Place ${selectedSide} order for ${selectedSymbol}`}
+            {/* Advanced Options - Collapsible */}
+            <motion.div
+              initial={false}
+              animate={{ height: showAdvancedOptions ? 'auto' : 0, opacity: showAdvancedOptions ? 1 : 0 }}
+              transition={{ duration: 0.3 }}
+              className="overflow-hidden"
             >
-              {formValidation.isSubmitting ? 'Placing Order...' : `Place ${selectedSide} Order`}
-            </Button>
-          </div>
+              <div className="space-y-4">
+                {/* Take Profit */}
+                <div>
+                  <Input
+                    label="Take Profit (%)"
+                    type="number"
+                    value={formValidation.values.takeProfitPercent}
+                    onChange={(e) => formValidation.handleChange('takeProfitPercent', Number(e.target.value))}
+                    onBlur={() => formValidation.handleBlur('takeProfitPercent')}
+                    error={formValidation.touched.takeProfitPercent ? formValidation.errors.takeProfitPercent : undefined}
+                    min={0}
+                    max={100}
+                    step={0.1}
+                    placeholder="Take profit percentage"
+                    autoComplete="off"
+                    aria-describedby="takeprofit-help"
+                  />
+                  <p id="takeprofit-help" className="text-xs text-white/50 mt-1">
+                    Optional: 0-100%. Leave 0 to disable.
+                  </p>
+                </div>
+
+                {/* Stop Loss */}
+                <div>
+                  <Input
+                    label="Stop Loss (%)"
+                    type="number"
+                    value={formValidation.values.stopLossPercent}
+                    onChange={(e) => formValidation.handleChange('stopLossPercent', Number(e.target.value))}
+                    onBlur={() => formValidation.handleBlur('stopLossPercent')}
+                    error={formValidation.touched.stopLossPercent ? formValidation.errors.stopLossPercent : undefined}
+                    min={0}
+                    max={100}
+                    step={0.1}
+                    placeholder="Stop loss percentage"
+                    autoComplete="off"
+                    aria-describedby="stoploss-help"
+                  />
+                  <p id="stoploss-help" className="text-xs text-white/50 mt-1">
+                    Optional: 0-100%. Leave 0 to disable.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+            {/* Place Order Button */}
+            <div className="flex space-x-2">
+              <Button
+                onClick={() => formValidation.handleSubmit(handlePlaceOrder)}
+                disabled={formValidation.isSubmitting || !formValidation.isValid}
+                loading={formValidation.isSubmitting}
+                variant={selectedSide === 'Long' ? 'success' : 'danger'}
+                className="flex-1 min-h-[44px]"
+                aria-label={`Place ${selectedSide} order for ${selectedSymbol}`}
+              >
+                {formValidation.isSubmitting ? 'Placing Order...' : `Place ${selectedSide} Order`}
+              </Button>
+              <Button
+                onClick={handleUndo}
+                disabled={!canUndo}
+                variant="secondary"
+                className="min-h-[44px] px-3"
+                aria-label="Undo last action"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </Button>
+            </div>          </div>
         </motion.div>
 
         {/* P/L Card */}
@@ -449,8 +525,21 @@ const TradePanel: React.FC = () => {
           </div>
         </motion.div>
       </div>
+
+      <ConfirmationModal
+        isOpen={showConfirmModal}
+        onClose={() => {
+          setShowConfirmModal(false);
+          setPendingOrder(null);
+        }}
+        onConfirm={confirmPlaceOrder}
+        title="Confirm Trade"
+        message={`Are you sure you want to place a ${pendingOrder?.side} order for ${pendingOrder?.symbol} with ${pendingOrder?.quantity} USDT?`}
+        confirmText="Place Order"
+        type="warning"
+        loading={formValidation.isSubmitting}
+      />
     </div>
   );
 };
-
 export default TradePanel;

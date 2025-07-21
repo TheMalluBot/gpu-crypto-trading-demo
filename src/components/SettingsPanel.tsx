@@ -14,8 +14,8 @@ interface AppSettings {
   base_url: string;
   testnet: boolean;
   disable_animations: boolean;
+  performance_mode: boolean;
 }
-
 interface AccountInfo {
   balances: Array<{
     asset: string;
@@ -32,8 +32,8 @@ const SettingsPanel: React.FC = () => {
     base_url: 'https://api.binance.com',
     testnet: false,
     disable_animations: false,
-  });
-  
+    performance_mode: false,
+  });  
   const [testResult, setTestResult] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
   const [testError, setTestError] = useState<string>('');
   const [accountInfo, setAccountInfo] = useState<AccountInfo | null>(null);
@@ -367,10 +367,45 @@ const SettingsPanel: React.FC = () => {
               />
             </motion.button>
           </div>
+
+          {/* Performance Mode Toggle */}
+          <div className="flex items-center justify-between">
+            <label 
+              className="flex items-center space-x-2"
+              style={{ color: `rgba(var(--color-text-primary), 0.8)` }}
+            >
+              <Monitor className="w-4 h-4" style={{ color: `rgb(var(--color-primary-500))` }} />
+              <div>
+                <span>Performance Mode</span>
+                <div 
+                  className="text-xs mt-1"
+                  style={{ color: `rgba(var(--color-text-secondary), 0.7)` }}
+                >
+                  {settings.performance_mode ? 'Reduced animations for better performance' : 'Full visual effects enabled'}
+                </div>
+              </div>
+            </label>
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => handleInputChange('performance_mode', !settings.performance_mode)}
+              className="w-12 h-6 rounded-full p-1 transition-colors"
+              style={{
+                backgroundColor: settings.performance_mode 
+                  ? `rgb(var(--color-primary-500))` 
+                  : `rgba(var(--color-surface-400), 0.3)`
+              }}
+            >
+              <motion.div
+                className="w-4 h-4 rounded-full"
+                style={{ backgroundColor: `rgb(var(--color-text-inverse))` }}
+                animate={{ x: settings.performance_mode ? 20 : 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              />
+            </motion.button>
+          </div>
         </div>
 
-        {/* Testnet Warning */}
-        {settings.testnet && (
+        {/* Testnet Warning */}        {settings.testnet && (
           <div 
             className="mt-4 p-3 rounded-lg"
             style={{

@@ -14,7 +14,7 @@ import SwingBotPanel from './components/SwingBotPanel';
 import Dashboard from './components/Dashboard';
 import NotificationContainer from './components/common/NotificationContainer';
 import FloatingHelpButton from './components/common/FloatingHelpButton';
-
+import { AppLoading } from './components/common/AppLoading';
 interface SystemStats {
   fps: number;
   cpu_load: number;
@@ -33,7 +33,16 @@ function App() {
   });
 
   const [settings, setSettings] = useState<AppSettings>({ disable_animations: false });
+  const [isLoading, setIsLoading] = useState(true);
 
+  useEffect(() => {
+    // Simulate app initialization
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, []);
   useEffect(() => {
     if (isTauriApp()) {
       const unlisten = listen('stats-update', (event) => {
@@ -56,11 +65,14 @@ function App() {
   };
 
 
+  if (isLoading) {
+    return <AppLoading />;
+  }
+
   return (
     <ThemeProvider>
       <Router>
-        <div className="min-h-safe-screen w-full gradient-bg overflow-hidden relative">
-        {/* Skip to main content link for accessibility */}
+        <div className="min-h-safe-screen w-full gradient-bg overflow-hidden relative">        {/* Skip to main content link for accessibility */}
         <a href="#main-content" className="skip-link focus-enhanced">
           Skip to main content
         </a>

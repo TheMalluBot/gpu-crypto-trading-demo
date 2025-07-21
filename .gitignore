@@ -83,3 +83,4 @@ data/
 *key*
 !src/components/common/*key*
 !node_modules/**/*key*
+.aider*

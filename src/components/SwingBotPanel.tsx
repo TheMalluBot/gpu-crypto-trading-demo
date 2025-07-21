@@ -12,13 +12,13 @@ import { RecentSignals } from './bot/RecentSignals';
 import { useBotData } from '../hooks/useBotData';
 import { getSignalColor, getMarketPhaseColor } from '../utils/formatters';
 import HelpButton from './common/HelpButton';
+import { ConfirmationModal } from './common/ConfirmationModal';
 import { HELP_CONTENT } from '../utils/helpContent';
-
 const SwingBotPanel: React.FC = () => {
   const [showConfig, setShowConfig] = useState(false);
   const [showChart, setShowChart] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
-
+  const [showEmergencyConfirm, setShowEmergencyConfirm] = useState(false);
   const {
     botStatus,
     signals,
@@ -106,7 +106,7 @@ const SwingBotPanel: React.FC = () => {
           botStatus={botStatus}
           onStart={toggleBot}
           onStop={toggleBot}
-          onEmergencyStop={() => triggerEmergencyStop('User initiated emergency stop')}
+          onEmergencyStop={() => setShowEmergencyConfirm(true)}
           loading={loading}
         />
 
@@ -170,9 +170,22 @@ const SwingBotPanel: React.FC = () => {
           onClose={() => setShowOnboarding(false)}
           onComplete={handleOnboardingComplete}
         />
+
+        {/* Emergency Stop Confirmation */}
+        <ConfirmationModal
+          isOpen={showEmergencyConfirm}
+          onClose={() => setShowEmergencyConfirm(false)}
+          onConfirm={() => {
+            triggerEmergencyStop('User initiated emergency stop');
+            setShowEmergencyConfirm(false);
+          }}
+          title="Emergency Stop"
+          message="Are you sure you want to trigger an emergency stop? This will immediately close all open positions and stop the bot."
+          confirmText="Emergency Stop"
+          type="danger"
+        />
       </div>
     </ErrorBoundary>
   );
 };
-
 export default SwingBotPanel;
