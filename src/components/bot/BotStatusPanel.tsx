@@ -10,6 +10,8 @@ interface BotStatusPanelProps {
   botStatus: BotStatus | null;
   onStart: () => void;
   onStop: () => void;
+  onPause: () => void;
+  onResume: () => void;
   onEmergencyStop: () => void;
   loading: boolean;
 }
@@ -18,6 +20,8 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
   botStatus,
   onStart,
   onStop,
+  onPause,
+  onResume,
   onEmergencyStop,
   loading
 }) => {
@@ -40,7 +44,36 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
     setShowEmergencyConfirm(false);
   };
 
-  // Determine status info
+  // Helper function to get readable pause reason text
+  const getPauseReasonText = (reason: any): string => {
+    if (!reason) return 'Unknown';
+    
+    if (reason.HighVolatility) {
+      return `High volatility (${(reason.HighVolatility.volatility * 100).toFixed(1)}%)`;
+    }
+    if (reason.DataQuality) {
+      return `Data quality issue: ${reason.DataQuality.issue}`;
+    }
+    if (reason.ConnectionIssue) {
+      return `Connection issue: ${reason.ConnectionIssue.reason}`;
+    }
+    if (reason.FlashCrash) {
+      return `Flash crash detected (${(reason.FlashCrash.movement_percent * 100).toFixed(1)}%)`;
+    }
+    if (reason.RiskManagement) {
+      return `Risk management (loss: $${reason.RiskManagement.current_loss.toFixed(2)})`;
+    }
+    if (reason.CircuitBreaker) {
+      return `Circuit breaker #${reason.CircuitBreaker.trigger_count}`;
+    }
+    if (reason.Manual !== undefined) {
+      return 'Manual pause';
+    }
+    
+    return 'Unknown reason';
+  };
+
+  // Determine status info using new state system
   const getStatusInfo = () => {
     if (!botStatus) {
       return {
@@ -50,43 +83,75 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
         bgColor: 'bg-gray-500/10 border-gray-500/20',
         description: 'Loading bot status...',
         canStart: false,
-        canStop: false
+        canStop: false,
+        canPause: false,
+        canResume: false
       };
     }
 
-    if (botStatus.emergency_stop_triggered) {
-      return {
-        status: 'Emergency Stop',
-        icon: '🚨',
-        color: 'text-red-400',
-        bgColor: 'bg-red-500/10 border-red-500/20',
-        description: 'Bot stopped due to emergency conditions',
-        canStart: false,
-        canStop: false
-      };
-    }
+    // Use new state system if available, fallback to legacy
+    const state = (botStatus as any).state || (botStatus.is_active ? 'Running' : 'Stopped');
+    const pauseInfo = (botStatus as any).pause_info;
 
-    if (botStatus.is_active) {
-      return {
-        status: 'Active',
-        icon: '🟢',
-        color: 'text-green-400',
-        bgColor: 'bg-green-500/10 border-green-500/20',
-        description: 'Bot is actively monitoring markets',
-        canStart: false,
-        canStop: true
-      };
-    }
+    switch (state) {
+      case 'Running':
+        return {
+          status: 'Running',
+          icon: '🟢',
+          color: 'text-green-400',
+          bgColor: 'bg-green-500/10 border-green-500/20',
+          description: 'Bot is actively monitoring markets',
+          canStart: false,
+          canStop: true,
+          canPause: true,
+          canResume: false
+        };
 
-    return {
-      status: 'Inactive',
-      icon: '🔴',
-      color: 'text-gray-400',
-      bgColor: 'bg-gray-500/10 border-gray-500/20',
-      description: 'Bot is stopped and not monitoring markets',
-      canStart: true,
-      canStop: false
-    };
+      case 'Paused':
+        const pauseReason = pauseInfo ? getPauseReasonText(pauseInfo.reason) : 'Unknown';
+        const autoResume = pauseInfo?.auto_resume_at ? new Date(pauseInfo.auto_resume_at) : null;
+        const willAutoResume = autoResume && autoResume > new Date();
+        
+        return {
+          status: 'Paused',
+          icon: '⏸️',
+          color: 'text-yellow-400',
+          bgColor: 'bg-yellow-500/10 border-yellow-500/20',
+          description: `Bot paused: ${pauseReason}${willAutoResume ? ` (auto-resume in ${Math.ceil((autoResume.getTime() - Date.now()) / 60000)}m)` : ''}`,
+          canStart: false,
+          canStop: true,
+          canPause: false,
+          canResume: true
+        };
+
+      case 'Stopped':
+      default:
+        if (botStatus.emergency_stop_triggered) {
+          return {
+            status: 'Emergency Stop',
+            icon: '🚨',
+            color: 'text-red-400',
+            bgColor: 'bg-red-500/10 border-red-500/20',
+            description: 'Bot stopped due to emergency conditions',
+            canStart: false,
+            canStop: false,
+            canPause: false,
+            canResume: false
+          };
+        }
+        
+        return {
+          status: 'Stopped',
+          icon: '🔴',
+          color: 'text-gray-400',
+          bgColor: 'bg-gray-500/10 border-gray-500/20',
+          description: 'Bot is not running',
+          canStart: true,
+          canStop: false,
+          canPause: false,
+          canResume: false
+        };
+    }
   };
 
   const statusInfo = getStatusInfo();
@@ -125,6 +190,29 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
                   {loading ? 'Starting...' : 'Start Bot'}
                 </Button>
               )}
+              
+              {(statusInfo as any).canPause && (
+                <Button
+                  onClick={onPause}
+                  disabled={loading}
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white text-sm px-3 py-2"
+                  size="sm"
+                >
+                  ⏸️ Pause
+                </Button>
+              )}
+              
+              {(statusInfo as any).canResume && (
+                <Button
+                  onClick={onResume}
+                  disabled={loading}
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-2"
+                  size="sm"
+                >
+                  ▶️ Resume
+                </Button>
+              )}
+              
               {statusInfo.canStop && (
                 <Button
                   onClick={() => setShowStopConfirm(true)}
@@ -135,13 +223,14 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
                   {loading ? 'Stopping...' : 'Stop Bot'}
                 </Button>
               )}
+              
               <Button
                 onClick={() => setShowEmergencyConfirm(true)}
                 disabled={loading}
                 className="bg-red-600 hover:bg-red-700 text-white text-sm px-3 py-2"
                 size="sm"
               >
-                Emergency Stop
+                🚨 Emergency Stop
               </Button>
             </div>
           </div>

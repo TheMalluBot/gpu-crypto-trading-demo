@@ -49,6 +49,7 @@ export const useBotData = () => {
   const generateMockBotStatus = useCallback(() => {
     const mockStatus: BotStatus = {
       is_active: false, // NEVER auto-start in mock mode - user must explicitly start
+      state: 'Stopped', // Use proper state system
       current_position: undefined, // No positions when bot is inactive
       latest_signal: {
         timestamp: new Date().toISOString(),
@@ -72,7 +73,16 @@ export const useBotData = () => {
         avg_hold_time: 0,
         success_rate: 0,
       },
-      config: config,
+      config: {
+        ...config,
+        // Ensure auto-resume settings have defaults if missing
+        auto_resume_enabled: config.auto_resume_enabled ?? true,
+        volatility_resume_threshold_multiplier: config.volatility_resume_threshold_multiplier ?? 0.8,
+        data_quality_resume_delay_minutes: config.data_quality_resume_delay_minutes ?? 2,
+        connection_resume_delay_minutes: config.connection_resume_delay_minutes ?? 3,
+        flash_crash_resume_delay_minutes: config.flash_crash_resume_delay_minutes ?? 10,
+        max_auto_pause_duration_hours: config.max_auto_pause_duration_hours ?? 2,
+      },
       emergency_stop_triggered: false,
       circuit_breaker_count: 0, // Clean state when inactive
       circuit_breaker_active: false,
@@ -445,6 +455,60 @@ export const useBotData = () => {
     }
   }, [botStatus, loadBotStatus]);
 
+  const pauseBot = useCallback(async (reason?: string) => {
+    try {
+      if (isTauriApp()) {
+        await safeInvoke('pause_swing_bot', { reason });
+        await loadBotStatus();
+      } else {
+        // Web preview mode - update mock status
+        console.log(`⏸️ Web preview mode: Bot paused - ${reason || 'Manual pause'}`);
+        if (botStatus) {
+          const updatedStatus = {
+            ...botStatus,
+            is_active: false,
+            state: 'Paused' as any,
+            pause_info: {
+              reason: { Manual: null },
+              paused_at: new Date().toISOString(),
+              auto_resume_at: undefined,
+              conditions_for_resume: ['Manual resume required']
+            }
+          };
+          setBotStatus(updatedStatus);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to pause bot:', error);
+    }
+  }, [botStatus, loadBotStatus]);
+
+  const resumeBot = useCallback(async () => {
+    try {
+      if (isTauriApp()) {
+        await safeInvoke('resume_swing_bot');
+        await loadBotStatus();
+      } else {
+        // Web preview mode - update mock status
+        console.log('▶️ Web preview mode: Bot resumed');
+        if (botStatus) {
+          const updatedStatus = {
+            ...botStatus,
+            is_active: true,
+            state: 'Running' as any,
+            pause_info: undefined
+          };
+          setBotStatus(updatedStatus);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to resume bot:', error);
+      if (error instanceof Error) {
+        alert(`Resume Error: ${error.message}`);
+      }
+    }
+  }, [botStatus, loadBotStatus]);
+
   const resetEmergencyStop = useCallback(async () => {
     try {
       if (isTauriApp()) {
@@ -517,6 +581,13 @@ export const useBotData = () => {
           take_profit_percent: 1.0,
           trailing_stop_enabled: true,
           trailing_stop_percent: 0.3,
+          // Scalping-specific auto-resume settings
+          auto_resume_enabled: true,
+          volatility_resume_threshold_multiplier: 0.6,  // More aggressive resume (60%)
+          data_quality_resume_delay_minutes: 1,         // Quick resume for data issues
+          connection_resume_delay_minutes: 2,           // Quick resume for connection issues
+          flash_crash_resume_delay_minutes: 5,          // Short wait for flash crash
+          max_auto_pause_duration_hours: 1,             // Max 1 hour pause
         };
         break;
       case 'swing':
@@ -528,6 +599,13 @@ export const useBotData = () => {
           stop_loss_percent: 2.0,
           take_profit_percent: 4.0,
           trailing_stop_enabled: false,
+          // Swing trading auto-resume settings
+          auto_resume_enabled: true,
+          volatility_resume_threshold_multiplier: 0.8,  // Balanced resume (80%)
+          data_quality_resume_delay_minutes: 2,         // Standard wait for data issues
+          connection_resume_delay_minutes: 3,           // Standard wait for connection issues
+          flash_crash_resume_delay_minutes: 10,         // Medium wait for flash crash
+          max_auto_pause_duration_hours: 2,             // Max 2 hours pause
         };
         break;
       case 'trend':
@@ -540,6 +618,13 @@ export const useBotData = () => {
           take_profit_percent: 8.0,
           trailing_stop_enabled: true,
           trailing_stop_percent: 2.0,
+          // Trend following auto-resume settings
+          auto_resume_enabled: true,
+          volatility_resume_threshold_multiplier: 0.9,  // More conservative resume (90%)
+          data_quality_resume_delay_minutes: 5,         // Longer wait - can afford it
+          connection_resume_delay_minutes: 10,          // Longer wait for connection issues
+          flash_crash_resume_delay_minutes: 30,         // Long stabilization period
+          max_auto_pause_duration_hours: 6,             // Max 6 hours pause - position trading
         };
         break;
       case 'range':
@@ -552,6 +637,13 @@ export const useBotData = () => {
           take_profit_percent: 2.5,
           overbought: 0.6,
           oversold: -0.6,
+          // Range trading auto-resume settings
+          auto_resume_enabled: true,
+          volatility_resume_threshold_multiplier: 0.7,  // Moderate resume (70%)
+          data_quality_resume_delay_minutes: 2,         // Quick resume for range trading
+          connection_resume_delay_minutes: 3,           // Standard wait
+          flash_crash_resume_delay_minutes: 8,          // Medium wait - range sensitive
+          max_auto_pause_duration_hours: 3,             // Max 3 hours pause
         };
         break;
     }
@@ -598,6 +690,8 @@ export const useBotData = () => {
     // Actions
     setConfig,
     toggleBot,
+    pauseBot,
+    resumeBot,
     triggerEmergencyStop,
     resetEmergencyStop,
     updateAccountBalance,

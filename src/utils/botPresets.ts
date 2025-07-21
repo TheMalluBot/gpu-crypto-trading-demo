@@ -41,7 +41,14 @@ export const BOT_PRESETS: BotPreset[] = [
       max_position_hold_hours: 48,
       signal_strength_threshold: 0.7,
       emergency_stop_enabled: true,
-      circuit_breaker_enabled: true
+      circuit_breaker_enabled: true,
+      // Conservative auto-resume settings - very cautious approach
+      auto_resume_enabled: true,
+      volatility_resume_threshold_multiplier: 1.0,  // Wait for full stability
+      data_quality_resume_delay_minutes: 5,         // Longer wait for data issues
+      connection_resume_delay_minutes: 10,          // Conservative connection wait
+      flash_crash_resume_delay_minutes: 30,         // Long stabilization period
+      max_auto_pause_duration_hours: 6              // Max 6 hours - position trading
     },
     pros: [
       "Low risk with tight stop losses",
@@ -83,7 +90,14 @@ export const BOT_PRESETS: BotPreset[] = [
       max_position_hold_hours: 24,
       signal_strength_threshold: 0.6,
       emergency_stop_enabled: true,
-      circuit_breaker_enabled: true
+      circuit_breaker_enabled: true,
+      // Balanced auto-resume settings - moderate approach
+      auto_resume_enabled: true,
+      volatility_resume_threshold_multiplier: 0.8,  // Balanced resume (80%)
+      data_quality_resume_delay_minutes: 2,         // Standard wait for data issues
+      connection_resume_delay_minutes: 3,           // Standard wait for connection issues
+      flash_crash_resume_delay_minutes: 10,         // Medium wait for flash crash
+      max_auto_pause_duration_hours: 2              // Max 2 hours pause
     },
     pros: [
       "Good balance of risk and reward",
@@ -125,7 +139,14 @@ export const BOT_PRESETS: BotPreset[] = [
       max_position_hold_hours: 4,
       signal_strength_threshold: 0.5,
       emergency_stop_enabled: true,
-      circuit_breaker_enabled: true
+      circuit_breaker_enabled: true,
+      // Aggressive scalping auto-resume settings - fast recovery
+      auto_resume_enabled: true,
+      volatility_resume_threshold_multiplier: 0.6,  // More aggressive resume (60%)
+      data_quality_resume_delay_minutes: 1,         // Quick resume for data issues
+      connection_resume_delay_minutes: 2,           // Quick resume for connection issues
+      flash_crash_resume_delay_minutes: 5,          // Short wait for flash crash
+      max_auto_pause_duration_hours: 1              // Max 1 hour pause
     },
     pros: [
       "High profit potential",
@@ -168,7 +189,14 @@ export const BOT_PRESETS: BotPreset[] = [
       max_position_hold_hours: 72,
       signal_strength_threshold: 0.5,
       emergency_stop_enabled: true,
-      circuit_breaker_enabled: true
+      circuit_breaker_enabled: true,
+      // Swing trading auto-resume settings - balanced approach
+      auto_resume_enabled: true,
+      volatility_resume_threshold_multiplier: 0.8,  // Balanced resume (80%)
+      data_quality_resume_delay_minutes: 2,         // Standard wait for data issues
+      connection_resume_delay_minutes: 3,           // Standard wait for connection issues
+      flash_crash_resume_delay_minutes: 10,         // Medium wait for flash crash
+      max_auto_pause_duration_hours: 2              // Max 2 hours pause
     },
     pros: [
       "Captures larger price movements",
@@ -211,7 +239,14 @@ export const BOT_PRESETS: BotPreset[] = [
       max_position_hold_hours: 1,
       signal_strength_threshold: 0.4,
       emergency_stop_enabled: true,
-      circuit_breaker_enabled: true
+      circuit_breaker_enabled: true,
+      // Ultra-fast scalping auto-resume settings - extremely aggressive
+      auto_resume_enabled: true,
+      volatility_resume_threshold_multiplier: 0.5,  // Very aggressive resume (50%)
+      data_quality_resume_delay_minutes: 1,         // Ultra-quick resume for data issues (minimum 1 min)
+      connection_resume_delay_minutes: 1,           // Ultra-quick resume for connection issues
+      flash_crash_resume_delay_minutes: 3,          // Very short wait for flash crash
+      max_auto_pause_duration_hours: 1              // Max 1 hour pause (minimum allowed)
     },
     pros: [
       "Maximum trading frequency",
@@ -255,7 +290,14 @@ export const BOT_PRESETS: BotPreset[] = [
       max_position_hold_hours: 36,
       signal_strength_threshold: 0.6,
       emergency_stop_enabled: true,
-      circuit_breaker_enabled: true
+      circuit_breaker_enabled: true,
+      // Range trading auto-resume settings - moderate approach
+      auto_resume_enabled: true,
+      volatility_resume_threshold_multiplier: 0.7,  // Moderate resume (70%)
+      data_quality_resume_delay_minutes: 2,         // Quick resume for range trading
+      connection_resume_delay_minutes: 3,           // Standard wait
+      flash_crash_resume_delay_minutes: 8,          // Medium wait - range sensitive
+      max_auto_pause_duration_hours: 3              // Max 3 hours pause
     },
     pros: [
       "Works well in sideways markets",

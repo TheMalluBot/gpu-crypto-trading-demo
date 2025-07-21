@@ -30,6 +30,8 @@ const SwingBotPanel: React.FC = () => {
     loading,
     setConfig,
     toggleBot,
+    pauseBot,
+    resumeBot,
     triggerEmergencyStop,
     updateAccountBalance,
     resetVirtualPortfolio,
@@ -106,6 +108,8 @@ const SwingBotPanel: React.FC = () => {
           botStatus={botStatus}
           onStart={toggleBot}
           onStop={toggleBot}
+          onPause={pauseBot}
+          onResume={resumeBot}
           onEmergencyStop={() => setShowEmergencyConfirm(true)}
           loading={loading}
         />

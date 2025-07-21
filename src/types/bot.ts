@@ -24,6 +24,13 @@ export interface LROConfig {
   circuit_breaker_enabled: boolean;
   max_position_hold_hours: number;
   signal_strength_threshold: number;
+  // Auto-Resume Settings
+  auto_resume_enabled?: boolean;
+  volatility_resume_threshold_multiplier?: number;
+  data_quality_resume_delay_minutes?: number;
+  connection_resume_delay_minutes?: number;
+  flash_crash_resume_delay_minutes?: number;
+  max_auto_pause_duration_hours?: number;
 }
 
 export interface MarketConditions {
@@ -68,8 +75,30 @@ export interface LROSignal {
   };
 }
 
+// New bot state system
+export type BotState = 'Running' | 'Paused' | 'Stopped';
+
+export interface PauseReason {
+  HighVolatility?: { volatility: number; threshold: number };
+  DataQuality?: { issue: string };
+  ConnectionIssue?: { reason: string };
+  FlashCrash?: { movement_percent: number };
+  RiskManagement?: { current_loss: number; limit: number };
+  CircuitBreaker?: { trigger_count: number };
+  Manual?: null;
+}
+
+export interface PauseInfo {
+  reason: PauseReason;
+  paused_at: string;
+  auto_resume_at?: string;
+  conditions_for_resume: string[];
+}
+
 export interface BotStatus {
-  is_active: boolean;
+  is_active: boolean; // Legacy field - use state instead
+  state?: BotState; // New state system
+  pause_info?: PauseInfo; // Pause details when paused
   current_position?: BotPosition;
   latest_signal?: LROSignal;
   performance: BotPerformance;

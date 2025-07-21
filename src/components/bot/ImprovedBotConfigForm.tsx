@@ -504,6 +504,146 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
               )}
             </div>
           </ConfigurationSection>
+
+          {/* Auto-Resume Settings */}
+          <ConfigurationSection
+            title="Auto-Resume Settings"
+            description="Configure automatic pause/resume behavior for different market conditions"
+            icon={Zap}
+            iconColor="text-emerald-400"
+          >
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 glass-card rounded-lg">
+                <div>
+                  <div className="text-white font-medium flex items-center space-x-2">
+                    <span>Enable Auto-Resume</span>
+                    <Tooltip content="Automatically resume trading when market conditions improve after the bot pauses due to volatility or technical issues." />
+                  </div>
+                  <div className="text-white/60 text-sm mt-1">
+                    Automatically resume trading when conditions improve
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleConfigChange('auto_resume_enabled', !config.auto_resume_enabled)}
+                  className={`w-14 h-7 rounded-full p-1 transition-colors ${
+                    config.auto_resume_enabled ? 'bg-emerald-500' : 'bg-white/20'
+                  }`}
+                >
+                  <div
+                    className={`w-5 h-5 bg-white rounded-full transition-transform ${
+                      config.auto_resume_enabled ? 'transform translate-x-7' : ''
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {config.auto_resume_enabled && (
+                <div className="space-y-6 mt-6">
+                  {/* Volatility Resume Settings */}
+                  <div className="p-4 glass-card rounded-lg">
+                    <h4 className="text-white font-medium mb-4 flex items-center space-x-2">
+                      <span className="text-orange-400">📊</span>
+                      <span>Volatility Resume Control</span>
+                    </h4>
+                    <ConfigInput
+                      label="Volatility Resume Threshold"
+                      value={config.volatility_resume_threshold_multiplier || 0.8}
+                      onChange={(value) => handleConfigChange('volatility_resume_threshold_multiplier', value)}
+                      type="number"
+                      step={0.1}
+                      min={0.1}
+                      max={1.5}
+                      unit="x"
+                      tooltip="Multiplier for volatility threshold before auto-resume. Lower = resume sooner (more aggressive), Higher = wait for calmer markets (more conservative)."
+                      description="How much volatility should settle before resuming"
+                      recommendation="0.6-0.8 for aggressive, 0.8-1.0 for balanced, 1.0+ for conservative"
+                      validation={{ min: 0.1, max: 1.5, required: true }}
+                    />
+                  </div>
+
+                  {/* Delay Settings */}
+                  <div className="p-4 glass-card rounded-lg">
+                    <h4 className="text-white font-medium mb-4 flex items-center space-x-2">
+                      <span className="text-blue-400">⏱️</span>
+                      <span>Resume Delay Settings</span>
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <ConfigInput
+                        label="Data Quality Issues"
+                        value={config.data_quality_resume_delay_minutes || 2}
+                        onChange={(value) => handleConfigChange('data_quality_resume_delay_minutes', value)}
+                        type="number"
+                        min={1}
+                        max={60}
+                        unit="min"
+                        tooltip="Wait time after data quality issues before attempting to resume trading."
+                        description="Wait time after data issues resolve"
+                        validation={{ min: 1, max: 60, required: true }}
+                      />
+
+                      <ConfigInput
+                        label="Connection Problems"
+                        value={config.connection_resume_delay_minutes || 3}
+                        onChange={(value) => handleConfigChange('connection_resume_delay_minutes', value)}
+                        type="number"
+                        min={1}
+                        max={60}
+                        unit="min"
+                        tooltip="Wait time after connection issues before attempting to resume trading."
+                        description="Wait time after connection restores"
+                        validation={{ min: 1, max: 60, required: true }}
+                      />
+
+                      <ConfigInput
+                        label="Flash Crash Recovery"
+                        value={config.flash_crash_resume_delay_minutes || 10}
+                        onChange={(value) => handleConfigChange('flash_crash_resume_delay_minutes', value)}
+                        type="number"
+                        min={5}
+                        max={120}
+                        unit="min"
+                        tooltip="Wait time after flash crash events before resuming. Markets need time to stabilize."
+                        description="Wait time after market flash crashes"
+                        validation={{ min: 5, max: 120, required: true }}
+                      />
+
+                      <ConfigInput
+                        label="Max Auto-Pause Duration"
+                        value={config.max_auto_pause_duration_hours || 2}
+                        onChange={(value) => handleConfigChange('max_auto_pause_duration_hours', value)}
+                        type="number"
+                        min={1}
+                        max={24}
+                        unit="hrs"
+                        tooltip="Maximum time to stay paused before requiring manual intervention."
+                        description="Max pause time before manual resume required"
+                        validation={{ min: 1, max: 24, required: true }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Resume Strategy Info */}
+                  <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                    <div className="flex items-start space-x-3">
+                      <span className="text-blue-400 text-lg">ℹ️</span>
+                      <div>
+                        <div className="text-blue-400 font-medium">Strategy-Aware Resume</div>
+                        <div className="text-blue-300/80 text-sm mt-1">
+                          Auto-resume conditions automatically adapt based on your chosen strategy preset:
+                        </div>
+                        <ul className="text-blue-300/70 text-sm mt-2 space-y-1 ml-4">
+                          <li>• <strong>Scalping:</strong> Quick resume for fast market opportunities</li>
+                          <li>• <strong>Swing Trading:</strong> Balanced approach with moderate delays</li>
+                          <li>• <strong>Trend Following:</strong> Conservative resume for stable trends</li>
+                          <li>• <strong>Range Trading:</strong> Moderate resume suitable for ranging markets</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </ConfigurationSection>
         </div>
       )}
 
