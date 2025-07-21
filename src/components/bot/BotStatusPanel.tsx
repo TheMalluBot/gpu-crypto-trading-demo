@@ -21,7 +21,6 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
   onEmergencyStop,
   loading
 }) => {
-  console.log('BotStatusPanel render:', { botStatus, loading });
   const [showStartConfirm, setShowStartConfirm] = useState(false);
   const [showStopConfirm, setShowStopConfirm] = useState(false);
   const [showEmergencyConfirm, setShowEmergencyConfirm] = useState(false);

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { safeInvoke } from '../utils/tauri';
+import { safeInvoke, isTauriApp } from '../utils/tauri';
 import {
   BotStatus,
   LROSignal,
@@ -390,14 +390,26 @@ export const useBotData = () => {
         console.log('✅ All startup checks passed');
       }
       
-      if (botStatus.is_active) {
-        await safeInvoke('stop_swing_bot');
-        console.log('✅ Bot stopped successfully');
+      if (isTauriApp()) {
+        // Real Tauri environment
+        if (botStatus.is_active) {
+          await safeInvoke('stop_swing_bot');
+          console.log('✅ Bot stopped successfully');
+        } else {
+          await safeInvoke('start_swing_bot');
+          console.log('✅ Bot started successfully');
+        }
+        await loadBotStatus();
       } else {
-        await safeInvoke('start_swing_bot');
-        console.log('✅ Bot started successfully');
+        // Web preview mode - update mock status directly
+        console.log(`🌐 Web preview mode: ${botStatus.is_active ? 'Stopping' : 'Starting'} bot simulation`);
+        const updatedStatus = {
+          ...botStatus,
+          is_active: !botStatus.is_active
+        };
+        setBotStatus(updatedStatus);
+        console.log(`✅ Bot ${updatedStatus.is_active ? 'started' : 'stopped'} successfully (simulation)`);
       }
-      await loadBotStatus();
     } catch (error) {
       console.error('❌ Failed to toggle bot:', error);
       // Provide user-friendly error messages
@@ -409,25 +421,50 @@ export const useBotData = () => {
     } finally {
       setLoading(false);
     }
-  }, [botStatus, config, loadBotStatus]);
+  }, [botStatus, loadBotStatus]);
 
   const triggerEmergencyStop = useCallback(async (reason: string) => {
     try {
-      await safeInvoke('trigger_emergency_stop', { reason });
-      await loadBotStatus();
+      if (isTauriApp()) {
+        await safeInvoke('trigger_emergency_stop', { reason });
+        await loadBotStatus();
+      } else {
+        // Web preview mode - update mock status
+        console.log(`🚨 Web preview mode: Emergency stop triggered - ${reason}`);
+        if (botStatus) {
+          const updatedStatus = {
+            ...botStatus,
+            is_active: false,
+            emergency_stop_triggered: true
+          };
+          setBotStatus(updatedStatus);
+        }
+      }
     } catch (error) {
       console.error('Failed to trigger emergency stop:', error);
     }
-  }, [loadBotStatus]);
+  }, [botStatus, loadBotStatus]);
 
   const resetEmergencyStop = useCallback(async () => {
     try {
-      await safeInvoke('reset_emergency_stop');
-      await loadBotStatus();
+      if (isTauriApp()) {
+        await safeInvoke('reset_emergency_stop');
+        await loadBotStatus();
+      } else {
+        // Web preview mode - reset mock emergency stop
+        console.log('🔄 Web preview mode: Emergency stop reset');
+        if (botStatus) {
+          const updatedStatus = {
+            ...botStatus,
+            emergency_stop_triggered: false
+          };
+          setBotStatus(updatedStatus);
+        }
+      }
     } catch (error) {
       console.error('Failed to reset emergency stop:', error);
     }
-  }, [loadBotStatus]);
+  }, [botStatus, loadBotStatus]);
 
   const updateAccountBalance = useCallback(async (balance: number) => {
     try {

@@ -331,7 +331,8 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     /// Check if GPU acceleration is available and beneficial
     pub fn should_use_gpu(data_length: usize, period: usize) -> bool {
         // Use GPU for larger datasets where parallel processing provides benefit
-        data_length >= 100 && period >= 20
+        // Adjust thresholds based on GPU capabilities
+        data_length >= 50 && period >= 10
     }
 }
 
@@ -344,10 +345,17 @@ pub struct GpuTradingAccelerator {
 
 impl GpuTradingAccelerator {
     pub async fn new() -> Result<Self, String> {
+        Self::new_with_diagnostics().await
+    }
+
+    /// Initialize GPU device with comprehensive diagnostics
+    pub async fn new_with_diagnostics() -> Result<Self, String> {
+        println!("🔍 Starting GPU initialization with Windows compatibility checks...");
+        
         // Initialize GPU device with Windows/NVIDIA optimizations
         let backends = if cfg!(target_os = "windows") {
-            // On Windows, prioritize DirectX 12 for NVIDIA GPUs, fallback to Vulkan
-            wgpu::Backends::DX12 | wgpu::Backends::VULKAN
+            // On Windows, prioritize DirectX 12, fallback to Vulkan, then OpenGL
+            wgpu::Backends::DX12 | wgpu::Backends::VULKAN | wgpu::Backends::GL
         } else {
             // On other platforms, use all available backends
             wgpu::Backends::all()
@@ -355,7 +363,10 @@ impl GpuTradingAccelerator {
 
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends,
-            dx12_shader_compiler: wgpu::Dx12Compiler::Fxc, // Use FXC compiler for better compatibility
+            dx12_shader_compiler: wgpu::Dx12Compiler::Dxc {
+                dxil_path: None,
+                dxc_path: None,
+            }, // Use DXC compiler for better Windows compatibility
             flags: wgpu::InstanceFlags::default(),
             gles_minor_version: wgpu::Gles3MinorVersion::Automatic,
         });
@@ -368,7 +379,15 @@ impl GpuTradingAccelerator {
                 compatible_surface: None,
             })
             .await
-            .ok_or("Failed to find suitable GPU adapter")?;
+            .ok_or_else(|| {
+                let error_msg = "Failed to find suitable GPU adapter".to_string();
+                eprintln!("❌ GPU Error: {}", error_msg);
+                eprintln!("   Possible causes:");
+                eprintln!("   - Outdated graphics drivers");
+                eprintln!("   - No dedicated GPU present");
+                eprintln!("   - Windows graphics settings blocking GPU access");
+                error_msg
+            })?;
 
         // Log adapter info for debugging
         let adapter_info = adapter.get_info();
@@ -376,10 +395,37 @@ impl GpuTradingAccelerator {
         println!("   Vendor: 0x{:X}", adapter_info.vendor);
         println!("   Device: 0x{:X}", adapter_info.device);
         
-        // Check if it's an NVIDIA GPU
+        // Check GPU capabilities
+        let limits = adapter.limits();
+        let features = adapter.features();
+        println!("   Max buffer size: {} MB", limits.max_buffer_size / 1_000_000);
+        println!("   Max workgroup size: {}x{}x{}", 
+                 limits.max_compute_workgroup_size_x,
+                 limits.max_compute_workgroup_size_y,
+                 limits.max_compute_workgroup_size_z);
+        println!("   Features: {:?}", features);
+        
+        // Check if it's an NVIDIA GPU and detect architecture
         let is_nvidia = adapter_info.vendor == 0x10DE; // NVIDIA vendor ID
+        let is_rtx = adapter_info.name.to_lowercase().contains("rtx");
+        let is_gtx = adapter_info.name.to_lowercase().contains("gtx");
+        let is_integrated = adapter_info.name.to_lowercase().contains("intel") || 
+                           adapter_info.name.to_lowercase().contains("amd") && 
+                           adapter_info.name.to_lowercase().contains("radeon") &&
+                           !adapter_info.name.to_lowercase().contains("rx");
+        
         if is_nvidia {
             println!("✅ NVIDIA GPU detected - enabling optimizations");
+            if is_rtx {
+                println!("   RTX series detected - enabling advanced features");
+            } else if is_gtx {
+                println!("   GTX series detected - using standard optimizations");
+            }
+        } else if is_integrated {
+            println!("⚠️  Integrated GPU detected - using conservative settings");
+            println!("   Consider using dedicated GPU for better performance");
+        } else {
+            println!("⚠️  Non-NVIDIA GPU detected - using generic optimizations");
         }
 
         // Enable advanced GPU features for better performance
@@ -389,20 +435,39 @@ impl GpuTradingAccelerator {
         // Enable features that improve performance on NVIDIA GPUs
         if supported_features.contains(wgpu::Features::TIMESTAMP_QUERY) {
             features |= wgpu::Features::TIMESTAMP_QUERY;
+            println!("   ✅ Timestamp queries enabled");
         }
         if supported_features.contains(wgpu::Features::PIPELINE_STATISTICS_QUERY) {
             features |= wgpu::Features::PIPELINE_STATISTICS_QUERY;
+            println!("   ✅ Pipeline statistics enabled");
         }
         if supported_features.contains(wgpu::Features::SHADER_F64) {
             features |= wgpu::Features::SHADER_F64; // Better precision for financial calculations
+            println!("   ✅ Double precision shaders enabled");
         }
 
         // Enhanced limits for high-performance trading calculations
+        // Use adapter limits as baseline, then apply our minimum requirements
+        let adapter_limits = adapter.limits();
         let mut limits = wgpu::Limits::default();
-        limits.max_compute_workgroup_size_x = 1024;
-        limits.max_compute_workgroup_size_y = 1024; 
-        limits.max_compute_workgroups_per_dimension = 65535;
-        limits.max_buffer_size = 1_073_741_824; // 1GB buffer limit
+        
+        // Ensure minimum requirements are met, but don't exceed adapter capabilities
+        limits.max_compute_workgroup_size_x = adapter_limits.max_compute_workgroup_size_x.min(1024);
+        limits.max_compute_workgroup_size_y = adapter_limits.max_compute_workgroup_size_y.min(1024);
+        limits.max_compute_workgroup_size_z = adapter_limits.max_compute_workgroup_size_z.min(64);
+        limits.max_compute_workgroups_per_dimension = adapter_limits.max_compute_workgroups_per_dimension.min(65535);
+        
+        // Conservative limits based on GPU type
+        let max_buffer_size = if is_integrated {
+            64_000_000 // 64MB for integrated GPUs
+        } else {
+            256_000_000 // 256MB for dedicated GPUs
+        };
+        
+        limits.max_buffer_size = adapter_limits.max_buffer_size.min(max_buffer_size);
+        limits.max_storage_buffer_binding_size = adapter_limits.max_storage_buffer_binding_size.min(max_buffer_size / 2);
+
+        println!("   Using buffer size limit: {} MB", limits.max_buffer_size / 1_000_000);
 
         let (device, queue) = adapter
             .request_device(
@@ -414,7 +479,12 @@ impl GpuTradingAccelerator {
                 None,
             )
             .await
-            .map_err(|e| format!("Failed to create GPU device: {:?}", e))?;
+            .map_err(|e| {
+                let error_msg = format!("Failed to create GPU device: {:?}", e);
+                eprintln!("❌ GPU Device Error: {}", error_msg);
+                eprintln!("   Try updating your graphics drivers or running with --no-default-features");
+                error_msg
+            })?;
             
         println!("✅ GPU Device created with {} features enabled", features.bits().count_ones());
 
@@ -422,9 +492,13 @@ impl GpuTradingAccelerator {
         let queue = Arc::new(queue);
 
         let lro_calculator = match GpuLROCalculator::new(device.clone(), queue.clone()).await {
-            Ok(calc) => Some(calc),
+            Ok(calc) => {
+                println!("✅ GPU LRO calculator initialized successfully");
+                Some(calc)
+            }
             Err(e) => {
-                eprintln!("Warning: Failed to initialize GPU LRO calculator: {}", e);
+                eprintln!("⚠️  Warning: Failed to initialize GPU LRO calculator: {}", e);
+                eprintln!("   Application will use CPU fallback for calculations");
                 None
             }
         };
@@ -510,6 +584,77 @@ impl GpuTradingAccelerator {
 
     pub fn is_gpu_available(&self) -> bool {
         self.lro_calculator.is_some()
+    }
+    
+    /// Get detailed GPU diagnostics for troubleshooting
+    pub async fn get_gpu_diagnostics() -> Result<String, String> {
+        let mut diagnostics = String::new();
+        diagnostics.push_str("=== GPU Diagnostics Report ===\n");
+        
+        let backends = if cfg!(target_os = "windows") {
+            wgpu::Backends::DX12 | wgpu::Backends::VULKAN | wgpu::Backends::GL
+        } else {
+            wgpu::Backends::all()
+        };
+
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+            backends,
+            dx12_shader_compiler: wgpu::Dx12Compiler::Dxc {
+                dxil_path: None,
+                dxc_path: None,
+            },
+            flags: wgpu::InstanceFlags::default(),
+            gles_minor_version: wgpu::Gles3MinorVersion::Automatic,
+        });
+
+        diagnostics.push_str(&format!("Platform: {}\n", std::env::consts::OS));
+        diagnostics.push_str(&format!("Architecture: {}\n", std::env::consts::ARCH));
+        diagnostics.push_str(&format!("WGPU Version: {}\n", env!("CARGO_PKG_VERSION")));
+
+        match instance
+            .request_adapter(&wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::HighPerformance,
+                force_fallback_adapter: false,
+                compatible_surface: None,
+            })
+            .await
+        {
+            Some(adapter) => {
+                let info = adapter.get_info();
+                diagnostics.push_str(&format!("Adapter: {}\n", info.name));
+                diagnostics.push_str(&format!("Backend: {}\n", info.backend.to_str()));
+                diagnostics.push_str(&format!("Vendor ID: 0x{:X}\n", info.vendor));
+                diagnostics.push_str(&format!("Device ID: 0x{:X}\n", info.device));
+                
+                let limits = adapter.limits();
+                diagnostics.push_str(&format!("Max Buffer Size: {} MB\n", limits.max_buffer_size / 1_000_000));
+                diagnostics.push_str(&format!("Max Workgroup Size: {}x{}x{}\n",
+                    limits.max_compute_workgroup_size_x,
+                    limits.max_compute_workgroup_size_y,
+                    limits.max_compute_workgroup_size_z));
+                
+                let features = adapter.features();
+                diagnostics.push_str(&format!("Features: {:?}\n", features));
+                
+                match adapter
+                    .request_device(
+                        &wgpu::DeviceDescriptor {
+                            required_features: wgpu::Features::empty(),
+                            required_limits: wgpu::Limits::default(),
+                            label: None,
+                        },
+                        None,
+                    )
+                    .await
+                {
+                    Ok(_) => diagnostics.push_str("Device Creation: ✅ Success\n"),
+                    Err(e) => diagnostics.push_str(&format!("Device Creation: ❌ Failed - {:?}\n", e)),
+                }
+            }
+            None => diagnostics.push_str("No suitable GPU adapter found\n"),
+        }
+
+        Ok(diagnostics)
     }
     
     /// Get GPU device for risk manager initialization
