@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Settings, TrendingUp, BarChart3, Bot, User } from 'lucide-react';
+import { Settings, TrendingUp, BarChart3, Bot, User, GraduationCap } from 'lucide-react';
 
 
 const Navigation: React.FC = () => {
@@ -10,6 +10,7 @@ const Navigation: React.FC = () => {
   const routes = [
     { path: '/trade', label: 'Trade', icon: TrendingUp },
     { path: '/bot', label: 'Bot', icon: Bot },
+    { path: '/tutorial', label: 'Tutorial', icon: GraduationCap },
     { path: '/dashboard', label: 'Dashboard', icon: User },
     { path: '/analytics', label: 'Analytics', icon: BarChart3 },
     { path: '/settings', label: 'Settings', icon: Settings },

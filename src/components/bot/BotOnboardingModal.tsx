@@ -6,12 +6,14 @@ interface BotOnboardingModalProps {
   isOpen: boolean;
   onClose: () => void;
   onComplete: () => void;
+  onRemindLater: () => void;
 }
 
 export const BotOnboardingModal: React.FC<BotOnboardingModalProps> = ({
   isOpen,
   onClose,
-  onComplete
+  onComplete,
+  onRemindLater
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
 
@@ -244,13 +246,23 @@ export const BotOnboardingModal: React.FC<BotOnboardingModalProps> = ({
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title={steps[currentStep].title} maxWidth="lg">
       <div className="space-y-6">
+        {/* Improved Header with dismissal hint */}
+        {currentStep === 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+            <p className="text-blue-800 text-sm flex items-center">
+              <span className="mr-2">💡</span>
+              <span><strong>New here?</strong> Take a quick tour, or feel free to dismiss and explore on your own!</span>
+            </p>
+          </div>
+        )}
+
         {/* Progress indicator */}
         <div className="flex items-center justify-between">
           <div className="flex space-x-2">
             {steps.map((_, index) => (
               <div
                 key={index}
-                className={`w-3 h-3 rounded-full ${
+                className={`w-3 h-3 rounded-full transition-colors ${
                   index <= currentStep ? 'bg-blue-500' : 'bg-gray-300'
                 }`}
               />
@@ -266,22 +278,53 @@ export const BotOnboardingModal: React.FC<BotOnboardingModalProps> = ({
           {steps[currentStep].content}
         </div>
 
-        {/* Navigation */}
-        <div className="flex justify-between">
+        {/* Improved Navigation */}
+        <div className="flex justify-between items-center pt-4 border-t border-gray-100">
           <Button
             onClick={prevStep}
             disabled={currentStep === 0}
-            variant="secondary"
+            variant="ghost"
             className="w-20"
           >
             Back
           </Button>
-          <div className="flex space-x-3">
-            <Button onClick={handleClose} variant="secondary">
-              Skip
-            </Button>
-            <Button onClick={nextStep} className="w-20">
-              {currentStep === steps.length - 1 ? 'Finish' : 'Next'}
+          
+          <div className="flex space-x-2">
+            {currentStep === 0 && (
+              <>
+                <Button 
+                  onClick={onRemindLater} 
+                  variant="ghost"
+                  className="text-sm px-3 py-2"
+                >
+                  Remind me tomorrow
+                </Button>
+                <Button 
+                  onClick={handleClose} 
+                  variant="secondary"
+                  className="text-sm px-3 py-2"
+                >
+                  Not now
+                </Button>
+              </>
+            )}
+            
+            {currentStep > 0 && (
+              <Button 
+                onClick={handleClose} 
+                variant="secondary"
+                className="text-sm px-3 py-2"
+              >
+                Skip rest
+              </Button>
+            )}
+            
+            <Button 
+              onClick={nextStep} 
+              variant="primary"
+              className="min-w-[80px] text-sm px-4 py-2"
+            >
+              {currentStep === steps.length - 1 ? 'Get Started!' : 'Next'}
             </Button>
           </div>
         </div>

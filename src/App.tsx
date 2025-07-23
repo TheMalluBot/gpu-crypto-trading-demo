@@ -12,6 +12,7 @@ import SettingsPanel from './components/SettingsPanel';
 import PnLChart from './components/PnLChart';
 import SwingBotPanel from './components/SwingBotPanel';
 import Dashboard from './components/Dashboard';
+import TutorialPanel from './components/TutorialPanel';
 import NotificationContainer from './components/common/NotificationContainer';
 import FloatingHelpButton from './components/common/FloatingHelpButton';
 import { AppLoading } from './components/common/AppLoading';
@@ -112,6 +113,17 @@ function App() {
                 className="min-h-full"
               >
                 <SwingBotPanel />
+              </motion.div>
+            } />
+            <Route path="/tutorial" element={
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="min-h-full"
+              >
+                <TutorialPanel />
               </motion.div>
             } />
             <Route path="/dashboard" element={

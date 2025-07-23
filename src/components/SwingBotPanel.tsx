@@ -13,11 +13,13 @@ import { useBotData } from '../hooks/useBotData';
 import { getSignalColor, getMarketPhaseColor } from '../utils/formatters';
 import HelpButton from './common/HelpButton';
 import { ConfirmationModal } from './common/ConfirmationModal';
+import { OnboardingBanner } from './common/OnboardingBanner';
 import { HELP_CONTENT } from '../utils/helpContent';
 const SwingBotPanel: React.FC = () => {
   const [showConfig, setShowConfig] = useState(false);
   const [showChart, setShowChart] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showOnboardingBanner, setShowOnboardingBanner] = useState(false);
   const [showEmergencyConfirm, setShowEmergencyConfirm] = useState(false);
   const {
     botStatus,
@@ -37,16 +39,50 @@ const SwingBotPanel: React.FC = () => {
     resetVirtualPortfolio,
   } = useBotData();
 
-  // Check if user has seen onboarding
+  // Check if user has seen onboarding - with improved UX
   useEffect(() => {
     const hasSeenOnboarding = localStorage.getItem('bot-onboarding-completed');
-    if (!hasSeenOnboarding && botStatus) {
-      setShowOnboarding(true);
+    const dismissedToday = localStorage.getItem('bot-onboarding-dismissed-today');
+    const remindLater = localStorage.getItem('bot-onboarding-remind-later');
+    const today = new Date().toDateString();
+    
+    // Don't show if already completed
+    if (hasSeenOnboarding) return;
+    
+    // Don't show if dismissed today
+    if (dismissedToday === today) return;
+    
+    // Don't show if remind later is set and time hasn't passed
+    if (remindLater && new Date(remindLater) > new Date()) return;
+    
+    // Only show after a delay to avoid immediate popup
+    if (botStatus) {
+      const timer = setTimeout(() => {
+        setShowOnboarding(true);
+      }, 3000); // 3 second delay
+      
+      return () => clearTimeout(timer);
     }
   }, [botStatus]);
 
   const handleOnboardingComplete = () => {
     localStorage.setItem('bot-onboarding-completed', 'true');
+    // Clear any temporary dismissals
+    localStorage.removeItem('bot-onboarding-dismissed-today');
+    localStorage.removeItem('bot-onboarding-remind-later');
+    setShowOnboarding(false);
+  };
+
+  const handleOnboardingDismiss = () => {
+    const today = new Date().toDateString();
+    localStorage.setItem('bot-onboarding-dismissed-today', today);
+    setShowOnboarding(false);
+  };
+
+  const handleRemindLater = () => {
+    const remindTime = new Date();
+    remindTime.setHours(remindTime.getHours() + 24); // Remind in 24 hours
+    localStorage.setItem('bot-onboarding-remind-later', remindTime.toISOString());
     setShowOnboarding(false);
   };
 
@@ -171,8 +207,9 @@ const SwingBotPanel: React.FC = () => {
         {/* Onboarding Modal */}
         <BotOnboardingModal
           isOpen={showOnboarding}
-          onClose={() => setShowOnboarding(false)}
+          onClose={handleOnboardingDismiss}
           onComplete={handleOnboardingComplete}
+          onRemindLater={handleRemindLater}
         />
 
         {/* Emergency Stop Confirmation */}
