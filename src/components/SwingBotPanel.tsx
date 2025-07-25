@@ -13,13 +13,11 @@ import { useBotData } from '../hooks/useBotData';
 import { getSignalColor, getMarketPhaseColor } from '../utils/formatters';
 import HelpButton from './common/HelpButton';
 import { ConfirmationModal } from './common/ConfirmationModal';
-import { OnboardingBanner } from './common/OnboardingBanner';
 import { HELP_CONTENT } from '../utils/helpContent';
 const SwingBotPanel: React.FC = () => {
   const [showConfig, setShowConfig] = useState(false);
   const [showChart, setShowChart] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [showOnboardingBanner, setShowOnboardingBanner] = useState(false);
   const [showEmergencyConfirm, setShowEmergencyConfirm] = useState(false);
   const {
     botStatus,

@@ -31,11 +31,22 @@ impl SecureStorage {
     }
 
     fn get_storage_path(app_name: &str) -> Result<PathBuf, Box<dyn std::error::Error + Send + Sync>> {
-        // Use a fallback directory for now - this would need to be passed from the app context
-        let app_dir = std::env::current_dir()
-            .map_err(|_| "Could not determine app data directory")?
-            .join("data");
-        std::fs::create_dir_all(&app_dir)?;
+        // Try to get proper app data directory, fallback to current dir + data
+        let app_dir = if let Ok(data_dir) = std::env::var("APPDATA") {
+            // Windows AppData
+            PathBuf::from(data_dir).join(app_name)
+        } else if let Ok(home_dir) = std::env::var("HOME") {
+            // Unix-like systems
+            PathBuf::from(home_dir).join(".local/share").join(app_name)
+        } else {
+            // Fallback to current directory
+            std::env::current_dir()
+                .map_err(|_| "Could not determine app data directory")?
+                .join("data")
+        };
+        
+        std::fs::create_dir_all(&app_dir)
+            .map_err(|e| format!("Failed to create app directory: {}", e))?;
         Ok(app_dir.join(format!("{}_secure.dat", app_name)))
     }
 

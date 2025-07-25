@@ -254,10 +254,22 @@ impl GpuRiskManager {
     }
 
     // CPU fallback methods for demonstration
-    fn calculate_volatility_risk_cpu(&self, _params: &RiskAnalysisParams) -> f32 {
-        // In real GPU implementation, this would be calculated in parallel
-        // For now, return moderate risk
-        0.3
+    fn calculate_volatility_risk_cpu(&self, params: &RiskAnalysisParams) -> f32 {
+        // Calculate volatility based on price movements and volume
+        let price_volatility = if params.current_price > 0.0 {
+            (params.market_volatility / params.current_price).abs().min(1.0)
+        } else {
+            0.5
+        };
+        
+        let volume_factor = if params.volume > 0.0 {
+            (params.volume / 1000000.0).min(1.0) // Normalize volume
+        } else {
+            0.5
+        };
+        
+        // Combine factors with weights
+        (price_volatility * 0.7 + volume_factor * 0.3).max(0.1).min(0.9)
     }
 
     fn calculate_liquidity_risk_cpu(&self, params: &RiskAnalysisParams) -> f32 {
@@ -280,10 +292,15 @@ impl GpuRiskManager {
         (base_multiplier * volatility_adjustment * liquidity_adjustment).min(1.0_f32)
     }
 
-    fn calculate_dynamic_stop_cpu(&self, _params: &RiskAnalysisParams) -> f32 {
-        // Calculate adaptive stop loss based on current market conditions
-        // This would be much more sophisticated in the GPU version
-        0.0 // Return 0 for now, indicating no specific stop recommendation
+    fn calculate_dynamic_stop_cpu(&self, params: &RiskAnalysisParams) -> f32 {
+        // Calculate dynamic stop loss based on volatility and risk
+        let base_stop = 0.02; // 2% base stop loss
+        let volatility_multiplier = 1.0 + (params.market_volatility * 2.0);
+        let liquidity_adjustment = if params.volume > 100000.0 { 0.8 } else { 1.2 };
+        
+        (base_stop * volatility_multiplier * liquidity_adjustment)
+            .max(0.005) // Minimum 0.5% stop loss
+            .min(0.1)   // Maximum 10% stop loss
     }
 
     fn calculate_execution_risk_cpu(&self, _params: &RiskAnalysisParams) -> f32 {

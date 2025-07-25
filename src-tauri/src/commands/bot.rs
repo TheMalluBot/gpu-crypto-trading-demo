@@ -390,8 +390,12 @@ fn calculate_volatility(prices: &[&crate::models::PriceData]) -> f64 {
 fn calculate_trend_strength(prices: &[&crate::models::PriceData]) -> f64 {
     if prices.len() < 2 { return 0.5; }
     
-    let first_price = prices.last().unwrap().close.to_f64().unwrap_or(0.0);
-    let last_price = prices.first().unwrap().close.to_f64().unwrap_or(0.0);
+    let first_price = prices.last()
+        .map(|p| p.close.to_f64().unwrap_or(0.0))
+        .unwrap_or(0.0);
+    let last_price = prices.first()
+        .map(|p| p.close.to_f64().unwrap_or(0.0))
+        .unwrap_or(0.0);
     
     if first_price > 0.0 {
         ((last_price - first_price) / first_price).abs().min(1.0)
@@ -414,8 +418,12 @@ fn calculate_volume_profile(prices: &[&crate::models::PriceData]) -> f64 {
 fn calculate_momentum(prices: &[&crate::models::PriceData]) -> f64 {
     if prices.len() < 2 { return 0.0; }
     
-    let first_price = prices.last().unwrap().close.to_f64().unwrap_or(0.0);
-    let last_price = prices.first().unwrap().close.to_f64().unwrap_or(0.0);
+    let first_price = prices.last()
+        .map(|p| p.close.to_f64().unwrap_or(0.0))
+        .unwrap_or(0.0);
+    let last_price = prices.first()
+        .map(|p| p.close.to_f64().unwrap_or(0.0))
+        .unwrap_or(0.0);
     
     if first_price > 0.0 {
         ((last_price - first_price) / first_price).max(-1.0).min(1.0)

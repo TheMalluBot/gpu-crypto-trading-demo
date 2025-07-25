@@ -658,8 +658,38 @@ impl ImprovedBinanceClient {
     }
 
     pub async fn get_market_stats(&self, symbol: &str) -> Result<MarketStats, Box<dyn std::error::Error + Send + Sync>> {
-        // Stub implementation
-        Err("get_market_stats not implemented".into())
+        let url = format!("{}/api/v3/ticker/24hr?symbol={}", self.base_url, symbol);
+        
+        let response = self.client
+            .get(&url)
+            .send()
+            .await
+            .map_err(|e| format!("Failed to fetch market stats: {}", e))?;
+            
+        let data: serde_json::Value = response
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse market stats response: {}", e))?;
+            
+        Ok(MarketStats {
+            symbol: data["symbol"].as_str().unwrap_or(symbol).to_string(),
+            price_change: data["priceChange"].as_str().and_then(|s| s.parse().ok()).unwrap_or(0.0),
+            price_change_percent: data["priceChangePercent"].as_str().and_then(|s| s.parse().ok()).unwrap_or(0.0),
+            weighted_avg_price: data["weightedAvgPrice"].as_str().and_then(|s| s.parse().ok()).unwrap_or(0.0),
+            prev_close_price: data["prevClosePrice"].as_str().and_then(|s| s.parse().ok()).unwrap_or(0.0),
+            last_price: data["lastPrice"].as_str().and_then(|s| s.parse().ok()).unwrap_or(0.0),
+            last_qty: data["lastQty"].as_str().and_then(|s| s.parse().ok()).unwrap_or(0.0),
+            bid_price: data["bidPrice"].as_str().and_then(|s| s.parse().ok()).unwrap_or(0.0),
+            ask_price: data["askPrice"].as_str().and_then(|s| s.parse().ok()).unwrap_or(0.0),
+            open_price: data["openPrice"].as_str().and_then(|s| s.parse().ok()).unwrap_or(0.0),
+            high_price: data["highPrice"].as_str().and_then(|s| s.parse().ok()).unwrap_or(0.0),
+            low_price: data["lowPrice"].as_str().and_then(|s| s.parse().ok()).unwrap_or(0.0),
+            volume: data["volume"].as_str().and_then(|s| s.parse().ok()).unwrap_or(0.0),
+            quote_volume: data["quoteVolume"].as_str().and_then(|s| s.parse().ok()).unwrap_or(0.0),
+            open_time: data["openTime"].as_u64().unwrap_or(0),
+            close_time: data["closeTime"].as_u64().unwrap_or(0),
+            count: data["count"].as_u64().unwrap_or(0),
+        })
     }
 
     pub async fn get_order_book_depth(&self, symbol: &str, limit: u32) -> Result<OrderBookDepth, Box<dyn std::error::Error + Send + Sync>> {
@@ -667,9 +697,52 @@ impl ImprovedBinanceClient {
         self.get_order_book(symbol, limit).await
     }
 
-    pub fn analyze_market_depth(&self, _order_book: &OrderBookDepth) -> Result<MarketDepthAnalysis, Box<dyn std::error::Error + Send + Sync>> {
-        // Stub implementation
-        Err("analyze_market_depth not implemented".into())
+    pub fn analyze_market_depth(&self, order_book: &OrderBookDepth) -> Result<MarketDepthAnalysis, Box<dyn std::error::Error + Send + Sync>> {
+        if order_book.bids.is_empty() || order_book.asks.is_empty() {
+            return Err("Order book has no bids or asks".into());
+        }
+        
+        let best_bid = order_book.bids.first().map(|b| b.price).unwrap_or(0.0);
+        let best_ask = order_book.asks.first().map(|a| a.price).unwrap_or(0.0);
+        
+        let spread = if best_ask > 0.0 && best_bid > 0.0 {
+            best_ask - best_bid
+        } else {
+            0.0
+        };
+        
+        let spread_percentage = if best_bid > 0.0 {
+            (spread / best_bid) * 100.0
+        } else {
+            0.0
+        };
+        
+        let total_bid_volume: f64 = order_book.bids.iter().map(|b| b.quantity).sum();
+        let total_ask_volume: f64 = order_book.asks.iter().map(|a| a.quantity).sum();
+        
+        let imbalance_ratio = if total_ask_volume > 0.0 {
+            total_bid_volume / total_ask_volume
+        } else {
+            0.0
+        };
+        
+        let market_pressure = if imbalance_ratio > 1.2 {
+            "Bullish".to_string()
+        } else if imbalance_ratio < 0.8 {
+            "Bearish".to_string()
+        } else {
+            "Neutral".to_string()
+        };
+        
+        Ok(MarketDepthAnalysis {
+            spread,
+            spread_percentage,
+            total_bid_volume,
+            total_ask_volume,
+            imbalance_ratio,
+            market_pressure,
+            depth_analysis: format!("Spread: {:.4}, Imbalance: {:.2}, Pressure: {}", spread, imbalance_ratio, market_pressure),
+        })
     }
 
     pub fn detect_liquidity_levels(&self, _order_book: &OrderBookDepth) -> Result<Vec<LiquidityLevel>, Box<dyn std::error::Error + Send + Sync>> {

@@ -1,8 +1,11 @@
-use std::fs::OpenOptions;
+use std::fs::{OpenOptions, File};
 use std::io::Write;
 use std::sync::Mutex;
+use std::path::{Path, PathBuf};
 use chrono::{DateTime, Utc};
 use serde::{Serialize, Deserialize};
+use crate::config::LoggingConfig;
+use crate::errors::{TradingError, TradingResult};
 
 /// Log levels for trading bot
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -78,33 +81,166 @@ pub struct LogEntry {
 
 /// Production-ready logging system for trading bot
 pub struct TradingLogger {
-    min_level: LogLevel,
+    config: LoggingConfig,
     log_file: Mutex<Option<std::fs::File>>,
-    console_enabled: bool,
+    current_log_path: Mutex<Option<PathBuf>>,
     buffer: Mutex<Vec<LogEntry>>,
-    max_buffer_size: usize,
+    last_rotation: Mutex<DateTime<Utc>>,
 }
 
 impl TradingLogger {
     /// Create new logger with configuration
-    pub fn new(min_level: LogLevel, log_file_path: Option<&str>, console_enabled: bool) -> Result<Self, std::io::Error> {
-        let log_file = if let Some(path) = log_file_path {
-            let file = OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open(path)?;
-            Some(file)
-        } else {
-            None
+    pub fn new(config: LoggingConfig) -> TradingResult<Self> {
+        let mut logger = Self {
+            config: config.clone(),
+            log_file: Mutex::new(None),
+            current_log_path: Mutex::new(None),
+            buffer: Mutex::new(Vec::new()),
+            last_rotation: Mutex::new(Utc::now()),
         };
 
-        Ok(Self {
-            min_level,
-            log_file: Mutex::new(log_file),
+        // Initialize log file if file logging is enabled
+        if config.file_enabled {
+            logger.rotate_log_file()?;
+        }
+
+        Ok(logger)
+    }
+
+    /// Create logger from legacy parameters (for backward compatibility)
+    pub fn new_legacy(min_level: LogLevel, log_file_path: Option<&str>, console_enabled: bool) -> TradingResult<Self> {
+        let config = LoggingConfig {
+            level: min_level.as_str().to_lowercase(),
             console_enabled,
-            buffer: Mutex::new(Vec::new()),
-            max_buffer_size: 1000, // Keep last 1000 log entries in memory
-        })
+            file_enabled: log_file_path.is_some(),
+            file_path: log_file_path.unwrap_or("trading_bot.log").to_string(),
+            max_file_size_mb: 10,
+            max_files: 5,
+            rotation_interval_hours: 24,
+        };
+        Self::new(config)
+    }
+
+    /// Get minimum log level from config
+    fn min_level(&self) -> LogLevel {
+        match self.config.level.as_str() {
+            "trace" | "debug" => LogLevel::Debug,
+            "info" => LogLevel::Info,
+            "warn" | "warning" => LogLevel::Warning,
+            "error" => LogLevel::Error,
+            "critical" => LogLevel::Critical,
+            _ => LogLevel::Info,
+        }
+    }
+
+    /// Check if log rotation is needed and perform it
+    fn check_and_rotate(&self) -> TradingResult<()> {
+        if !self.config.file_enabled {
+            return Ok(());
+        }
+
+        let last_rotation = *self.last_rotation.lock().unwrap();
+        let now = Utc::now();
+        let hours_since_rotation = (now - last_rotation).num_hours();
+
+        // Check if rotation is needed based on time
+        let time_rotation_needed = hours_since_rotation >= self.config.rotation_interval_hours as i64;
+
+        // Check if rotation is needed based on file size
+        let size_rotation_needed = if let Some(current_path) = self.current_log_path.lock().unwrap().as_ref() {
+            if let Ok(metadata) = std::fs::metadata(current_path) {
+                metadata.len() > (self.config.max_file_size_mb * 1024 * 1024)
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+
+        if time_rotation_needed || size_rotation_needed {
+            self.rotate_log_file()?;
+        }
+
+        Ok(())
+    }
+
+    /// Rotate log file
+    fn rotate_log_file(&self) -> TradingResult<()> {
+        // Close current file
+        *self.log_file.lock().unwrap() = None;
+
+        // Generate new log file path with timestamp
+        let now = Utc::now();
+        let timestamp = now.format("%Y%m%d_%H%M%S");
+        let base_path = Path::new(&self.config.file_path);
+        let file_stem = base_path.file_stem().unwrap_or_default().to_string_lossy();
+        let extension = base_path.extension().unwrap_or_default().to_string_lossy();
+
+        let new_path = if extension.is_empty() {
+            PathBuf::from(format!("{}_{}", file_stem, timestamp))
+        } else {
+            PathBuf::from(format!("{}_{}.{}", file_stem, timestamp, extension))
+        };
+
+        // Create parent directory if it doesn't exist
+        if let Some(parent) = new_path.parent() {
+            std::fs::create_dir_all(parent)
+                .map_err(|e| TradingError::internal_error(format!("Failed to create log directory: {}", e)))?;
+        }
+
+        // Open new log file
+        let file = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&new_path)
+            .map_err(|e| TradingError::internal_error(format!("Failed to create log file: {}", e)))?;
+
+        *self.log_file.lock().unwrap() = Some(file);
+        *self.current_log_path.lock().unwrap() = Some(new_path);
+        *self.last_rotation.lock().unwrap() = now;
+
+        // Clean up old log files
+        self.cleanup_old_log_files()?;
+
+        Ok(())
+    }
+
+    /// Clean up old log files to maintain max_files limit
+    fn cleanup_old_log_files(&self) -> TradingResult<()> {
+        let base_path = Path::new(&self.config.file_path);
+        let parent_dir = base_path.parent().unwrap_or(Path::new("."));
+        let file_stem = base_path.file_stem().unwrap_or_default().to_string_lossy();
+
+        // Get all log files matching our pattern
+        let mut log_files: Vec<_> = std::fs::read_dir(parent_dir)
+            .map_err(|e| TradingError::internal_error(format!("Failed to read log directory: {}", e)))?
+            .filter_map(|entry| entry.ok())
+            .filter(|entry| {
+                if let Some(name) = entry.file_name().to_str() {
+                    name.starts_with(&file_stem.to_string()) && name.contains("_")
+                } else {
+                    false
+                }
+            })
+            .collect();
+
+        // Sort by modification time (newest first)
+        log_files.sort_by(|a, b| {
+            let a_time = a.metadata().and_then(|m| m.modified()).unwrap_or(std::time::UNIX_EPOCH);
+            let b_time = b.metadata().and_then(|m| m.modified()).unwrap_or(std::time::UNIX_EPOCH);
+            b_time.cmp(&a_time)
+        });
+
+        // Remove excess files
+        if log_files.len() > self.config.max_files as usize {
+            for file_entry in log_files.iter().skip(self.config.max_files as usize) {
+                if let Err(e) = std::fs::remove_file(file_entry.path()) {
+                    eprintln!("Warning: Failed to remove old log file {:?}: {}", file_entry.path(), e);
+                }
+            }
+        }
+
+        Ok(())
     }
 
     /// Log a message with context
@@ -115,9 +251,12 @@ impl TradingLogger {
         message: &str,
         context: Option<serde_json::Value>,
     ) {
-        if level < self.min_level {
+        if level < self.min_level() {
             return;
         }
+
+        // Check and perform log rotation if needed
+        let _ = self.check_and_rotate();
 
         let entry = LogEntry {
             timestamp: Utc::now(),
@@ -243,18 +382,20 @@ impl TradingLogger {
         let formatted = self.format_log_entry(entry);
 
         // Write to console if enabled
-        if self.console_enabled {
+        if self.config.console_enabled {
             match entry.level {
                 LogLevel::Error | LogLevel::Critical => eprintln!("{}", formatted),
                 _ => println!("{}", formatted),
             }
         }
 
-        // Write to file if available
-        if let Ok(mut file_guard) = self.log_file.lock() {
-            if let Some(ref mut file) = *file_guard {
-                let _ = writeln!(file, "{}", formatted);
-                let _ = file.flush();
+        // Write to file if available and enabled
+        if self.config.file_enabled {
+            if let Ok(mut file_guard) = self.log_file.lock() {
+                if let Some(ref mut file) = *file_guard {
+                    let _ = writeln!(file, "{}", formatted);
+                    let _ = file.flush();
+                }
             }
         }
     }
@@ -263,10 +404,11 @@ impl TradingLogger {
     fn buffer_log(&self, entry: LogEntry) {
         let mut buffer = self.buffer.lock().unwrap();
         buffer.push(entry);
-        
-        // Prevent unlimited growth
-        if buffer.len() > self.max_buffer_size * 2 {
-            buffer.drain(0..self.max_buffer_size);
+
+        // Prevent unlimited growth (keep last 1000 entries)
+        const MAX_BUFFER_SIZE: usize = 1000;
+        if buffer.len() > MAX_BUFFER_SIZE * 2 {
+            buffer.drain(0..MAX_BUFFER_SIZE);
         }
     }
 
@@ -295,11 +437,20 @@ impl TradingLogger {
 use std::sync::OnceLock;
 static GLOBAL_LOGGER: OnceLock<TradingLogger> = OnceLock::new();
 
-/// Initialize global logger
-pub fn init_logger(min_level: LogLevel, log_file_path: Option<&str>, console_enabled: bool) -> Result<(), std::io::Error> {
-    let logger = TradingLogger::new(min_level, log_file_path, console_enabled)?;
+/// Initialize global logger with configuration
+pub fn init_logger_with_config(config: LoggingConfig) -> TradingResult<()> {
+    let logger = TradingLogger::new(config)?;
     GLOBAL_LOGGER.set(logger).map_err(|_| {
-        std::io::Error::new(std::io::ErrorKind::AlreadyExists, "Logger already initialized")
+        TradingError::internal_error("Logger already initialized".to_string())
+    })?;
+    Ok(())
+}
+
+/// Initialize global logger (legacy method for backward compatibility)
+pub fn init_logger(min_level: LogLevel, log_file_path: Option<&str>, console_enabled: bool) -> TradingResult<()> {
+    let logger = TradingLogger::new_legacy(min_level, log_file_path, console_enabled)?;
+    GLOBAL_LOGGER.set(logger).map_err(|_| {
+        TradingError::internal_error("Logger already initialized".to_string())
     })?;
     Ok(())
 }

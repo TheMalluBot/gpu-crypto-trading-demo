@@ -37,6 +37,7 @@ url = "2.5"
 futures-intrusive = "0.5"
 sysinfo = "0.30"
 tokio-tungstenite = "0.21"
+regex = "1.10"
 
 [features]
 # by default Tauri runs in production mode

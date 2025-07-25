@@ -16,6 +16,11 @@ mod secure_storage;
 mod binance_client;
 mod secure_commands;
 mod logging;
+mod errors;
+mod validation;
+mod config;
+mod cache;
+mod connection_pool;
 
 use gpu_renderer::GpuRenderer;
 use gpu_trading::GpuTradingAccelerator;

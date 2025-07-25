@@ -1,0 +1,31 @@
+# Use Windows Server Core with Node.js
+FROM mcr.microsoft.com/windows/servercore:ltsc2022
+
+# Install Chocolatey
+RUN powershell -Command \
+    "Set-ExecutionPolicy Bypass -Scope Process -Force; \
+     [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; \
+     iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))"
+
+# Install Node.js and Rust
+RUN choco install -y nodejs --version=18.17.0
+RUN choco install -y rust-ms
+
+# Set working directory
+WORKDIR C:\app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install --legacy-peer-deps
+
+# Copy source code
+COPY . .
+
+# Build the application
+RUN npm run build
+RUN npx tauri build
+
+# Extract the executable
+RUN powershell -Command "Copy-Item 'src-tauri/target/release/crypto_trader.exe' 'C:/output/'"

@@ -103,7 +103,7 @@ export const useBotData = () => {
     try {
       const status = await safeInvoke<BotStatus>('get_bot_status');
       if (!status) {
-        generateMockBotStatus();
+        console.warn('No bot status available from backend');
         return;
       }
       setBotStatus(status);
@@ -127,7 +127,7 @@ export const useBotData = () => {
       }
     } catch (error) {
       console.error('Failed to load bot status:', error);
-      generateMockBotStatus();
+      setBotStatus(null);
     }
   }, [generateMockBotStatus]);
 
@@ -179,8 +179,10 @@ export const useBotData = () => {
   const loadSignals = useCallback(async () => {
     try {
       const signalData = await safeInvoke<LROSignal[]>('get_lro_signals', { limit: 50 });
-      if (!signalData) {
-        generateMockSignals();
+      if (!signalData || signalData.length === 0) {
+        console.warn('No signal data available from backend');
+        setSignals([]);
+        setChartData([]);
         return;
       }
       setSignals(signalData);
@@ -197,54 +199,26 @@ export const useBotData = () => {
       setChartData(chartPoints);
     } catch (error) {
       console.error('Failed to load signals:', error);
-      generateMockSignals();
+      setSignals([]);
+      setChartData([]);
     }
   }, [generateMockSignals]);
 
-  const generateMockPerformanceData = useCallback(() => {
-    const mockData: PerformanceDataPoint[] = [];
-    const now = new Date();
-    let cumulativePnL = 0;
-    let maxDrawdown = 0;
-    let winCount = 0;
-    
-    for (let i = 30; i >= 0; i--) {
-      const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-      const dailyReturn = (Math.random() - 0.45) * 20;
-      cumulativePnL += dailyReturn;
-      
-      if (cumulativePnL < maxDrawdown) {
-        maxDrawdown = cumulativePnL;
-      }
-      
-      if (dailyReturn > 0) winCount++;
-      
-      mockData.push({
-        timestamp: date.toISOString(),
-        time: date.toLocaleDateString([], { month: 'short', day: 'numeric' }),
-        total_pnl: cumulativePnL,
-        cumulative_return: (cumulativePnL / 10000) * 100,
-        drawdown: maxDrawdown,
-        win_rate: (winCount / (31 - i)) * 100,
-      });
-    }
-    
-    setPerformanceData(mockData);
-  }, []);
 
   const loadPerformanceData = useCallback(async () => {
     try {
-      const perfData = await safeInvoke<PerformanceDataPoint[]>('get_performance_data', { days: 30 });
-      if (!perfData) {
-        generateMockPerformanceData();
+      const perfData = await safeInvoke<PerformanceDataPoint[]>('get_bot_performance_history', { days: 30 });
+      if (!perfData || perfData.length === 0) {
+        console.warn('No performance data available from backend');
+        setPerformanceData([]);
         return;
       }
       setPerformanceData(perfData);
     } catch (error) {
       console.error('Failed to load performance data:', error);
-      generateMockPerformanceData();
+      setPerformanceData([]);
     }
-  }, [generateMockPerformanceData]);
+  }, []);
 
   const analyzeMarketConditions = useCallback(async () => {
     try {
@@ -277,28 +251,7 @@ export const useBotData = () => {
       setMarketConditions(conditions);
     } catch (error) {
       console.error('Failed to analyze market conditions:', error);
-      
-      const time = Date.now();
-      const cyclePeriod = 60000;
-      const cyclePhase = (time % cyclePeriod) / cyclePeriod;
-      
-      const volatility = 0.3 + Math.sin(cyclePhase * Math.PI * 2) * 0.2 + Math.random() * 0.1;
-      const trendStrength = 0.5 + Math.cos(cyclePhase * Math.PI * 2) * 0.3 + Math.random() * 0.1;
-      const volumeProfile = 0.4 + Math.sin(cyclePhase * Math.PI * 4) * 0.3 + Math.random() * 0.1;
-      const priceMomentum = Math.sin(cyclePhase * Math.PI * 6) * 0.1 + Math.random() * 0.05;
-      
-      let marketRegime: 'Bull' | 'Bear' | 'Sideways' | 'Volatile' = 'Sideways';
-      if (trendStrength > 0.7 && priceMomentum > 0) marketRegime = 'Bull';
-      else if (trendStrength > 0.7 && priceMomentum < 0) marketRegime = 'Bear';
-      else if (volatility > 0.6) marketRegime = 'Volatile';
-      
-      setMarketConditions({
-        volatility,
-        trend_strength: trendStrength,
-        volume_profile: volumeProfile,
-        price_momentum: priceMomentum,
-        market_regime: marketRegime,
-      });
+      setMarketConditions(null);
     }
   }, []);
 
