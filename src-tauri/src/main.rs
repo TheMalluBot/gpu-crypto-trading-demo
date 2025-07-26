@@ -22,6 +22,8 @@ mod validation;
 mod config;
 mod cache;
 mod connection_pool;
+mod gpu_memory_manager;
+mod enhanced_risk_manager;
 
 use gpu_renderer::GpuRenderer;
 use gpu_trading::GpuTradingAccelerator;

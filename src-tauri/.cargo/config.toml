@@ -1,0 +1,16 @@
+# Cargo configuration for Windows build compatibility
+[build]
+# Force MSVC target to avoid GNU toolchain issues
+target = "x86_64-pc-windows-msvc"
+
+[target.x86_64-pc-windows-msvc]
+# Static linking to avoid runtime dependencies
+rustflags = ["-C", "target-feature=+crt-static"]
+
+[env]
+# Force use of MSVC tools
+CC = "cl.exe"
+CXX = "cl.exe"
+AR = "lib.exe"
+# Ensure we use the MSVC linker, not Git's link.exe
+CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER = "link.exe"
