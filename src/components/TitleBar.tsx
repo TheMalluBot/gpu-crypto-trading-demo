@@ -46,7 +46,7 @@ const TitleBar: React.FC = () => {
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           onClick={handleMinimize}
-          className="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center hover:bg-yellow-400 transition-colors min-h-[44px] min-w-[44px]"
+          className="w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center hover:bg-yellow-400 transition-colors focus-enhanced"
           aria-label="Minimize window"
         >
           <Minus className="w-3 h-3 text-yellow-900" />
@@ -56,7 +56,7 @@ const TitleBar: React.FC = () => {
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           onClick={handleMaximize}
-          className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center hover:bg-green-400 transition-colors min-h-[44px] min-w-[44px]"
+          className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center hover:bg-green-400 transition-colors focus-enhanced"
           aria-label="Maximize window"
         >
           <Square className="w-3 h-3 text-green-900" />
@@ -66,7 +66,7 @@ const TitleBar: React.FC = () => {
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           onClick={handleClose}
-          className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-400 transition-colors min-h-[44px] min-w-[44px]"
+          className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-400 transition-colors focus-enhanced"
           aria-label="Close window"
         >
           <X className="w-3 h-3 text-red-900" />

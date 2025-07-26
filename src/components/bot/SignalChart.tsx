@@ -28,7 +28,9 @@ export const SignalChart: React.FC<SignalChartProps> = ({
         <h3 className="text-xl font-bold text-white">Linear Regression Oscillator</h3>
         <button
           onClick={() => setShowChart(!showChart)}
-          className="p-2 glass-card hover:bg-white/10 rounded-lg transition-colors"
+          className="p-2 glass-card hover:bg-white/10 rounded-lg transition-colors focus-enhanced"
+          aria-label={showChart ? "Hide chart" : "Show chart"}
+          title={showChart ? "Hide chart" : "Show chart"}
         >
           <BarChart3 className="w-5 h-5 text-white/70" />
         </button>
@@ -38,37 +40,37 @@ export const SignalChart: React.FC<SignalChartProps> = ({
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(var(--color-text-primary), 0.1)" />
               <XAxis 
                 dataKey="time" 
-                stroke="rgba(255,255,255,0.6)"
+                stroke="rgba(var(--color-text-secondary), 0.8)"
                 fontSize={12}
               />
               <YAxis 
                 domain={[-1.2, 1.2]}
-                stroke="rgba(255,255,255,0.6)"
+                stroke="rgba(var(--color-text-secondary), 0.8)"
                 fontSize={12}
               />
               <Tooltip 
                 contentStyle={{
-                  backgroundColor: 'rgba(0,0,0,0.8)',
-                  border: '1px solid rgba(255,255,255,0.2)',
+                  backgroundColor: 'rgba(var(--bg-secondary), 0.95)',
+                  border: '1px solid rgba(var(--color-border-primary), 0.2)',
                   borderRadius: '8px',
-                  color: 'white'
+                  color: 'rgb(var(--color-text-primary))'
                 }}
               />
               <Legend />
               
               {/* Reference lines for overbought/oversold */}
-              <ReferenceLine y={config.overbought} stroke="#ef4444" strokeDasharray="2 2" />
-              <ReferenceLine y={config.oversold} stroke="#ef4444" strokeDasharray="2 2" />
-              <ReferenceLine y={0} stroke="rgba(255,255,255,0.3)" />
+              <ReferenceLine y={config.overbought} stroke="rgb(var(--color-secondary-500))" strokeDasharray="2 2" />
+              <ReferenceLine y={config.oversold} stroke="rgb(var(--color-secondary-500))" strokeDasharray="2 2" />
+              <ReferenceLine y={0} stroke="rgba(var(--color-text-primary), 0.3)" />
               
               {/* LRO and Signal lines */}
               <Line 
                 type="monotone" 
                 dataKey="lro_value" 
-                stroke="#60a5fa" 
+                stroke="rgb(var(--color-primary-500))" 
                 strokeWidth={2}
                 name="LRO Value"
                 dot={false}
@@ -76,7 +78,7 @@ export const SignalChart: React.FC<SignalChartProps> = ({
               <Line 
                 type="monotone" 
                 dataKey="signal_line" 
-                stroke="#fbbf24" 
+                stroke="rgb(var(--color-accent-500))" 
                 strokeWidth={2}
                 name="Signal Line"
                 dot={false}

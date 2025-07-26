@@ -76,9 +76,18 @@ class SecureStorage {
   }
   
   /**
-   * Encrypt and store sensitive data
+   * Encrypt and store sensitive data with session validation
    */
-  static async store(key: string, data: any): Promise<void> {
+  static async store(key: string, data: unknown): Promise<void> {
+    // Import session manager dynamically to avoid circular dependencies
+    const { getSessionManager } = await import('./sessionManager');
+    const sessionManager = getSessionManager();
+    
+    // Validate current session before storing sensitive data
+    const sessionId = localStorage.getItem('sessionId');
+    if (sessionId && !sessionManager.validateSession(sessionId)) {
+      throw new Error('Session expired. Please log in again to store data.');
+    }
     try {
       const password = this.getDeviceKey();
       const salt = crypto.getRandomValues(new Uint8Array(16));

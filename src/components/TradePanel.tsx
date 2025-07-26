@@ -46,7 +46,7 @@ interface TickerData {
   timestamp: string;
 }
 
-interface TradeFormData {
+interface TradeFormData extends Record<string, unknown> {
   quantity: number;
   entryPrice: number;
   takeProfitPercent: number;
@@ -77,7 +77,8 @@ const TradePanel: React.FC = () => {
         min: 1,
         max: 100000,
         custom: (value) => {
-          if (value <= 0) return 'Quantity must be greater than 0';
+          const numValue = value as number;
+          if (numValue <= 0) return 'Quantity must be greater than 0';
           return null;
         }
       },
@@ -85,7 +86,8 @@ const TradePanel: React.FC = () => {
         required: orderType === 'Limit',
         min: 0.01,
         custom: (value) => {
-          if (orderType === 'Limit' && value <= 0) {
+          const numValue = value as number;
+          if (orderType === 'Limit' && numValue <= 0) {
             return 'Entry price must be greater than 0 for limit orders';
           }
           return null;
@@ -95,8 +97,9 @@ const TradePanel: React.FC = () => {
         min: 0,
         max: 100,
         custom: (value) => {
-          if (value < 0) return 'Take profit cannot be negative';
-          if (value > 100) return 'Take profit cannot exceed 100%';
+          const numValue = value as number;
+          if (numValue < 0) return 'Take profit cannot be negative';
+          if (numValue > 100) return 'Take profit cannot exceed 100%';
           return null;
         }
       },
@@ -104,8 +107,9 @@ const TradePanel: React.FC = () => {
         min: 0,
         max: 100,
         custom: (value) => {
-          if (value < 0) return 'Stop loss cannot be negative';
-          if (value > 100) return 'Stop loss cannot exceed 100%';
+          const numValue = value as number;
+          if (numValue < 0) return 'Stop loss cannot be negative';
+          if (numValue > 100) return 'Stop loss cannot exceed 100%';
           return null;
         }
       }

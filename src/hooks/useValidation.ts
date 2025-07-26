@@ -8,7 +8,7 @@ export interface UseValidationOptions {
 }
 
 export interface FieldState {
-  value: any;
+  value: unknown;
   validation: ValidationResult;
   touched: boolean;
   dirty: boolean;
@@ -21,14 +21,14 @@ export interface UseValidationReturn {
   hasWarnings: boolean;
   errors: string[];
   warnings: string[];
-  setValue: (field: string, value: any) => void;
+  setValue: (field: string, value: unknown) => void;
   setTouched: (field: string, touched?: boolean) => void;
   validateField: (field: string) => void;
   validateAll: () => boolean;
   reset: () => void;
   getFieldProps: (field: string) => {
-    value: any;
-    onChange: (value: any) => void;
+    value: unknown;
+    onChange: (value: unknown) => void;
     onBlur: () => void;
     error: boolean;
     helperText: string;
@@ -66,7 +66,7 @@ export function useValidation(
   });
 
   // Validate a single field
-  const validateSingleField = useCallback((field: string, value: any): ValidationResult => {
+  const validateSingleField = useCallback((field: string, value: unknown): ValidationResult => {
     const rules = validationRules[field];
     if (!rules) {
       return { isValid: true, errors: [], warnings: [] };
@@ -76,7 +76,7 @@ export function useValidation(
   }, [validationRules]);
 
   // Set field value
-  const setValue = useCallback((field: string, value: any) => {
+  const setValue = useCallback((field: string, value: unknown) => {
     setFields(prev => {
       const currentField = prev[field] || {
         value: '',

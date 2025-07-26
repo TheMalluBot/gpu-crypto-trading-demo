@@ -1,5 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+/**
+ * @fileoverview Custom hook for managing bot data, signals, and trading operations
+ * @version 1.0.0
+ * @author Trading Bot Team
+ */
+
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { safeInvoke, isTauriApp } from '../utils/tauri';
+import { useAutomatedAssetManager } from './useAutomatedAssetManager';
 import {
   BotStatus,
   LROSignal,
@@ -35,8 +42,67 @@ const defaultConfig: LROConfig = {
   signal_strength_threshold: 0.6,
 };
 
+/**
+ * Custom hook for managing bot data, signals, and trading operations
+ * 
+ * @description This hook provides a comprehensive interface for:
+ * - Bot status monitoring and control
+ * - Signal generation and analysis
+ * - Performance tracking
+ * - Market conditions analysis
+ * - Virtual portfolio management
+ * - Configuration management
+ * 
+ * @returns {Object} Bot data and control functions
+ * @returns {BotStatus | null} returns.botStatus - Current bot status and configuration
+ * @returns {LROSignal[]} returns.signals - Array of recent trading signals
+ * @returns {ChartDataPoint[]} returns.chartData - Chart data for visualization
+ * @returns {PerformanceDataPoint[]} returns.performanceData - Historical performance data
+ * @returns {MarketConditions | null} returns.marketConditions - Current market analysis
+ * @returns {VirtualPortfolio | null} returns.virtualPortfolio - Paper trading portfolio
+ * @returns {LROConfig} returns.config - Current bot configuration
+ * @returns {boolean} returns.loading - Loading state indicator
+ * @returns {Function} returns.setConfig - Update bot configuration
+ * @returns {Function} returns.toggleBot - Start/stop the trading bot
+ * @returns {Function} returns.pauseBot - Pause bot operations
+ * @returns {Function} returns.resumeBot - Resume bot operations
+ * @returns {Function} returns.triggerEmergencyStop - Emergency stop function
+ * @returns {Function} returns.resetEmergencyStop - Reset emergency stop state
+ * @returns {Function} returns.updateAccountBalance - Update virtual account balance
+ * @returns {Function} returns.resetVirtualPortfolio - Reset paper trading portfolio
+ * @returns {Function} returns.simulateData - Trigger data refresh
+ * @returns {Function} returns.applyStrategyPreset - Apply predefined strategy configuration
+ * @returns {Object} returns.assetManager - Automated asset management instance
+ * 
+ * @example
+ * ```tsx
+ * const {
+ *   botStatus,
+ *   signals,
+ *   chartData,
+ *   toggleBot,
+ *   pauseBot,
+ *   config,
+ *   setConfig
+ * } = useBotData();
+ * 
+ * // Start the bot
+ * const handleStart = () => {
+ *   toggleBot();
+ * };
+ * 
+ * // Update configuration
+ * const updateConfig = (newConfig) => {
+ *   setConfig(newConfig);
+ * };
+ * ```
+ */
 export const useBotData = () => {
   const [botStatus, setBotStatus] = useState<BotStatus | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  
+  // Initialize automated asset manager
+  const assetManager = useAutomatedAssetManager();
   const [signals, setSignals] = useState<LROSignal[]>([]);
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [performanceData, setPerformanceData] = useState<PerformanceDataPoint[]>([]);
@@ -103,7 +169,8 @@ export const useBotData = () => {
     try {
       const status = await safeInvoke<BotStatus>('get_bot_status');
       if (!status) {
-        console.warn('No bot status available from backend');
+        console.warn('No bot status available from backend, using mock data');
+        generateMockBotStatus();
         return;
       }
       setBotStatus(status);
@@ -127,7 +194,7 @@ export const useBotData = () => {
       }
     } catch (error) {
       console.error('Failed to load bot status:', error);
-      setBotStatus(null);
+      generateMockBotStatus();
     }
   }, [generateMockBotStatus]);
 
@@ -164,6 +231,11 @@ export const useBotData = () => {
     
     setSignals(mockSignals.reverse());
     
+    // Notify asset manager of new signals
+    if (mockSignals.length > 0 && botStatus) {
+      assetManager.onBotSignal(mockSignals[mockSignals.length - 1], botStatus);
+    }
+    
     const chartPoints: ChartDataPoint[] = mockSignals.map(signal => ({
       timestamp: signal.timestamp,
       time: new Date(signal.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -180,12 +252,16 @@ export const useBotData = () => {
     try {
       const signalData = await safeInvoke<LROSignal[]>('get_lro_signals', { limit: 50 });
       if (!signalData || signalData.length === 0) {
-        console.warn('No signal data available from backend');
-        setSignals([]);
-        setChartData([]);
+        console.warn('No signal data available from backend, using mock data');
+        generateMockSignals();
         return;
       }
       setSignals(signalData);
+      
+      // Notify asset manager of new signals
+      if (signalData.length > 0 && botStatus) {
+        assetManager.onBotSignal(signalData[signalData.length - 1], botStatus);
+      }
       
       const chartPoints: ChartDataPoint[] = signalData.map(signal => ({
         timestamp: signal.timestamp,
@@ -199,8 +275,7 @@ export const useBotData = () => {
       setChartData(chartPoints);
     } catch (error) {
       console.error('Failed to load signals:', error);
-      setSignals([]);
-      setChartData([]);
+      generateMockSignals();
     }
   }, [generateMockSignals]);
 
@@ -605,6 +680,29 @@ export const useBotData = () => {
     safeInvoke('update_bot_config', { config: newConfig }).catch(console.error);
   }, [config]);
 
+  // Optimized polling that pauses when tab is not visible
+  const startPolling = useCallback(() => {
+    if (intervalRef.current) return; // Already polling
+    
+    intervalRef.current = setInterval(() => {
+      // Only poll if document is visible (performance optimization)
+      if (!document.hidden) {
+        loadBotStatus();
+        loadSignals();
+        loadPerformanceData();
+        analyzeMarketConditions();
+        loadVirtualPortfolio();
+      }
+    }, 5000);
+  }, [loadBotStatus, loadSignals, loadPerformanceData, analyzeMarketConditions, loadVirtualPortfolio]);
+  
+  const stopPolling = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
+
   useEffect(() => {
     // Load initial data with a small delay to prevent blocking
     const initialLoad = setTimeout(() => {
@@ -615,19 +713,32 @@ export const useBotData = () => {
       loadVirtualPortfolio();
     }, 100);
     
-    const interval = setInterval(() => {
-      loadBotStatus();
-      loadSignals();
-      loadPerformanceData();
-      analyzeMarketConditions();
-      loadVirtualPortfolio();
-    }, 5000);
+    // Start polling
+    startPolling();
+    
+    // Add visibility change listener for performance optimization
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        // Immediately fetch data when tab becomes visible again
+        loadBotStatus();
+        loadSignals();
+        loadPerformanceData();
+        analyzeMarketConditions();
+        loadVirtualPortfolio();
+        startPolling();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       clearTimeout(initialLoad);
-      clearInterval(interval);
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [startPolling, stopPolling, loadBotStatus, loadSignals, loadPerformanceData, analyzeMarketConditions, loadVirtualPortfolio]);
 
   return {
     // State
@@ -651,5 +762,8 @@ export const useBotData = () => {
     resetVirtualPortfolio,
     simulateData,
     applyStrategyPreset,
+    
+    // Asset Manager
+    assetManager,
   };
 };

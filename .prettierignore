@@ -1,0 +1,16 @@
+node_modules
+dist
+build
+coverage
+.next
+.nuxt
+.vscode
+.idea
+*.log
+.DS_Store
+src-tauri
+public
+*.md
+*.json
+*.yml
+*.yaml

@@ -30,10 +30,10 @@ export const MarketConditions: React.FC<MarketConditionsProps> = ({
             <span className="text-white font-medium">Market Conditions</span>
           </div>
           <span className={`px-2 py-1 rounded-full text-xs ${
-            marketConditions.market_regime === 'Bull' ? 'bg-green-500/20 text-green-400' :
+            marketConditions.market_regime === 'Bull' ? 'bg-accent-500/20 text-accent-400' :
             marketConditions.market_regime === 'Bear' ? 'bg-red-500/20 text-red-400' :
-            marketConditions.market_regime === 'Volatile' ? 'bg-purple-500/20 text-purple-400' :
-            'bg-yellow-500/20 text-yellow-400'
+            marketConditions.market_regime === 'Volatile' ? 'bg-secondary-500/20 text-secondary-400' :
+            'bg-primary-500/20 text-primary-400'
           }`}>
             {marketConditions.market_regime}
           </span>
@@ -55,7 +55,7 @@ export const MarketConditions: React.FC<MarketConditionsProps> = ({
           <div>
             <div className="text-white/60">Momentum</div>
             <div className={`font-medium ${
-              marketConditions.price_momentum > 0 ? 'text-green-400' : 'text-red-400'
+              marketConditions.price_momentum > 0 ? 'text-accent-400' : 'text-red-400'
             }`}>
               {marketConditions.price_momentum > 0 ? '+' : ''}{(marketConditions.price_momentum * 100).toFixed(1)}%
             </div>

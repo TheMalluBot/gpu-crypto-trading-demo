@@ -22,14 +22,14 @@ export const Button: React.FC<ButtonProps> = ({
   type = 'button',
   loading = false
 }) => {
-  const baseClasses = 'rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
+  const baseClasses = 'rounded-lg font-medium transition-all focus-enhanced disabled:opacity-50 disabled:cursor-not-allowed touch-target';
   
   const variants = {
-    primary: 'bg-blue-500 hover:bg-blue-600 text-white focus:ring-blue-500',
-    secondary: 'glass-card hover:bg-white/10 text-white focus:ring-white/20',
-    danger: 'bg-red-500 hover:bg-red-600 text-white focus:ring-red-500',
-    success: 'bg-green-500 hover:bg-green-600 text-white focus:ring-green-500',
-    ghost: 'bg-transparent hover:bg-white/10 text-white focus:ring-white/20'
+    primary: 'btn-theme-primary',
+    secondary: 'btn-theme-secondary',
+    danger: 'bg-red-500 hover:bg-red-600 text-white',
+    success: 'btn-theme-accent',
+    ghost: 'bg-transparent hover:bg-theme-surface-hover text-theme-primary'
   };
 
   const sizes = {

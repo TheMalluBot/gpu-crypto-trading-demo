@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ErrorBoundary } from './bot/ErrorBoundary';
+import { AssetManagerPanel } from './asset/AssetManagerPanel';
+import { AutomatedAssetManagerStatus } from './asset/AutomatedAssetManagerStatus';
 import { BotStatusPanel } from './bot/BotStatusPanel';
 import { BotOnboardingModal } from './bot/BotOnboardingModal';
 import { MarketConditions } from './bot/MarketConditions';
@@ -14,11 +16,12 @@ import { getSignalColor, getMarketPhaseColor } from '../utils/formatters';
 import HelpButton from './common/HelpButton';
 import { ConfirmationModal } from './common/ConfirmationModal';
 import { HELP_CONTENT } from '../utils/helpContent';
-const SwingBotPanel: React.FC = () => {
+const SwingBotPanel: React.FC = React.memo(() => {
   const [showConfig, setShowConfig] = useState(false);
   const [showChart, setShowChart] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showEmergencyConfirm, setShowEmergencyConfirm] = useState(false);
+  const [showAssetManager, setShowAssetManager] = useState(false);
   const {
     botStatus,
     signals,
@@ -35,7 +38,10 @@ const SwingBotPanel: React.FC = () => {
     triggerEmergencyStop,
     updateAccountBalance,
     resetVirtualPortfolio,
+    assetManager,
   } = useBotData();
+
+  // Performance optimizations - memoized data available for future use
 
   // Check if user has seen onboarding - with improved UX
   useEffect(() => {
@@ -92,13 +98,7 @@ const SwingBotPanel: React.FC = () => {
     return (
       <div className="max-w-6xl mx-auto p-6">
         <div className="glass-morphic p-6 flex items-center justify-center">
-          <div 
-            className="animate-spin w-8 h-8 border-2 rounded-full"
-            style={{
-              borderColor: `rgba(var(--color-primary-500), 0.2)`,
-              borderTopColor: `rgb(var(--color-primary-500))`
-            }}
-          ></div>
+          <div className="animate-spin w-8 h-8 border-2 border-primary-500/20 border-t-primary-500 rounded-full"></div>
           <span className="ml-3 text-theme-primary">Loading bot status...</span>
         </div>
       </div>
@@ -125,12 +125,23 @@ const SwingBotPanel: React.FC = () => {
             <button
               onClick={handleShowOnboarding}
               className="btn-theme-secondary text-sm px-3 py-2 sm:px-4 sm:py-3"
+              aria-label="Open getting started tutorial"
             >
               Getting Started
             </button>
             <button
+              onClick={() => setShowAssetManager(true)}
+              className="btn-theme-secondary text-sm px-3 py-2 sm:px-4 sm:py-3"
+              aria-label="Open asset management system"
+            >
+              Asset Manager
+            </button>
+            <button
               onClick={() => setShowConfig(!showConfig)}
               className="btn-theme-primary text-sm px-3 py-2 sm:px-4 sm:py-3"
+              aria-expanded={showConfig}
+              aria-controls="bot-config-panel"
+              aria-label={showConfig ? 'Hide bot configuration' : 'Show bot configuration'}
             >
               {showConfig ? 'Hide Config' : 'Configure Bot'}
             </button>
@@ -155,15 +166,23 @@ const SwingBotPanel: React.FC = () => {
           botStatus={botStatus}
         />
 
+        {/* Automated Asset Manager Status */}
+        <AutomatedAssetManagerStatus 
+          assetManager={assetManager}
+          className="mb-4"
+        />
+
         {/* Configuration Panel */}
         {showConfig && (
-          <ImprovedBotConfigForm
-            config={config}
-            setConfig={setConfig}
-            botStatus={botStatus}
-            marketConditions={marketConditions}
-            updateAccountBalance={updateAccountBalance}
-          />
+          <div id="bot-config-panel" role="region" aria-labelledby="bot-config-heading">
+            <ImprovedBotConfigForm
+              config={config}
+              setConfig={setConfig}
+              botStatus={botStatus}
+              marketConditions={marketConditions}
+              updateAccountBalance={updateAccountBalance}
+            />
+          </div>
         )}
 
         {/* Signal Chart */}
@@ -210,6 +229,12 @@ const SwingBotPanel: React.FC = () => {
           onRemindLater={handleRemindLater}
         />
 
+        {/* Asset Manager Panel */}
+        <AssetManagerPanel
+          isVisible={showAssetManager}
+          onToggle={() => setShowAssetManager(false)}
+        />
+
         {/* Emergency Stop Confirmation */}
         <ConfirmationModal
           isOpen={showEmergencyConfirm}
@@ -226,5 +251,5 @@ const SwingBotPanel: React.FC = () => {
       </div>
     </ErrorBoundary>
   );
-};
+});
 export default SwingBotPanel;

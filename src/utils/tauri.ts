@@ -1,13 +1,18 @@
 import { invoke } from '@tauri-apps/api/core';
 
 // Type declarations for Tauri globals
+interface TauriAPI {
+  invoke: (command: string, args?: Record<string, unknown>) => Promise<unknown>;
+  [key: string]: unknown;
+}
+
 declare global {
   interface Window {
-    __TAURI_IPC__?: any;
-    __TAURI__?: any;
-    __TAURI_API__?: any;
-    Tauri?: any;
-    __tauri__?: any;
+    __TAURI_IPC__?: TauriAPI;
+    __TAURI__?: TauriAPI;
+    __TAURI_API__?: TauriAPI;
+    Tauri?: TauriAPI;
+    __tauri__?: TauriAPI;
   }
 }
 
@@ -45,7 +50,7 @@ export const getTauriInfo = () => {
 };
 
 // Test API connection with retry mechanism
-export const testApiConnection = async (maxRetries = 3): Promise<{ success: boolean; error?: string; info?: any }> => {
+export const testApiConnection = async (maxRetries = 3): Promise<{ success: boolean; error?: string; info?: Record<string, unknown> }> => {
   const info = getTauriInfo();
   
   if (!info.available) {
@@ -81,7 +86,7 @@ export const testApiConnection = async (maxRetries = 3): Promise<{ success: bool
 };
 
 // Safe wrapper for Tauri invoke calls
-export const safeInvoke = async <T>(command: string, args?: any): Promise<T | null> => {
+export const safeInvoke = async <T>(command: string, args?: Record<string, unknown>): Promise<T | null> => {
   if (!isTauriApp()) {
     console.warn(`Tauri command '${command}' called in browser environment - returning null`);
     return null;
@@ -98,7 +103,7 @@ export const safeInvoke = async <T>(command: string, args?: any): Promise<T | nu
 // Safe wrapper for Tauri invoke calls with fallback
 export const safeInvokeWithFallback = async <T>(
   command: string, 
-  args?: any, 
+  args?: Record<string, unknown>, 
   fallback?: T
 ): Promise<T | null> => {
   if (!isTauriApp()) {

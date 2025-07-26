@@ -9,6 +9,28 @@ const ParticleCanvas: React.FC = React.memo(() => {
   const tempCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const lastTextureHash = useRef<string | null>(null);
   const imageDataRef = useRef<ImageData | null>(null);
+  const workerRef = useRef<Worker | null>(null);
+  const particlesRef = useRef<any[]>([]);
+
+  // Initialize Web Worker
+  useEffect(() => {
+    if (typeof Worker !== 'undefined') {
+      workerRef.current = new Worker('/particle-worker.js');
+      workerRef.current.onmessage = (e) => {
+        const { type, particles } = e.data;
+        if (type === 'PARTICLES_CALCULATED') {
+          particlesRef.current = particles;
+        }
+      };
+    }
+    
+    return () => {
+      if (workerRef.current) {
+        workerRef.current.terminate();
+        workerRef.current = null;
+      }
+    };
+  }, []);
 
   // Define resize function outside useEffect
   const resizeCanvas = useCallback(() => {
@@ -90,34 +112,50 @@ const ParticleCanvas: React.FC = React.memo(() => {
         ctx.fillStyle = `rgba(${bgColor}, 0.05)`;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        // Draw simple animated particles using theme colors
+        // Use Web Worker for particle calculations if available
         const time = Date.now() * 0.001;
-        const primaryColor = currentTheme.colors.primary[500];
-        const secondaryColor = currentTheme.colors.secondary[500];
-        const accentColor = currentTheme.colors.accent[500];
+        const colors = [
+          currentTheme.colors.primary[500],
+          currentTheme.colors.secondary[500],
+          currentTheme.colors.accent[500]
+        ];
         
-        for (let i = 0; i < 100; i++) {
-          const angle = (i / 100) * Math.PI * 2 + time * 0.5;
-          const radius = 200 + Math.sin(time + i * 0.1) * 50;
-          const x = canvas.width / 2 + Math.cos(angle) * radius;
-          const y = canvas.height / 2 + Math.sin(angle) * radius;
+        if (workerRef.current) {
+          // Send calculation to Web Worker
+          workerRef.current.postMessage({
+            type: 'CALCULATE_PARTICLES',
+            data: {
+              width: canvas.width,
+              height: canvas.height,
+              time,
+              particleCount: 100,
+              colors
+            }
+          });
           
-          const alpha = 0.3 + Math.sin(time * 2 + i * 0.1) * 0.2;
-          
-          // Use theme colors instead of HSL
-          let color;
-          if (i % 3 === 0) {
-            color = `rgba(${primaryColor}, ${alpha})`;
-          } else if (i % 3 === 1) {
-            color = `rgba(${secondaryColor}, ${alpha})`;
-          } else {
-            color = `rgba(${accentColor}, ${alpha})`;
+          // Draw particles calculated by worker
+          particlesRef.current.forEach(particle => {
+            const color = colors[particle.colorIndex];
+            ctx.beginPath();
+            ctx.arc(particle.x, particle.y, 2, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${color}, ${particle.alpha})`;
+            ctx.fill();
+          });
+        } else {
+          // Fallback to main thread calculation
+          for (let i = 0; i < 100; i++) {
+            const angle = (i / 100) * Math.PI * 2 + time * 0.5;
+            const radius = 200 + Math.sin(time + i * 0.1) * 50;
+            const x = canvas.width / 2 + Math.cos(angle) * radius;
+            const y = canvas.height / 2 + Math.sin(angle) * radius;
+            const alpha = 0.3 + Math.sin(time * 2 + i * 0.1) * 0.2;
+            const color = colors[i % 3];
+            
+            ctx.beginPath();
+            ctx.arc(x, y, 2, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${color}, ${alpha})`;
+            ctx.fill();
           }
-          
-          ctx.beginPath();
-          ctx.arc(x, y, 2, 0, Math.PI * 2);
-          ctx.fillStyle = color;
-          ctx.fill();
         }
       }
     } catch (error) {
@@ -161,18 +199,21 @@ const ParticleCanvas: React.FC = React.memo(() => {
       window.removeEventListener('resize', resizeCanvas);
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
+        animationRef.current = undefined;
       }
-      // Cleanup refs
+      // Cleanup refs to prevent memory leaks
       lastTextureHash.current = null;
       imageDataRef.current = null;
+      if (tempCanvasRef.current) {
+        tempCanvasRef.current = null;
+      }
     };
-  }, [resizeCanvas, animate, currentTheme]);
+  }, [resizeCanvas, animate]);
 
   return (
     <canvas
       ref={canvasRef}
-      className="absolute inset-0 w-full h-full pointer-events-none"
-      style={{ filter: 'blur(0.5px)' }}
+      className="absolute inset-0 w-full h-full pointer-events-none particle-canvas-blur"
     />
   );
 });

@@ -44,8 +44,8 @@ export const LoadingSkeleton: React.FC<LoadingSkeletonProps> = ({
       {Array.from({ length: lines }, (_, index) => (
         <motion.div
           key={index}
-          className={`${baseClasses} ${height}`}
-          style={{ width: `${85 + Math.random() * 15}%` }}
+          className={`${baseClasses} ${height} loading-skeleton-dynamic-width`}
+          style={{ '--skeleton-width': `${85 + Math.random() * 15}%` } as React.CSSProperties}
           initial={{ opacity: 0.6 }}
           animate={{ opacity: [0.6, 1, 0.6] }}
           transition={{
@@ -72,7 +72,10 @@ export const TableSkeleton: React.FC<TableSkeletonProps> = ({
 }) => {
   return (
     <div className={`glass-morphic p-6 ${className}`} role="status" aria-label="Loading table">
-      <div className="grid gap-4 mb-4" style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}>
+      <div 
+        className="grid gap-4 mb-4 grid-dynamic-columns" 
+        style={{ '--grid-columns': `repeat(${columns}, 1fr)` } as React.CSSProperties}
+      >
         {Array.from({ length: columns }, (_, index) => (
           <LoadingSkeleton key={`header-${index}`} height="h-3" />
         ))}
@@ -80,7 +83,11 @@ export const TableSkeleton: React.FC<TableSkeletonProps> = ({
       
       <div className="space-y-3">
         {Array.from({ length: rows }, (_, rowIndex) => (
-          <div key={`row-${rowIndex}`} className="grid gap-4" style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}>
+          <div 
+            key={`row-${rowIndex}`} 
+            className="grid gap-4 grid-dynamic-columns" 
+            style={{ '--grid-columns': `repeat(${columns}, 1fr)` } as React.CSSProperties}
+          >
             {Array.from({ length: columns }, (_, colIndex) => (
               <LoadingSkeleton key={`cell-${rowIndex}-${colIndex}`} height="h-4" />
             ))}

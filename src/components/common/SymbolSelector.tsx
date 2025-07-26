@@ -200,31 +200,65 @@ export const SymbolSelector: React.FC<SymbolSelectorProps> = ({
   // Position dropdown based on available space and calculate fixed position
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
   
-  useEffect(() => {
-    if (isOpen && containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom - 100; // 100px buffer
-      const spaceAbove = rect.top - 100; // 100px buffer
-      
-      if (spaceBelow < 400 && spaceAbove > 400) {
-        setDropdownStyle({
-          position: 'fixed',
-          top: rect.top - 400,
-          left: rect.left,
-          width: rect.width,
-          maxHeight: '380px',
-          zIndex: 9999
-        });
+  const calculateDropdownPosition = () => {
+    if (!isOpen || !containerRef.current) return;
+    
+    const rect = containerRef.current.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+    const buffer = 16;
+    const dropdownHeight = 400;
+    
+    const spaceBelow = viewportHeight - rect.bottom - buffer;
+    const spaceAbove = rect.top - buffer;
+    
+    let top: number;
+    let maxHeight: string;
+    
+    // Determine vertical position
+    if (spaceBelow >= dropdownHeight) {
+      top = rect.bottom + 8;
+      maxHeight = Math.min(spaceBelow - 8, dropdownHeight) + 'px';
+    } else if (spaceAbove >= dropdownHeight) {
+      top = rect.top - dropdownHeight - 8;
+      maxHeight = Math.min(spaceAbove - 8, dropdownHeight) + 'px';
+    } else {
+      // Use the side with more space
+      if (spaceBelow > spaceAbove) {
+        top = rect.bottom + 8;
+        maxHeight = (spaceBelow - 8) + 'px';
       } else {
-        setDropdownStyle({
-          position: 'fixed',
-          top: rect.bottom + 8,
-          left: rect.left,
-          width: rect.width,
-          maxHeight: '400px',
-          zIndex: 9999
-        });
+        top = buffer;
+        maxHeight = (spaceAbove - 8) + 'px';
       }
+    }
+    
+    // Ensure horizontal positioning stays within viewport
+    const left = Math.min(rect.left, viewportWidth - rect.width - buffer);
+    
+    setDropdownStyle({
+      position: 'fixed',
+      top,
+      left,
+      width: rect.width,
+      maxHeight,
+      zIndex: 'var(--z-dropdown, 950)' as any
+    });
+  };
+  
+  useEffect(() => {
+    if (isOpen) {
+      calculateDropdownPosition();
+      
+      // Recalculate on resize/scroll
+      const handleReposition = () => calculateDropdownPosition();
+      window.addEventListener('resize', handleReposition);
+      window.addEventListener('scroll', handleReposition, true);
+      
+      return () => {
+        window.removeEventListener('resize', handleReposition);
+        window.removeEventListener('scroll', handleReposition, true);
+      };
     }
   }, [isOpen]);
 
@@ -286,7 +320,7 @@ export const SymbolSelector: React.FC<SymbolSelectorProps> = ({
       {isOpen && createPortal(
         <div 
           ref={dropdownRef}
-          className="dropdown-menu glass-morphic rounded-lg shadow-2xl overflow-hidden"
+          className="dropdown-menu glass-morphic rounded-lg shadow-2xl overflow-hidden z-dropdown"
           style={dropdownStyle}
         >
           {/* Search Input */}

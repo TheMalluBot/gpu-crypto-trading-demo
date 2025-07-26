@@ -191,21 +191,13 @@
     color: rgb(var(--color-text-primary));
   }
   
+  /* Deprecated - use .btn-theme-* classes instead */
   .btn-primary {
-    @apply px-6 py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply btn-theme-primary;
   }
-  
   
   .btn-secondary {
-    @apply btn-primary;
-    background: rgba(var(--color-surface-50), 0.1);
-    color: rgb(var(--color-text-primary));
-    border: 1px solid rgba(var(--color-border-primary), 0.2);
-  }
-  
-  .btn-secondary:hover {
-    background: rgba(var(--color-surface-50), 0.2);
-    border: 1px solid rgba(var(--color-border-primary), 0.3);
+    @apply btn-theme-secondary;
   }
 }
 
@@ -238,13 +230,12 @@
     min-height: 100dvh;
   }
   
-  .focus-visible {
-    @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900;
-  }
-  
-  /* Enhanced focus styles for better accessibility */
+  /* Standardized focus styles for better accessibility */
+  .focus-visible,
   .focus-enhanced {
-    @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-opacity-50;
+    @apply focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-opacity-75;
+    --tw-ring-color: rgb(var(--color-primary-500));
+    --tw-ring-offset-color: rgb(var(--bg-primary));
   }
   
   /* Skip link for keyboard navigation */
@@ -378,8 +369,7 @@
   }
 
   .focus-theme {
-    @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
-    --tw-ring-color: rgb(var(--color-primary-500));
+    @apply focus-enhanced;
   }
 
   .btn-theme-primary {
@@ -490,13 +480,12 @@
   }
   
   .dropdown-container.open {
-    z-index: 9999 !important;
+    z-index: var(--z-dropdown, 950);
     position: relative;
   }
   
   .dropdown-menu {
     position: fixed !important;
-    z-index: 9999 !important;
   }
   
   .z-form {
@@ -505,5 +494,22 @@
   
   .z-form.has-dropdown {
     z-index: 1;
+  }
+
+  /* Security: CSP-compliant styles replacing inline styles */
+  .particle-canvas-blur {
+    filter: blur(0.5px);
+  }
+
+  .loading-skeleton-dynamic-width {
+    width: var(--skeleton-width, 90%);
+  }
+
+  .progress-bar-dynamic-width {
+    width: var(--progress-width, 0%);
+  }
+
+  .grid-dynamic-columns {
+    grid-template-columns: var(--grid-columns, repeat(3, 1fr));
   }
 }

@@ -13,6 +13,7 @@ mod websocket;
 mod trading_strategy;
 mod rate_limiter;
 mod secure_storage;
+mod secure_path;
 mod binance_client;
 mod secure_commands;
 mod logging;

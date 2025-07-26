@@ -7,10 +7,12 @@ import NotificationManager from '../utils/notifications';
 import HelpButton from './common/HelpButton';
 import { HELP_CONTENT } from '../utils/helpContent';
 import { ApiStatus } from './common/ApiStatus';
+import { ToggleSwitch } from './common/ToggleSwitch';
 
 interface AppSettings {
   api_key: string;
   api_secret: string;
+  api_key_type: 'HMAC' | 'Ed25519' | 'RSA';
   base_url: string;
   testnet: boolean;
   disable_animations: boolean;
@@ -29,6 +31,7 @@ const SettingsPanel: React.FC = () => {
   const [settings, setSettings] = useState<AppSettings>({
     api_key: '',
     api_secret: '',
+    api_key_type: 'HMAC',
     base_url: 'https://api.binance.com',
     testnet: false,
     disable_animations: false,
@@ -38,6 +41,7 @@ const SettingsPanel: React.FC = () => {
   const [testError, setTestError] = useState<string>('');
   const [accountInfo, setAccountInfo] = useState<AccountInfo | null>(null);
   const [loading, setLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
 
   useEffect(() => {
     loadSettings();
@@ -138,33 +142,124 @@ const SettingsPanel: React.FC = () => {
 
   const handleInputChange = (field: keyof AppSettings, value: string | boolean) => {
     setSettings(prev => ({ ...prev, [field]: value }));
+    
+    // Clear validation error for this field
+    if (validationErrors[field]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+    
     // Reset test result when API credentials change
-    if (field === 'api_key' || field === 'api_secret') {
+    if (field === 'api_key' || field === 'api_secret' || field === 'api_key_type') {
       setTestResult('idle');
       setAccountInfo(null);
+      
+      // Real-time validation for API credentials based on key type
+      if (typeof value === 'string' && value) {
+        if (field === 'api_key') {
+          switch (settings.api_key_type) {
+            case 'HMAC':
+              if (value.length < 60 || value.length > 70) {
+                setValidationErrors(prev => ({ ...prev, [field]: 'HMAC API Key should be ~64 characters' }));
+              }
+              break;
+            case 'Ed25519':
+              if (value.length < 40 || value.length > 50) {
+                setValidationErrors(prev => ({ ...prev, [field]: 'Ed25519 API Key should be ~44 characters' }));
+              }
+              break;
+            case 'RSA':
+              // RSA API keys are typically shorter identifiers
+              if (value.length < 30) {
+                setValidationErrors(prev => ({ ...prev, [field]: 'RSA API Key appears too short' }));
+              }
+              break;
+          }
+        } else if (field === 'api_secret') {
+          switch (settings.api_key_type) {
+            case 'HMAC':
+              if (value.length < 60 || value.length > 70) {
+                setValidationErrors(prev => ({ ...prev, [field]: 'HMAC API Secret should be ~64 characters' }));
+              }
+              break;
+            case 'Ed25519':
+              if (value.length < 80 || value.length > 100) {
+                setValidationErrors(prev => ({ ...prev, [field]: 'Ed25519 Private Key appears invalid' }));
+              }
+              break;
+            case 'RSA':
+              if (!value.includes('-----BEGIN PRIVATE KEY-----')) {
+                setValidationErrors(prev => ({ ...prev, [field]: 'RSA Private Key should be in PKCS#8 PEM format' }));
+              }
+              break;
+          }
+        }
+      }
+    }
+    
+    if (field === 'base_url' && typeof value === 'string') {
+      try {
+        new URL(value);
+      } catch {
+        if (value) {
+          setValidationErrors(prev => ({ ...prev, [field]: 'Please enter a valid URL' }));
+        }
+      }
     }
   };
 
   const validateApiCredentials = () => {
-    if (!settings.api_key || !settings.api_secret) {
-      return { isValid: false, message: 'API Key and Secret are required' };
+    if (!settings.api_key) {
+      return { isValid: false, message: 'API Key is required' };
     }
     
-    // Binance API keys are typically 64 characters long
-    if (settings.api_key.length < 60 || settings.api_key.length > 70) {
-      return { isValid: false, message: 'API Key appears to be invalid format' };
-    }
-    
-    // Binance API secrets are typically 64 characters long
-    if (settings.api_secret.length < 60 || settings.api_secret.length > 70) {
-      return { isValid: false, message: 'API Secret appears to be invalid format' };
+    switch (settings.api_key_type) {
+      case 'HMAC':
+        if (!settings.api_secret) {
+          return { isValid: false, message: 'API Secret is required for HMAC keys' };
+        }
+        // HMAC keys are typically 64 characters (deprecated but still supported)
+        if (settings.api_key.length < 60 || settings.api_key.length > 70) {
+          return { isValid: false, message: 'HMAC API Key should be ~64 characters' };
+        }
+        if (settings.api_secret.length < 60 || settings.api_secret.length > 70) {
+          return { isValid: false, message: 'HMAC API Secret should be ~64 characters' };
+        }
+        break;
+        
+      case 'Ed25519':
+        if (!settings.api_secret) {
+          return { isValid: false, message: 'Private Key is required for Ed25519 keys' };
+        }
+        // Ed25519 public keys are ~44 characters in base64
+        if (settings.api_key.length < 40 || settings.api_key.length > 50) {
+          return { isValid: false, message: 'Ed25519 API Key should be ~44 characters' };
+        }
+        // Ed25519 private keys in base64 are longer
+        if (settings.api_secret.length < 80 || settings.api_secret.length > 100) {
+          return { isValid: false, message: 'Ed25519 Private Key appears invalid' };
+        }
+        break;
+        
+      case 'RSA':
+        if (!settings.api_secret) {
+          return { isValid: false, message: 'Private Key is required for RSA keys' };
+        }
+        // RSA keys are in PEM format, much longer
+        if (!settings.api_secret.includes('-----BEGIN PRIVATE KEY-----')) {
+          return { isValid: false, message: 'RSA Private Key should be in PKCS#8 PEM format' };
+        }
+        break;
     }
     
     return { isValid: true, message: '' };
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 space-y-6">
+    <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Page Header with Help */}
       <div className="flex justify-between items-center">
         <h1 className="text-hierarchy-primary">Settings</h1>
@@ -178,258 +273,301 @@ const SettingsPanel: React.FC = () => {
       >
         <div className="flex items-center space-x-3 mb-6">
           <Settings 
-            className="w-6 h-6" 
-            style={{ color: `rgb(var(--color-primary-500))` }}
+            className="w-6 h-6 text-primary-500" 
+            aria-hidden="true"
           />
-          <h2 
-            className="text-2xl font-bold"
-            style={{ color: `rgb(var(--color-text-primary))` }}
-          >
+          <h2 className="text-xl sm:text-2xl font-bold text-theme-primary">
             Trading Settings
           </h2>
         </div>
 
         <div className="space-y-4">
+          {/* API Key Type Selector */}
+          <fieldset>
+            <legend className="block text-sm font-medium mb-2 text-theme-primary">
+              <Key 
+                className="w-4 h-4 inline mr-2 text-primary-500" 
+                aria-hidden="true"
+              />
+              API Key Type *
+            </legend>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {(['HMAC', 'Ed25519', 'RSA'] as const).map((keyType) => (
+                <label key={keyType} className="relative">
+                  <input
+                    type="radio"
+                    name="api_key_type"
+                    value={keyType}
+                    checked={settings.api_key_type === keyType}
+                    onChange={(e) => handleInputChange('api_key_type', e.target.value as any)}
+                    className="sr-only"
+                  />
+                  <div className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                    settings.api_key_type === keyType
+                      ? 'border-primary-500 bg-primary-500/10'
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}>
+                    <div className="text-sm font-medium text-theme-primary">
+                      {keyType}
+                      {keyType === 'Ed25519' && (
+                        <span className="ml-1 text-xs bg-green-500 text-white px-1 rounded">
+                          Recommended
+                        </span>
+                      )}
+                      {keyType === 'HMAC' && (
+                        <span className="ml-1 text-xs bg-yellow-500 text-white px-1 rounded">
+                          Deprecated
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-theme-tertiary mt-1">
+                      {keyType === 'HMAC' && 'Symmetric encryption (legacy)'}
+                      {keyType === 'Ed25519' && 'Fast & secure (modern)'}
+                      {keyType === 'RSA' && 'Asymmetric encryption'}
+                    </div>
+                  </div>
+                </label>
+              ))}
+            </div>
+            <div className="text-xs mt-2 text-theme-tertiary">
+              <strong>Ed25519</strong> is recommended by Binance for best performance and security. 
+              <strong> HMAC</strong> keys are deprecated.
+            </div>
+          </fieldset>
+
           {/* API Key */}
           <div>
             <label 
-              className="block text-sm font-medium mb-2"
-              style={{ color: `rgba(var(--color-text-primary), 0.8)` }}
+              htmlFor="api-key-input"
+              className="block text-sm font-medium mb-2 text-theme-primary"
             >
               <Key 
-                className="w-4 h-4 inline mr-2" 
-                style={{ color: `rgb(var(--color-primary-500))` }}
+                className="w-4 h-4 inline mr-2 text-primary-500" 
+                aria-hidden="true"
               />
               API Key *
             </label>
             <input
+              id="api-key-input"
               type="password"
               value={settings.api_key}
               onChange={(e) => handleInputChange('api_key', e.target.value)}
-              className="form-input"
+              className={`input-theme ${validationErrors.api_key ? 'border-red-500 focus:ring-red-500' : ''}`}
               placeholder="Enter your Binance API Key"
+              aria-describedby="api-key-help api-key-error"
+              aria-required="true"
+              aria-invalid={!!validationErrors.api_key}
             />
+            <div id="api-key-help" className="text-xs mt-1 text-theme-tertiary">
+              {settings.api_key_type === 'HMAC' && 'Your Binance API key (~64 characters)'}
+              {settings.api_key_type === 'Ed25519' && 'Your Ed25519 public key (~44 characters)'}
+              {settings.api_key_type === 'RSA' && 'Your RSA API key identifier'}
+            </div>
+            {validationErrors.api_key && (
+              <div id="api-key-error" className="text-xs mt-1 text-red-400" role="alert">
+                {validationErrors.api_key}
+              </div>
+            )}
           </div>
 
           {/* API Secret */}
           <div>
             <label 
-              className="block text-sm font-medium mb-2"
-              style={{ color: `rgba(var(--color-text-primary), 0.8)` }}
+              htmlFor="api-secret-input"
+              className="block text-sm font-medium mb-2 text-theme-primary"
             >
               <Key 
-                className="w-4 h-4 inline mr-2" 
-                style={{ color: `rgb(var(--color-primary-500))` }}
+                className="w-4 h-4 inline mr-2 text-primary-500" 
+                aria-hidden="true"
               />
-              API Secret *
+              {settings.api_key_type === 'HMAC' ? 'API Secret *' : 'Private Key *'}
             </label>
             <input
+              id="api-secret-input"
               type="password"
               value={settings.api_secret}
               onChange={(e) => handleInputChange('api_secret', e.target.value)}
-              className="form-input"
-              placeholder="Enter your Binance API Secret"
+              className={`input-theme ${validationErrors.api_secret ? 'border-red-500 focus:ring-red-500' : ''}`}
+              placeholder={
+                settings.api_key_type === 'HMAC' 
+                  ? 'Enter your Binance API Secret'
+                  : settings.api_key_type === 'Ed25519'
+                    ? 'Enter your Ed25519 private key'
+                    : 'Enter your RSA private key (PKCS#8 PEM format)'
+              }
+              aria-describedby="api-secret-help api-secret-error"
+              aria-required="true"
+              aria-invalid={!!validationErrors.api_secret}
             />
+            <div id="api-secret-help" className="text-xs mt-1 text-theme-tertiary">
+              {settings.api_key_type === 'HMAC' && 'Your Binance API secret (~64 characters)'}
+              {settings.api_key_type === 'Ed25519' && 'Your Ed25519 private key (base64 encoded)'}
+              {settings.api_key_type === 'RSA' && 'Your RSA private key in PKCS#8 PEM format'}
+            </div>
+            {validationErrors.api_secret && (
+              <div id="api-secret-error" className="text-xs mt-1 text-red-400" role="alert">
+                {validationErrors.api_secret}
+              </div>
+            )}
           </div>
 
           {/* Base URL */}
           <div>
             <label 
-              className="block text-sm font-medium mb-2"
-              style={{ color: `rgba(var(--color-text-primary), 0.8)` }}
+              htmlFor="base-url-input"
+              className="block text-sm font-medium mb-2 text-theme-primary"
             >
               <Server 
-                className="w-4 h-4 inline mr-2" 
-                style={{ color: `rgb(var(--color-primary-500))` }}
+                className="w-4 h-4 inline mr-2 text-primary-500" 
+                aria-hidden="true"
               />
               Base URL
             </label>
             <input
-              type="text"
+              id="base-url-input"
+              type="url"
               value={settings.base_url}
               onChange={(e) => handleInputChange('base_url', e.target.value)}
-              className="form-input"
-              placeholder="https://api.binance.com"
+              className={`input-theme ${validationErrors.base_url ? 'border-red-500 focus:ring-red-500' : ''}`}
+              placeholder={settings.testnet ? "https://testnet.binance.vision" : "https://api.binance.com"}
+              aria-describedby="base-url-help base-url-error"
+              aria-invalid={!!validationErrors.base_url}
             />
+            <div id="base-url-help" className="text-xs mt-1 text-theme-tertiary">
+              {settings.testnet 
+                ? 'Binance testnet API endpoint (https://testnet.binance.vision)'
+                : 'Binance mainnet API endpoint (https://api.binance.com)'
+              }
+            </div>
+            {validationErrors.base_url && (
+              <div id="base-url-error" className="text-xs mt-1 text-red-400" role="alert">
+                {validationErrors.base_url}
+              </div>
+            )}
           </div>
 
           {/* Testnet Toggle */}
           <div className="flex items-center justify-between">
             <label 
-              className="flex items-center space-x-2"
-              style={{ color: `rgba(var(--color-text-primary), 0.8)` }}
+              htmlFor="testnet-toggle"
+              className="flex items-center space-x-2 text-theme-primary cursor-pointer"
             >
               <TestTube 
-                className="w-4 h-4" 
-                style={{ color: `rgb(var(--color-primary-500))` }}
+                className="w-4 h-4 text-primary-500" 
+                aria-hidden="true"
               />
               <div>
                 <span>Use Testnet</span>
-                <div 
-                  className="text-xs mt-1"
-                  style={{ color: `rgba(var(--color-text-secondary), 0.7)` }}
-                >
-                  {settings.testnet ? 'Using testnet.binance.vision' : 'Using live API'}
+                <div id="testnet-help" className="text-xs mt-1 text-theme-tertiary">
+                  {settings.testnet ? 'Using https://testnet.binance.vision' : 'Using live API'}
                 </div>
               </div>
             </label>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handleInputChange('testnet', !settings.testnet)}
-              className="w-12 h-6 rounded-full p-1 transition-colors"
-              style={{
-                backgroundColor: settings.testnet 
-                  ? `rgb(var(--color-primary-500))` 
-                  : `rgba(var(--color-surface-400), 0.3)`
-              }}
-            >
-              <motion.div
-                className="w-4 h-4 rounded-full"
-                style={{ backgroundColor: `rgb(var(--color-text-inverse))` }}
-                animate={{ x: settings.testnet ? 20 : 0 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              />
-            </motion.button>
+            <ToggleSwitch
+              id="testnet-toggle"
+              checked={settings.testnet}
+              onChange={(checked) => handleInputChange('testnet', checked)}
+              ariaLabel="Toggle testnet mode"
+              ariaDescribedBy="testnet-help"
+            />
           </div>
 
           {/* Theme - Professional Theme Active */}
-          <div>
-            <label 
-              className="block text-sm font-medium mb-2"
-              style={{ color: `rgba(var(--color-text-primary), 0.8)` }}
-            >
+          <fieldset>
+            <legend className="block text-sm font-medium mb-2 text-theme-primary">
               <Palette 
-                className="w-4 h-4 inline mr-2" 
-                style={{ color: `rgb(var(--color-primary-500))` }}
+                className="w-4 h-4 inline mr-2 text-primary-500" 
+                aria-hidden="true"
               />
               Theme
-            </label>
-            <div 
-              className="px-4 py-3 rounded-lg"
-              style={{
-                backgroundColor: `rgba(var(--color-surface-100), 0.1)`,
-                border: `1px solid rgba(var(--color-border-primary), 0.2)`,
-              }}
-            >
+            </legend>
+            <div className="card-theme px-4 py-3 rounded-lg">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="flex space-x-1">
+                  <div className="flex space-x-1" aria-hidden="true">
                     <div className="w-3 h-3 rounded-full bg-sky-500"></div>
                     <div className="w-3 h-3 rounded-full bg-gray-500"></div>
                     <div className="w-3 h-3 rounded-full bg-green-500"></div>
                   </div>
                   <div>
-                    <div 
-                      className="text-sm font-medium"
-                      style={{ color: `rgb(var(--color-text-primary))` }}
-                    >
+                    <div className="text-sm font-medium text-theme-primary">
                       Professional
                     </div>
-                    <div 
-                      className="text-xs"
-                      style={{ color: `rgb(var(--color-text-secondary))` }}
-                    >
+                    <div className="text-xs text-theme-secondary">
                       Clean, modern theme optimized for professional trading
                     </div>
                   </div>
                 </div>
                 <CheckCircle 
-                  className="w-4 h-4" 
-                  style={{ color: `rgb(var(--color-accent-500))` }}
+                  className="w-4 h-4 text-accent-500" 
+                  aria-label="Current theme selected"
                 />
               </div>
             </div>
-          </div>
+          </fieldset>
 
           {/* Disable Animations Toggle */}
           <div className="flex items-center justify-between">
             <label 
-              className="flex items-center space-x-2"
-              style={{ color: `rgba(var(--color-text-primary), 0.8)` }}
+              htmlFor="disable-animations-toggle"
+              className="text-theme-primary cursor-pointer"
             >
               <span>Disable Background Animation</span>
+              <div id="disable-animations-help" className="text-xs mt-1 text-theme-tertiary">
+                {settings.disable_animations ? 'Background animation disabled' : 'Background animation enabled'}
+              </div>
             </label>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handleInputChange('disable_animations', !settings.disable_animations)}
-              className="w-12 h-6 rounded-full p-1 transition-colors"
-              style={{
-                backgroundColor: settings.disable_animations 
-                  ? `rgb(var(--color-primary-500))` 
-                  : `rgba(var(--color-surface-400), 0.3)`
-              }}
-            >
-              <motion.div
-                className="w-4 h-4 rounded-full"
-                style={{ backgroundColor: `rgb(var(--color-text-inverse))` }}
-                animate={{ x: settings.disable_animations ? 20 : 0 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              />
-            </motion.button>
+            <ToggleSwitch
+              id="disable-animations-toggle"
+              checked={settings.disable_animations}
+              onChange={(checked) => handleInputChange('disable_animations', checked)}
+              ariaLabel="Toggle background animations"
+              ariaDescribedBy="disable-animations-help"
+            />
           </div>
 
           {/* Performance Mode Toggle */}
           <div className="flex items-center justify-between">
             <label 
-              className="flex items-center space-x-2"
-              style={{ color: `rgba(var(--color-text-primary), 0.8)` }}
+              htmlFor="performance-mode-toggle"
+              className="flex items-center space-x-2 text-theme-primary cursor-pointer"
             >
-              <Monitor className="w-4 h-4" style={{ color: `rgb(var(--color-primary-500))` }} />
+              <Monitor className="w-4 h-4 text-primary-500" aria-hidden="true" />
               <div>
                 <span>Performance Mode</span>
-                <div 
-                  className="text-xs mt-1"
-                  style={{ color: `rgba(var(--color-text-secondary), 0.7)` }}
-                >
+                <div id="performance-mode-help" className="text-xs mt-1 text-theme-tertiary">
                   {settings.performance_mode ? 'Reduced animations for better performance' : 'Full visual effects enabled'}
                 </div>
               </div>
             </label>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handleInputChange('performance_mode', !settings.performance_mode)}
-              className="w-12 h-6 rounded-full p-1 transition-colors"
-              style={{
-                backgroundColor: settings.performance_mode 
-                  ? `rgb(var(--color-primary-500))` 
-                  : `rgba(var(--color-surface-400), 0.3)`
-              }}
-            >
-              <motion.div
-                className="w-4 h-4 rounded-full"
-                style={{ backgroundColor: `rgb(var(--color-text-inverse))` }}
-                animate={{ x: settings.performance_mode ? 20 : 0 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              />
-            </motion.button>
+            <ToggleSwitch
+              id="performance-mode-toggle"
+              checked={settings.performance_mode}
+              onChange={(checked) => handleInputChange('performance_mode', checked)}
+              ariaLabel="Toggle performance mode"
+              ariaDescribedBy="performance-mode-help"
+            />
           </div>
         </div>
 
-        {/* Testnet Warning */}        {settings.testnet && (
-          <div 
-            className="mt-4 p-3 rounded-lg"
-            style={{
-              backgroundColor: `rgba(var(--color-primary-500), 0.2)`,
-              border: `1px solid rgba(var(--color-primary-500), 0.3)`
-            }}
-          >
+        {/* Testnet Warning */}
+        {settings.testnet && (
+          <div className="mt-4 p-3 rounded-lg alert-theme-info">
             <div className="flex items-start space-x-2">
               <TestTube 
-                className="w-4 h-4 mt-0.5 flex-shrink-0" 
-                style={{ color: `rgb(var(--color-primary-500))` }}
+                className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary-500" 
               />
               <div>
-                <div 
-                  className="font-medium text-sm"
-                  style={{ color: `rgb(var(--color-primary-500))` }}
-                >
+                <div className="font-medium text-sm text-primary-500">
                   Testnet Mode Active
                 </div>
-                <div 
-                  className="text-xs mt-1"
-                  style={{ color: `rgba(var(--color-text-secondary), 0.8)` }}
-                >
+                <div className="text-xs mt-1 text-theme-secondary">
                   You're using the Binance testnet. No real money will be used for trading.
+                  <br />
+                  <strong>Note:</strong> Create separate testnet API keys at{' '}
+                  <a href="https://testnet.binance.vision" target="_blank" rel="noopener noreferrer" className="text-primary-500 hover:underline">
+                    testnet.binance.vision
+                  </a>
                 </div>
               </div>
             </div>
@@ -437,13 +575,13 @@ const SettingsPanel: React.FC = () => {
         )}
 
         {/* Action Buttons */}
-        <div className="flex space-x-4 mt-6">
+        <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 mt-6">
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={saveSettings}
-            disabled={loading}
-            className="flex-1 btn-theme-primary"
+            disabled={loading || Object.keys(validationErrors).length > 0}
+            className="flex-1 btn-theme-primary disabled:opacity-50"
           >
             {loading ? 'Saving...' : 'Save Settings'}
           </motion.button>
@@ -452,18 +590,12 @@ const SettingsPanel: React.FC = () => {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={testConnection}
-            disabled={testResult === 'testing' || !settings.api_key || !settings.api_secret}
-            className="flex-1 btn-theme-accent flex items-center justify-center space-x-2"
+            disabled={testResult === 'testing' || !settings.api_key || Object.keys(validationErrors).length > 0}
+            className="flex-1 btn-theme-accent flex items-center justify-center space-x-2 disabled:opacity-50"
           >
             {testResult === 'testing' ? (
               <>
-                <div 
-                  className="w-4 h-4 border-2 rounded-full animate-spin"
-                  style={{
-                    borderColor: `rgba(var(--color-text-inverse), 0.2)`,
-                    borderTopColor: `rgb(var(--color-text-inverse))`
-                  }}
-                />
+                <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                 <span>Testing...</span>
               </>
             ) : testResult === 'success' ? (
@@ -484,29 +616,16 @@ const SettingsPanel: React.FC = () => {
 
         {/* Error Display */}
         {testResult === 'error' && testError && (
-          <div 
-            className="mt-4 p-3 rounded-lg"
-            style={{
-              backgroundColor: `rgba(239, 68, 68, 0.2)`, // red-500/20
-              border: `1px solid rgba(239, 68, 68, 0.3)` // red-500/30
-            }}
-          >
+          <div className="mt-4 p-3 rounded-lg alert-theme-error">
             <div className="flex items-start space-x-2">
               <XCircle 
-                className="w-4 h-4 mt-0.5 flex-shrink-0" 
-                style={{ color: `rgb(248, 113, 113)` }} // red-400
+                className="w-4 h-4 mt-0.5 flex-shrink-0 text-red-400" 
               />
               <div>
-                <div 
-                  className="font-medium text-sm"
-                  style={{ color: `rgb(248, 113, 113)` }} // red-400
-                >
+                <div className="font-medium text-sm text-red-400">
                   Connection Failed
                 </div>
-                <div 
-                  className="text-xs mt-1"
-                  style={{ color: `rgba(252, 165, 165, 0.8)` }} // red-300/80
-                >
+                <div className="text-xs mt-1 text-red-300/80">
                   {testError}
                 </div>
               </div>
@@ -522,61 +641,42 @@ const SettingsPanel: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           className="glass-morphic p-6"
         >
-          <h3 
-            className="text-xl font-bold mb-4"
-            style={{ color: `rgb(var(--color-text-primary))` }}
-          >
+          <h3 className="text-xl font-bold mb-4 text-theme-primary">
             Account Information
           </h3>
           
           <div className="space-y-3">
             <div className="flex items-center space-x-2">
-              <span style={{ color: `rgba(var(--color-text-primary), 0.8)` }}>Trading Enabled:</span>
+              <span className="text-theme-primary">Trading Enabled:</span>
               <span 
-                className="font-medium"
-                style={{ 
-                  color: accountInfo.can_trade 
-                    ? `rgb(var(--color-accent-500))` 
-                    : `rgb(248, 113, 113)` // red-400
-                }}
+                className={`font-medium ${
+                  accountInfo.can_trade ? 'text-accent-500' : 'text-red-400'
+                }`}
               >
                 {accountInfo.can_trade ? 'Yes' : 'No'}
               </span>
             </div>
             
             <div>
-              <span 
-                className="block mb-2"
-                style={{ color: `rgba(var(--color-text-primary), 0.8)` }}
-              >
+              <span className="block mb-2 text-theme-primary">
                 Balances:
               </span>
-              <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto">
                 {accountInfo.balances
                   .filter(balance => balance.free > 0 || balance.locked > 0)
                   .map((balance, index) => (
                     <div 
                       key={index} 
-                      className="rounded-lg p-2"
-                      style={{ backgroundColor: `rgba(var(--color-surface-100), 0.05)` }}
+                      className="rounded-lg p-2 bg-theme-surface"
                     >
-                      <div 
-                        className="font-medium"
-                        style={{ color: `rgb(var(--color-text-primary))` }}
-                      >
+                      <div className="font-medium text-theme-primary">
                         {balance.asset}
                       </div>
-                      <div 
-                        className="text-sm"
-                        style={{ color: `rgba(var(--color-text-secondary), 0.8)` }}
-                      >
+                      <div className="text-sm text-theme-secondary">
                         Free: {balance.free.toFixed(4)}
                       </div>
                       {balance.locked > 0 && (
-                        <div 
-                          className="text-sm"
-                          style={{ color: `rgba(var(--color-text-secondary), 0.8)` }}
-                        >
+                        <div className="text-sm text-theme-secondary">
                           Locked: {balance.locked.toFixed(4)}
                         </div>
                       )}
@@ -597,20 +697,17 @@ const SettingsPanel: React.FC = () => {
       >
         <div className="flex items-center space-x-3 mb-4">
           <Monitor 
-            className="w-6 h-6" 
-            style={{ color: `rgb(var(--color-primary-500))` }}
+            className="w-6 h-6 text-primary-500" 
+            aria-hidden="true"
           />
-          <h2 
-            className="text-xl font-bold"
-            style={{ color: `rgb(var(--color-text-primary))` }}
-          >
+          <h2 className="text-xl font-bold text-theme-primary">
             API Status Monitor
           </h2>
         </div>
         
         <ApiStatus showDetails={true} />
         
-        <div className="mt-4 text-sm" style={{ color: `rgba(var(--color-text-secondary), 0.8)` }}>
+        <div className="mt-4 text-sm text-theme-secondary">
           <p>This monitor checks if the Tauri API is properly connected. If you see errors, try:</p>
           <ul className="list-disc list-inside mt-2 space-y-1">
             <li>Restart the application</li>

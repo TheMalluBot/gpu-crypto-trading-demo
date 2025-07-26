@@ -3,6 +3,7 @@ use rand::{RngCore, rngs::OsRng};
 use serde::{Serialize, Deserialize};
 use std::path::PathBuf;
 use base64::{Engine as _, engine::general_purpose};
+use crate::secure_path::{SecurePathValidator, PathSecurityError, create_app_path_validator};
 
 const NONCE_SIZE: usize = 12; // 96 bits for AES-GCM
 const KEY_SIZE: usize = 32;   // 256 bits for AES-256
@@ -16,28 +17,48 @@ struct EncryptedData {
 #[derive(Debug)]
 pub struct SecureStorage {
     storage_path: PathBuf,
+    path_validator: SecurePathValidator,
 }
 
 impl SecureStorage {
     pub fn new(app_name: &str) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
-        let storage_path = Self::get_storage_path(app_name)?;
+        let path_validator = create_app_path_validator()
+            .map_err(|e| format!("Failed to create path validator: {}", e))?;
+        
+        let storage_path = Self::get_secure_storage_path(app_name, &path_validator)?;
         
         // Create storage directory if it doesn't exist
         if let Some(parent) = storage_path.parent() {
             std::fs::create_dir_all(parent)?;
         }
         
-        Ok(Self { storage_path })
+        Ok(Self { 
+            storage_path,
+            path_validator,
+        })
     }
 
-    fn get_storage_path(app_name: &str) -> Result<PathBuf, Box<dyn std::error::Error + Send + Sync>> {
+    fn get_secure_storage_path(
+        app_name: &str, 
+        validator: &SecurePathValidator
+    ) -> Result<PathBuf, Box<dyn std::error::Error + Send + Sync>> {
+        // Sanitize app_name to prevent path injection
+        let sanitized_name = app_name
+            .chars()
+            .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-')
+            .collect::<String>();
+        
+        if sanitized_name.is_empty() {
+            return Err("Invalid app name".into());
+        }
+        
         // Try to get proper app data directory, fallback to current dir + data
         let app_dir = if let Ok(data_dir) = std::env::var("APPDATA") {
             // Windows AppData
-            PathBuf::from(data_dir).join(app_name)
+            PathBuf::from(data_dir).join(&sanitized_name)
         } else if let Ok(home_dir) = std::env::var("HOME") {
             // Unix-like systems
-            PathBuf::from(home_dir).join(".local/share").join(app_name)
+            PathBuf::from(home_dir).join(".local/share").join(&sanitized_name)
         } else {
             // Fallback to current directory
             std::env::current_dir()
@@ -47,7 +68,13 @@ impl SecureStorage {
         
         std::fs::create_dir_all(&app_dir)
             .map_err(|e| format!("Failed to create app directory: {}", e))?;
-        Ok(app_dir.join(format!("{}_secure.dat", app_name)))
+            
+        let storage_file = app_dir.join(format!("{}_secure.dat", sanitized_name));
+        
+        // Validate the final path
+        validator.validate_path(&storage_file)
+            .map_err(|e| format!("Storage path validation failed: {}", e).into())
+    }
     }
 
     fn derive_key_from_system() -> Result<[u8; KEY_SIZE], Box<dyn std::error::Error + Send + Sync>> {

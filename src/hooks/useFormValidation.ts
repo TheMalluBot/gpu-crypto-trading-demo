@@ -7,7 +7,7 @@ export interface ValidationRule {
   minLength?: number;
   maxLength?: number;
   pattern?: RegExp;
-  custom?: (value: any) => string | null;
+  custom?: (value: unknown) => string | null;
 }
 
 export interface FieldConfig {
@@ -22,7 +22,7 @@ export interface FormTouched {
   [key: string]: boolean;
 }
 
-export const useFormValidation = <T extends Record<string, any>>(
+export const useFormValidation = <T extends Record<string, unknown>>(
   initialValues: T,
   validationRules: FieldConfig
 ) => {
@@ -31,7 +31,7 @@ export const useFormValidation = <T extends Record<string, any>>(
   const [touched, setTouched] = useState<FormTouched>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const validateField = useCallback((name: string, value: any): string => {
+  const validateField = useCallback((name: string, value: unknown): string => {
     const rules = validationRules[name];
     if (!rules) return '';
 
@@ -93,7 +93,7 @@ export const useFormValidation = <T extends Record<string, any>>(
     return isValid;
   }, [values, validateField, validationRules]);
 
-  const handleChange = useCallback((name: string, value: any) => {
+  const handleChange = useCallback((name: string, value: unknown) => {
     setValues(prev => ({ ...prev, [name]: value }));
     
     // Real-time validation for touched fields
@@ -141,7 +141,7 @@ export const useFormValidation = <T extends Record<string, any>>(
     setIsSubmitting(false);
   }, [initialValues]);
 
-  const setFieldValue = useCallback((name: string, value: any) => {
+  const setFieldValue = useCallback((name: string, value: unknown) => {
     setValues(prev => ({ ...prev, [name]: value }));
   }, []);
 

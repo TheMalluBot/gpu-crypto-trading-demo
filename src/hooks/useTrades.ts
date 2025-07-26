@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { safeInvoke } from '../utils/tauri';
+import { PaperTrade } from '../types/bot';
 
 export interface TradeRecord {
   id: string;
@@ -55,14 +56,17 @@ export const useTrades = () => {
     setLoading(false);
   };
 
-  const formatPaperTrade = (trade: any): TradeRecord => {
-    const duration = trade.closed_at 
-      ? calculateDuration(trade.created_at, trade.closed_at)
-      : calculateDuration(trade.created_at, new Date().toISOString());
+  const formatPaperTrade = (trade: PaperTrade): TradeRecord => {
+    const closeTime = trade.status === 'Closed' && trade.exit_price 
+      ? trade.timestamp // Using timestamp as approximate close time for closed trades
+      : new Date().toISOString();
+    const duration = trade.status === 'Closed' 
+      ? calculateDuration(trade.timestamp, closeTime)
+      : calculateDuration(trade.timestamp, new Date().toISOString());
 
     return {
       id: trade.id || 'unknown',
-      timestamp: trade.created_at || new Date().toISOString(),
+      timestamp: trade.timestamp || new Date().toISOString(),
       symbol: trade.symbol || 'UNKNOWN',
       side: trade.side || 'Long',
       type: 'Market',

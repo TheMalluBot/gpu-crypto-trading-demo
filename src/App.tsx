@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { listen } from '@tauri-apps/api/event';
@@ -7,15 +7,17 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import ParticleCanvas from './components/ParticleCanvas';
 import TitleBar from './components/TitleBar';
 import Navigation from './components/Navigation';
-import TradePanel from './components/TradePanel';
-import SettingsPanel from './components/SettingsPanel';
-import PnLChart from './components/PnLChart';
-import SwingBotPanel from './components/SwingBotPanel';
-import Dashboard from './components/Dashboard';
-import TutorialPanel from './components/TutorialPanel';
 import NotificationContainer from './components/common/NotificationContainer';
 import FloatingHelpButton from './components/common/FloatingHelpButton';
 import { AppLoading } from './components/common/AppLoading';
+
+// Lazy load heavy components to improve initial load time
+const TradePanel = lazy(() => import('./components/TradePanel'));
+const SettingsPanel = lazy(() => import('./components/SettingsPanel'));
+const PnLChart = lazy(() => import('./components/PnLChart'));
+const SwingBotPanel = lazy(() => import('./components/SwingBotPanel'));
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const TutorialPanel = lazy(() => import('./components/TutorialPanel'));
 interface SystemStats {
   fps: number;
   cpu_load: number;
@@ -90,76 +92,78 @@ function App() {
         </div>
 
         {/* Main Content */}
-        <main id="main-content" className="relative z-content min-h-screen pt-8 pb-24 md:pb-20 overflow-y-auto safe-area-bottom" role="main">
-          <Routes>
-            <Route path="/" element={<Navigate to="/trade" replace />} />
-            <Route path="/trade" element={
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-                className="min-h-full"
-              >
-                <TradePanel />
-              </motion.div>
-            } />
-            <Route path="/bot" element={
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-                className="min-h-full"
-              >
-                <SwingBotPanel />
-              </motion.div>
-            } />
-            <Route path="/tutorial" element={
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-                className="min-h-full"
-              >
-                <TutorialPanel />
-              </motion.div>
-            } />
-            <Route path="/dashboard" element={
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-                className="min-h-full"
-              >
-                <Dashboard />
-              </motion.div>
-            } />
-            <Route path="/analytics" element={
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-                className="min-h-full"
-              >
-                <PnLChart />
-              </motion.div>
-            } />
-            <Route path="/settings" element={
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-                className="min-h-full"
-              >
-                <SettingsPanel />
-              </motion.div>
-            } />
-          </Routes>
+        <main id="main-content" className="relative z-content min-h-screen pt-8 pb-32 md:pb-28 overflow-y-auto safe-area-bottom" role="main">
+          <Suspense fallback={<AppLoading />}>
+            <Routes>
+              <Route path="/" element={<Navigate to="/trade" replace />} />
+              <Route path="/trade" element={
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="min-h-full"
+                >
+                  <TradePanel />
+                </motion.div>
+              } />
+              <Route path="/bot" element={
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="min-h-full"
+                >
+                  <SwingBotPanel />
+                </motion.div>
+              } />
+              <Route path="/tutorial" element={
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="min-h-full"
+                >
+                  <TutorialPanel />
+                </motion.div>
+              } />
+              <Route path="/dashboard" element={
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="min-h-full"
+                >
+                  <Dashboard />
+                </motion.div>
+              } />
+              <Route path="/analytics" element={
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="min-h-full"
+                >
+                  <PnLChart />
+                </motion.div>
+              } />
+              <Route path="/settings" element={
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="min-h-full"
+                >
+                  <SettingsPanel />
+                </motion.div>
+              } />
+            </Routes>
+          </Suspense>
         </main>
 
         {/* Navigation */}

@@ -2,6 +2,8 @@
  * Comprehensive input validation utilities for the trading application
  */
 
+import { ErrorHandler, ErrorType, ErrorSeverity } from './errorHandling';
+
 export interface ValidationResult {
   isValid: boolean;
   errors: string[];
@@ -15,7 +17,7 @@ export interface FieldValidationRule {
   pattern?: RegExp;
   min?: number;
   max?: number;
-  custom?: (value: any) => string | null;
+  custom?: (value: unknown) => string | null;
 }
 
 export class InputValidator {
@@ -30,7 +32,7 @@ export class InputValidator {
   /**
    * Validate a single field with given rules
    */
-  static validateField(value: any, rules: FieldValidationRule): ValidationResult {
+  static validateField(value: unknown, rules: FieldValidationRule): ValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
 
@@ -306,14 +308,68 @@ export class InputValidator {
   /**
    * Validate form data with multiple fields
    */
-  static validateForm(data: Record<string, any>, rules: Record<string, FieldValidationRule>): Record<string, ValidationResult> {
+  static validateForm(data: Record<string, unknown>, rules: Record<string, FieldValidationRule>): Record<string, ValidationResult> {
     const results: Record<string, ValidationResult> = {};
 
-    for (const [field, fieldRules] of Object.entries(rules)) {
-      results[field] = this.validateField(data[field], fieldRules);
+    try {
+      for (const [field, fieldRules] of Object.entries(rules)) {
+        results[field] = this.validateField(data[field], fieldRules);
+      }
+    } catch (error) {
+      // Log validation errors for debugging
+      ErrorHandler.handle(error, {
+        showNotification: false,
+        logToConsole: true,
+      });
+      
+      // Return error state for all fields
+      for (const field of Object.keys(rules)) {
+        results[field] = {
+          isValid: false,
+          errors: ['Validation system error'],
+          warnings: []
+        };
+      }
     }
 
     return results;
+  }
+
+  /**
+   * Validate with error handling and logging
+   */
+  static async validateWithErrorHandling<T>(
+    value: T,
+    validator: (val: T) => ValidationResult,
+    context?: string
+  ): Promise<ValidationResult> {
+    try {
+      const result = validator(value);
+      
+      // Log validation failures for debugging
+      if (!result.isValid) {
+        ErrorHandler.createError(
+          ErrorType.VALIDATION,
+          ErrorSeverity.LOW,
+          `Validation failed${context ? ` for ${context}` : ''}`,
+          result.errors.join(', '),
+          { value, context }
+        );
+      }
+      
+      return result;
+    } catch (error) {
+      await ErrorHandler.handle(error, {
+        showNotification: false,
+        logToConsole: true,
+      });
+      
+      return {
+        isValid: false,
+        errors: ['Validation system error'],
+        warnings: []
+      };
+    }
   }
 
   /**

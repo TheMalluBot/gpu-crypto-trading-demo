@@ -17,7 +17,7 @@ const Navigation: React.FC = () => {
   ];
 
   return (
-    <nav className="fixed bottom-4 md:bottom-6 left-1/2 transform -translate-x-1/2 z-navigation" role="navigation" aria-label="Main navigation">
+    <nav className="fixed bottom-6 md:bottom-8 left-1/2 transform -translate-x-1/2 z-navigation" role="navigation" aria-label="Main navigation">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -43,37 +43,16 @@ const Navigation: React.FC = () => {
                       navigate(route.path);
                     }
                   }}
-                  className="relative px-4 py-3 rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 touch-target shadow-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
-                  style={{
-                    backgroundColor: isActive ? `rgb(var(--color-primary-500))` : 'transparent',
-                    color: isActive ? `rgb(var(--color-text-inverse))` : `rgb(var(--color-text-secondary))`,
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.color = `rgb(var(--color-text-primary))`;
-                      e.currentTarget.style.backgroundColor = `rgba(var(--color-surface-100), 0.1)`;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.color = `rgb(var(--color-text-secondary))`;
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }
-                  }}
+                  className={`relative px-3 sm:px-4 py-3 rounded-full transition-all focus-enhanced touch-target shadow-lg min-h-[44px] flex items-center justify-center ${
+                    isActive
+                      ? 'btn-theme-primary'
+                      : 'hover:bg-theme-surface-hover text-theme-secondary hover:text-theme-primary'
+                  }`}
                 >
-                <div className="flex items-center space-x-2">
-                  <Icon className="w-4 h-4" />
-                  <span className="text-sm font-medium">{route.label}</span>
+                <div className="flex items-center space-x-1 sm:space-x-2">
+                  <Icon className="w-4 h-4 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm font-medium hidden xs:inline">{route.label}</span>
                 </div>
-                
-                {isActive && (
-                  <motion.div
-                    layoutId="activeTab"
-                    className="absolute inset-0 rounded-full -z-10"
-                    style={{ backgroundColor: `rgb(var(--color-primary-500))` }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                  />
-                )}
               </motion.button>
               </li>
             );
