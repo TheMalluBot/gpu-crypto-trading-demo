@@ -20,7 +20,7 @@ export const VirtualPortfolio: React.FC<VirtualPortfolioProps> = ({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.25 }}
-      className="glass-morphic p-6"
+      className="glass-morphic p-6 z-content"
     >
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-bold text-white">Virtual Portfolio</h3>

@@ -1,0 +1,6 @@
+# Phase 1 Security Guardian Setup - Ignore built assets from linting
+dist/
+portable_builds/
+node_modules/
+target/
+.tauri/

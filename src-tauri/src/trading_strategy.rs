@@ -8,6 +8,7 @@ use crate::models::{OrderBookDepth, MarketDepthAnalysis, LiquidityLevel, PriceDa
 use crate::logging::{LogLevel, LogCategory};
 use crate::{log_info, log_warning, log_error, log_debug};
 use crate::gpu_risk_manager::{GpuRiskManager, TradingRiskAssessment, MarketRegime};
+use crate::enhanced_lro::{EnhancedLRO, LROConfig as EnhancedLROConfig, LROSignal as EnhancedLROSignal, LROStatistics};
 
 /// Bot operational states - replaces simple boolean flags
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
@@ -417,6 +418,9 @@ pub struct SwingTradingBot {
     // Incremental LRO calculation state
     #[serde(skip)]
     lro_cache: LroCache,
+    // Enhanced LRO calculator with 2025 improvements
+    #[serde(skip)]
+    enhanced_lro: Option<EnhancedLRO>,
     // GPU-enhanced risk management
     #[serde(skip)]
     pub gpu_risk_manager: Option<std::sync::Arc<GpuRiskManager>>,
@@ -622,6 +626,9 @@ impl SwingTradingBot {
         let period = config.period;
         let max_position_hold_hours = config.max_position_hold_hours;
         let virtual_balance = config.virtual_balance;
+        let overbought = config.overbought;
+        let oversold = config.oversold;
+        let adaptive_enabled = config.adaptive_enabled;
         
         Self {
             config,
@@ -654,6 +661,17 @@ impl SwingTradingBot {
             depth_analysis_enabled: true,
             // Initialize LRO cache
             lro_cache: LroCache::new(period),
+            // Initialize enhanced LRO with 2025 improvements
+            enhanced_lro: Some(EnhancedLRO::new(EnhancedLROConfig {
+                base_period: period,
+                min_period: (period / 2).max(7),
+                max_period: (period * 2).min(50),
+                overbought_threshold: overbought,
+                oversold_threshold: oversold,
+                volatility_adjustment: adaptive_enabled,
+                multi_timeframe: true,
+                divergence_detection: true,
+            })),
             // GPU risk management (initialized later)
             gpu_risk_manager: None,
             last_risk_assessment: None,
@@ -1306,7 +1324,7 @@ impl SwingTradingBot {
         let order_book = self.order_book_history.back();
         
         // Calculate approximate position size for risk assessment
-        let estimated_position_size = self.account_balance * Decimal::from_str("0.02").unwrap_or_default();
+        let estimated_position_size = self.account_balance * Decimal::from_str("0.02").unwrap_or(Decimal::ZERO);
         
         // Note: In a real implementation, this would be an async task
         // For now, we'll simulate the GPU analysis result
@@ -1356,22 +1374,51 @@ impl SwingTradingBot {
             }
         }
         
+        // Store price for enhanced LRO before moving it
+        let price_for_enhanced_lro = price.clone();
+        
         self.price_history.push_back(price);
         if self.price_history.len() > 200 {
             self.price_history.pop_front();
         }
 
-        // Calculate LRO and generate signals using incremental calculation
+        // Calculate LRO using enhanced algorithm with 2025 improvements
         if self.price_history.len() >= self.config.period {
-            let lro_value = self.calculate_lro_incremental();
+            let (lro_value, enhanced_signal) = if let Some(ref mut enhanced_lro) = self.enhanced_lro {
+                // Use enhanced LRO with multi-timeframe analysis
+                if let Some(signal) = enhanced_lro.update(&price_for_enhanced_lro) {
+                    let deviation = match signal {
+                        EnhancedLROSignal::StrongBuy { deviation, .. } |
+                        EnhancedLROSignal::Buy { deviation, .. } |
+                        EnhancedLROSignal::Neutral { deviation } |
+                        EnhancedLROSignal::Sell { deviation, .. } |
+                        EnhancedLROSignal::StrongSell { deviation, .. } => deviation,
+                    };
+                    (deviation, Some(signal))
+                } else {
+                    (self.calculate_lro_incremental(), None)
+                }
+            } else {
+                // Fallback to legacy LRO calculation
+                (self.calculate_lro_incremental(), None)
+            };
+
             self.lro_history.push_back(lro_value);
             
             if self.lro_history.len() > 100 {
                 self.lro_history.pop_front();
             }
 
-            // Generate trading signal
-            if let Some((signal, signal_line_value)) = self.generate_signal_with_line(lro_value) {
+            // Generate trading signal (enhanced or fallback)
+            let trading_signal = if let Some(enhanced_signal) = enhanced_signal {
+                self.convert_enhanced_signal_to_legacy(enhanced_signal, lro_value)
+            } else if let Some((signal, signal_line_value)) = self.generate_signal_with_line(lro_value) {
+                Some((signal, signal_line_value))
+            } else {
+                None
+            };
+
+            if let Some((signal, signal_line_value)) = trading_signal {
                 // Store signal line in history for crossover detection
                 self.signal_line_history.push_back(signal_line_value);
                 if self.signal_line_history.len() > 200 {
@@ -2222,7 +2269,7 @@ impl SwingTradingBot {
         );
         let volatility_adjustment = Decimal::ONE - DecimalUtils::safe_from_f64_or_default(
             signal.market_condition.volatility * 0.5, 
-            Decimal::from_str("0.25").unwrap_or_default(), 
+            Decimal::from_str("0.25").unwrap_or(Decimal::ZERO), 
             "volatility adjustment"
         );
         
@@ -2360,7 +2407,10 @@ impl SwingTradingBot {
                 // Progressive emergency exits based on loss severity
                 if current_pnl < Decimal::ZERO {
                     // Emergency exit if losses exceed 10% (configurable emergency threshold)
-                    let emergency_threshold = Decimal::from_f64(0.1).unwrap_or(Decimal::from_f64(0.1).unwrap());
+                    let emergency_threshold = Decimal::from_f64(0.1).unwrap_or_else(|| {
+                        log_error!(LogCategory::Security, "Failed to create emergency threshold decimal, using hardcoded fallback");
+                        Decimal::new(1, 1) // 0.1 as hardcoded fallback
+                    });
                     if loss_percent > emergency_threshold {
                         eprintln!("EMERGENCY: Catastrophic loss detected: {}% - Triggering emergency exit", loss_percent * Decimal::from(100));
                         self.trigger_emergency_stop(&format!("Catastrophic loss: {}%", loss_percent * Decimal::from(100)));
@@ -2368,7 +2418,10 @@ impl SwingTradingBot {
                     }
                     
                     // Warning at 7% loss
-                    let warning_threshold = Decimal::from_f64(0.07).unwrap_or(Decimal::from_f64(0.07).unwrap());
+                    let warning_threshold = Decimal::from_f64(0.07).unwrap_or_else(|| {
+                        log_error!(LogCategory::Security, "Failed to create warning threshold decimal, using hardcoded fallback");
+                        Decimal::new(7, 2) // 0.07 as hardcoded fallback
+                    });
                     if loss_percent > warning_threshold {
                         eprintln!("WARNING: High loss detected: {}% - Monitoring closely", loss_percent * Decimal::from(100));
                     }
@@ -2409,7 +2462,10 @@ impl SwingTradingBot {
     fn check_trailing_stop(&mut self, position: &BotPosition, current_price: Decimal) {
         if let Some(latest_price) = self.price_history.back() {
             let trailing_percent = Decimal::from_f64(self.config.trailing_stop_percent / 100.0)
-                .unwrap_or(Decimal::from_f64(0.01).unwrap()); // Default 1%
+                .unwrap_or_else(|| {
+                    log_warning!(LogCategory::Configuration, "Failed to convert trailing stop percent to decimal, using 1% default");
+                    Decimal::new(1, 2) // 0.01 (1%) as hardcoded fallback
+                });
             
             match position.side {
                 crate::models::TradeSide::Long => {
@@ -2733,6 +2789,75 @@ impl SwingTradingBot {
             duration.num_minutes() > 5
         } else {
             true // No data is stale
+        }
+    }
+
+    /// Convert enhanced LRO signal to legacy format for compatibility
+    fn convert_enhanced_signal_to_legacy(&self, enhanced_signal: EnhancedLROSignal, lro_value: f64) -> Option<(LROSignal, f64)> {
+        let (signal_type, strength, confidence) = match enhanced_signal {
+            EnhancedLROSignal::StrongBuy { confidence, .. } => (SignalType::Buy, 1.0, confidence),
+            EnhancedLROSignal::Buy { confidence, .. } => (SignalType::Buy, 0.7, confidence),
+            EnhancedLROSignal::Neutral { .. } => (SignalType::Hold, 0.5, 0.5),
+            EnhancedLROSignal::Sell { confidence, .. } => (SignalType::Sell, 0.7, confidence),
+            EnhancedLROSignal::StrongSell { confidence, .. } => (SignalType::Sell, 1.0, confidence),
+        };
+
+        // Calculate signal line as weighted average of recent LRO values for compatibility
+        let signal_line_value = if self.lro_history.len() >= self.config.signal_period {
+            let recent_lro: Vec<f64> = self.lro_history.iter().rev().take(self.config.signal_period).copied().collect();
+            recent_lro.iter().sum::<f64>() / recent_lro.len() as f64
+        } else {
+            lro_value
+        };
+
+        let legacy_signal = LROSignal {
+            timestamp: Utc::now(),
+            lro_value,
+            signal_line: signal_line_value,
+            signal_type,
+            strength: strength * confidence, // Combine strength and confidence
+            market_condition: self.determine_market_condition(lro_value),
+        };
+
+        Some((legacy_signal, signal_line_value))
+    }
+
+    /// Get enhanced LRO statistics for analysis
+    pub fn get_enhanced_lro_statistics(&self) -> Option<LROStatistics> {
+        self.enhanced_lro.as_ref().map(|lro| lro.get_statistics())
+    }
+
+    /// Reset enhanced LRO calculator
+    pub fn reset_enhanced_lro(&mut self) {
+        if let Some(ref mut enhanced_lro) = self.enhanced_lro {
+            enhanced_lro.reset();
+            log_info!(LogCategory::Configuration, "Enhanced LRO calculator reset successfully");
+        }
+    }
+
+    /// Determine market condition based on LRO value
+    fn determine_market_condition(&self, lro_value: f64) -> MarketCondition {
+        let trend_strength = lro_value.max(-1.0).min(1.0); // Normalize to -1..1
+        let volatility = if let Some(last_atr) = self.enhanced_lro.as_ref() {
+            let stats = last_atr.get_statistics();
+            (stats.current_atr / 100.0).min(1.0) // Simple volatility estimate
+        } else {
+            lro_value.abs().min(1.0)
+        };
+        
+        let market_phase = if lro_value.abs() > self.config.overbought * 0.8 {
+            MarketPhase::Trending
+        } else if lro_value.abs() < 0.2 {
+            MarketPhase::Ranging
+        } else {
+            MarketPhase::Breakout
+        };
+
+        MarketCondition {
+            trend_strength,
+            volatility,
+            volume_profile: 0.5, // Default neutral volume
+            market_phase,
         }
     }
 }

@@ -10,11 +10,17 @@ mod validation_tests {
     #[test]
     fn test_validate_api_settings_valid() {
         let validator = InputValidator::new();
+        
+        // Phase 1 Security Guardian Fix: Use proper test fixtures instead of hardcoded credentials
+        // Generate valid test API key format without exposing real credentials
+        let test_api_key = "TEST_API_KEY_".to_string() + &"0".repeat(64); // 64-char test key
+        let test_api_secret = "TEST_API_SECRET_".to_string() + &"0".repeat(64); // 64-char test secret
+        
         let settings = AppSettings {
-            api_key: "abcdef1234567890abcdef1234567890".to_string(),
-            api_secret: "1234567890abcdef1234567890abcdef".to_string(),
-            base_url: "https://api.binance.com".to_string(),
-            testnet: false,
+            api_key: test_api_key,
+            api_secret: test_api_secret,
+            base_url: "https://testnet.binance.vision".to_string(), // Use testnet for tests
+            testnet: true, // Always use testnet for tests
         };
 
         assert!(validator.validate_api_settings(&settings).is_ok());
@@ -24,10 +30,10 @@ mod validation_tests {
     fn test_validate_api_settings_short_key() {
         let validator = InputValidator::new();
         let settings = AppSettings {
-            api_key: "short".to_string(),
-            api_secret: "1234567890abcdef1234567890abcdef".to_string(),
-            base_url: "https://api.binance.com".to_string(),
-            testnet: false,
+            api_key: "short".to_string(), // Intentionally short for testing validation
+            api_secret: "TEST_API_SECRET_".to_string() + &"0".repeat(64), // Use test secret
+            base_url: "https://testnet.binance.vision".to_string(), // Use testnet
+            testnet: true, // Always use testnet for tests
         };
 
         let result = validator.validate_api_settings(&settings);

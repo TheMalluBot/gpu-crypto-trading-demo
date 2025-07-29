@@ -2,117 +2,169 @@ use crate::TradingState;
 use crate::trading_strategy::{LROConfig, LROSignal, BotPerformance, BotPosition, BotState, PauseReason, PauseInfo};
 use crate::models::PriceData;
 use crate::models::{MarketDepthAnalysis, LiquidityLevel};
+use crate::enhanced_lro::LROStatistics;
+use crate::auth::Claims;
+use crate::atomic_operations::BotStateSnapshot;
 use tauri::State;
 use serde::{Serialize, Deserialize};
 use rust_decimal::prelude::ToPrimitive;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BotOperationResult {
+    pub success: bool,
+    pub message: String,
+    pub state: BotStateSnapshot,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+}
+
 // Swing Trading Bot Commands
 #[tauri::command]
-pub async fn start_swing_bot(trading_state: State<'_, TradingState>) -> Result<(), String> {
-    let _operation_lock = trading_state.bot_operation_lock.lock().await;
+pub async fn start_swing_bot(
+    auth_token: String,
+    trading_state: State<'_, TradingState>
+) -> Result<BotOperationResult, String> {
+    // Authenticate and authorize the operation
+    let claims = trading_state.auth_middleware
+        .validate_bot_operation(&auth_token, "start_bot")
+        .map_err(|e| format!("Authentication failed: {}", e))?;
     
+    // Use atomic state management to prevent race conditions
+    trading_state.atomic_state
+        .try_start()
+        .map_err(|e| format!("Failed to start bot: {}", e))?;
+    
+    // Start the actual bot with safety checks
     let mut bot = trading_state.swing_bot.write().await;
-    
-    if trading_state.is_processing_signal.load(std::sync::atomic::Ordering::Acquire) {
-        return Err("Cannot start bot: Signal processing already in progress".to_string());
+    match bot.start_bot() {
+        Ok(()) => {
+            // Update heartbeat and log operation
+            trading_state.atomic_state.update_heartbeat();
+            
+            Ok(BotOperationResult {
+                success: true,
+                message: format!("Bot started successfully by user: {}", claims.sub),
+                state: trading_state.atomic_state.get_state(),
+                timestamp: chrono::Utc::now(),
+            })
+        },
+        Err(e) => {
+            // If bot start fails, revert atomic state
+            let _ = trading_state.atomic_state.try_stop();
+            Err(format!("Bot start failed: {}", e))
+        }
     }
-    
-    // Use new start_bot method which includes all safety checks
-    bot.start_bot()?;
-    
-    trading_state.last_operation_timestamp.store(
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs(),
-        std::sync::atomic::Ordering::Release
-    );
-    
-    eprintln!("Bot started with safety checks passed and concurrency protection");
-    Ok(())
 }
 
 #[tauri::command]
-pub async fn stop_swing_bot(trading_state: State<'_, TradingState>) -> Result<(), String> {
-    let _operation_lock = trading_state.bot_operation_lock.lock().await;
+pub async fn stop_swing_bot(
+    auth_token: String,
+    trading_state: State<'_, TradingState>
+) -> Result<BotOperationResult, String> {
+    // Authenticate and authorize the operation
+    let claims = trading_state.auth_middleware
+        .validate_bot_operation(&auth_token, "stop_bot")
+        .map_err(|e| format!("Authentication failed: {}", e))?;
     
+    // Use atomic state management to prevent race conditions
+    trading_state.atomic_state
+        .try_stop()
+        .map_err(|e| format!("Failed to stop bot: {}", e))?;
+    
+    // Stop the actual bot
     let mut bot = trading_state.swing_bot.write().await;
     bot.stop_bot("User requested stop");
     
-    trading_state.is_processing_signal.store(false, std::sync::atomic::Ordering::Release);
+    // Update heartbeat
+    trading_state.atomic_state.update_heartbeat();
     
-    trading_state.last_operation_timestamp.store(
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs(),
-        std::sync::atomic::Ordering::Release
-    );
-    
-    eprintln!("Bot stopped with concurrency protection");
-    Ok(())
+    Ok(BotOperationResult {
+        success: true,
+        message: format!("Bot stopped successfully by user: {}", claims.sub),
+        state: trading_state.atomic_state.get_state(),
+        timestamp: chrono::Utc::now(),
+    })
 }
 
 #[tauri::command]
 pub async fn pause_swing_bot(
+    auth_token: String,
     reason: Option<String>, 
     trading_state: State<'_, TradingState>
-) -> Result<(), String> {
-    let _operation_lock = trading_state.bot_operation_lock.lock().await;
+) -> Result<BotOperationResult, String> {
+    // Authenticate and authorize the operation
+    let claims = trading_state.auth_middleware
+        .validate_bot_operation(&auth_token, "start_bot")
+        .map_err(|e| format!("Authentication failed: {}", e))?;
     
+    // Use atomic state management to prevent race conditions
+    trading_state.atomic_state
+        .try_pause()
+        .map_err(|e| format!("Failed to pause bot: {}", e))?;
+    
+    // Pause the actual bot
     let mut bot = trading_state.swing_bot.write().await;
+    let pause_reason = reason.unwrap_or_else(|| "User requested pause".to_string());
+    bot.pause_bot(PauseReason::Manual);
     
-    let pause_reason = if let Some(reason_text) = reason {
-        PauseReason::Manual
-    } else {
-        PauseReason::Manual
-    };
+    // Update heartbeat
+    trading_state.atomic_state.update_heartbeat();
     
-    bot.pause_bot(pause_reason);
-    
-    trading_state.last_operation_timestamp.store(
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs(),
-        std::sync::atomic::Ordering::Release
-    );
-    
-    eprintln!("Bot paused with concurrency protection");
-    Ok(())
+    Ok(BotOperationResult {
+        success: true,
+        message: format!("Bot paused by user: {} (Reason: {})", claims.sub, pause_reason),
+        state: trading_state.atomic_state.get_state(),
+        timestamp: chrono::Utc::now(),
+    })
 }
 
 #[tauri::command]
-pub async fn resume_swing_bot(trading_state: State<'_, TradingState>) -> Result<(), String> {
-    let _operation_lock = trading_state.bot_operation_lock.lock().await;
+pub async fn resume_swing_bot(
+    auth_token: String,
+    trading_state: State<'_, TradingState>
+) -> Result<BotOperationResult, String> {
+    // Authenticate and authorize the operation
+    let claims = trading_state.auth_middleware
+        .validate_bot_operation(&auth_token, "start_bot")
+        .map_err(|e| format!("Authentication failed: {}", e))?;
     
+    // Use atomic state management to prevent race conditions
+    trading_state.atomic_state
+        .try_resume()
+        .map_err(|e| format!("Failed to resume bot: {}", e))?;
+    
+    // Resume the actual bot
     let mut bot = trading_state.swing_bot.write().await;
     bot.resume_bot()?;
     
-    trading_state.last_operation_timestamp.store(
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs(),
-        std::sync::atomic::Ordering::Release
-    );
+    // Update heartbeat
+    trading_state.atomic_state.update_heartbeat();
     
-    eprintln!("Bot resumed with concurrency protection");
-    Ok(())
+    Ok(BotOperationResult {
+        success: true,
+        message: format!("Bot resumed by user: {}", claims.sub),
+        state: trading_state.atomic_state.get_state(),
+        timestamp: chrono::Utc::now(),
+    })
 }
 
 #[tauri::command]
 pub async fn update_bot_config(
+    auth_token: String,
     mut config: LROConfig,
     trading_state: State<'_, TradingState>
-) -> Result<(), String> {
-    let _operation_lock = trading_state.bot_operation_lock.lock().await;
+) -> Result<BotOperationResult, String> {
+    // Authenticate and authorize the operation
+    let claims = trading_state.auth_middleware
+        .validate_bot_operation(&auth_token, "configure_bot")
+        .map_err(|e| format!("Authentication failed: {}", e))?;
     
+    // Safety validation - force paper trading for security
     if !config.paper_trading_enabled {
         eprintln!("WARNING: Forcing paper trading mode for safety");
         config.paper_trading_enabled = true;
     }
     
+    // Validate configuration parameters
     if config.stop_loss_percent <= 0.0 || config.stop_loss_percent > 20.0 {
         return Err("Invalid stop loss percent: must be between 0.1% and 20%".to_string());
     }
@@ -129,24 +181,29 @@ pub async fn update_bot_config(
         return Err("Invalid virtual balance: must be positive".to_string());
     }
     
-    let mut bot = trading_state.swing_bot.write().await;
-    
-    if trading_state.is_processing_signal.load(std::sync::atomic::Ordering::Acquire) {
+    // Check if bot is in a safe state for configuration updates
+    let state_snapshot = trading_state.atomic_state.get_state();
+    if state_snapshot.is_processing_signal {
         return Err("Cannot update config: Bot is currently processing signals".to_string());
     }
     
+    if state_snapshot.is_emergency_stopped {
+        return Err("Cannot update config: Bot is in emergency stop mode".to_string());
+    }
+    
+    // Update bot configuration with proper locking
+    let mut bot = trading_state.swing_bot.write().await;
     bot.config = config;
     
-    trading_state.last_operation_timestamp.store(
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs(),
-        std::sync::atomic::Ordering::Release
-    );
+    // Update atomic state timestamp
+    trading_state.atomic_state.update_heartbeat();
     
-    eprintln!("Bot configuration updated with safety validation and concurrency protection");
-    Ok(())
+    Ok(BotOperationResult {
+        success: true,
+        message: format!("Bot configuration updated successfully by user: {} with safety validation", claims.sub),
+        state: trading_state.atomic_state.get_state(),
+        timestamp: chrono::Utc::now(),
+    })
 }
 
 #[tauri::command]
@@ -215,25 +272,67 @@ pub async fn feed_price_data(
 // Safety Commands
 #[tauri::command]
 pub async fn trigger_emergency_stop(
+    auth_token: String,
     reason: String,
     trading_state: State<'_, TradingState>
-) -> Result<(), String> {
+) -> Result<BotOperationResult, String> {
+    // Authenticate and authorize the emergency stop operation
+    let claims = trading_state.auth_middleware
+        .validate_bot_operation(&auth_token, "emergency_stop")
+        .map_err(|e| format!("Authentication failed: {}", e))?;
+    
+    // Trigger atomic emergency stop
+    trading_state.atomic_state
+        .trigger_emergency_stop()
+        .map_err(|e| format!("Failed to trigger emergency stop: {}", e))?;
+    
+    // Stop the actual bot
     let mut bot = trading_state.swing_bot.write().await;
     bot.trigger_emergency_stop(&reason);
-    Ok(())
+    
+    // Update heartbeat
+    trading_state.atomic_state.update_heartbeat();
+    
+    Ok(BotOperationResult {
+        success: true,
+        message: format!("Emergency stop triggered by user: {} (Reason: {})", claims.sub, reason),
+        state: trading_state.atomic_state.get_state(),
+        timestamp: chrono::Utc::now(),
+    })
 }
 
 #[tauri::command]
-pub async fn reset_emergency_stop(trading_state: State<'_, TradingState>) -> Result<(), String> {
+pub async fn reset_emergency_stop(
+    auth_token: String,
+    trading_state: State<'_, TradingState>
+) -> Result<BotOperationResult, String> {
+    // Authenticate and authorize the emergency stop reset operation
+    let claims = trading_state.auth_middleware
+        .validate_bot_operation(&auth_token, "emergency_stop")
+        .map_err(|e| format!("Authentication failed: {}", e))?;
+    
+    // Reset atomic emergency stop
+    trading_state.atomic_state
+        .reset_emergency_stop()
+        .map_err(|e| format!("Failed to reset emergency stop: {}", e))?;
+    
+    // Reset the actual bot emergency stop
     let mut bot = trading_state.swing_bot.write().await;
     match bot.reset_emergency_stop() {
         Ok(()) => {
-            eprintln!("Emergency stop reset successfully");
-            Ok(())
+            // Update heartbeat
+            trading_state.atomic_state.update_heartbeat();
+            
+            Ok(BotOperationResult {
+                success: true,
+                message: format!("Emergency stop reset successfully by user: {}", claims.sub),
+                state: trading_state.atomic_state.get_state(),
+                timestamp: chrono::Utc::now(),
+            })
         },
         Err(e) => {
             eprintln!("Failed to reset emergency stop: {}", e);
-            Err(e)
+            Err(format!("Failed to reset emergency stop: {}", e))
         }
     }
 }
@@ -525,4 +624,21 @@ pub struct MarketConditions {
     pub volume_profile: f64,
     pub price_momentum: f64,
     pub market_regime: String,
+}
+
+// Enhanced LRO Commands
+
+/// Get enhanced LRO statistics with 2025 improvements
+#[tauri::command]
+pub async fn get_enhanced_lro_statistics(trading_state: State<'_, TradingState>) -> Result<Option<LROStatistics>, String> {
+    let bot = trading_state.swing_bot.read().await;
+    Ok(bot.get_enhanced_lro_statistics())
+}
+
+/// Reset enhanced LRO calculator
+#[tauri::command]
+pub async fn reset_enhanced_lro(trading_state: State<'_, TradingState>) -> Result<(), String> {
+    let mut bot = trading_state.swing_bot.write().await;
+    bot.reset_enhanced_lro();
+    Ok(())
 }

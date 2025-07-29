@@ -75,49 +75,84 @@ impl SecureStorage {
         validator.validate_path(&storage_file)
             .map_err(|e| format!("Storage path validation failed: {}", e).into())
     }
-    }
 
     fn derive_key_from_system() -> Result<[u8; KEY_SIZE], Box<dyn std::error::Error + Send + Sync>> {
-        // In production, you would want to use a more secure key derivation method
-        // This could involve user passwords, system-specific identifiers, or hardware security modules
+        // SECURITY FIX: Use unique random salt per installation instead of predictable system identifiers
+        use pbkdf2::{pbkdf2_hmac};
+        use sha2::Sha256;
+        use rand::RngCore;
         
-        // For this example, we'll use a combination of system identifiers
-        // WARNING: This is a simplified approach and may not be suitable for all security requirements
+        // Generate or load unique installation salt
+        let salt = Self::get_or_create_installation_salt()?;
         
-        use std::collections::hash_map::DefaultHasher;
-        use std::hash::{Hash, Hasher};
+        // Use application-specific password material (in production: user password or HSM)
+        let password_material = "CryptoTrader_SecureApp_2025_Installation";
         
-        let mut hasher = DefaultHasher::new();
+        // PBKDF2 with 600,000 iterations (OWASP recommended minimum for 2024)
+        let iterations = 600_000u32;
         
-        // Use system identifiers to create a consistent but system-specific key
-        if let Ok(hostname) = std::env::var("COMPUTERNAME") {
-            hostname.hash(&mut hasher);
-        } else if let Ok(hostname) = std::env::var("HOSTNAME") {
-            hostname.hash(&mut hasher);
-        }
-        
-        if let Ok(user) = std::env::var("USERNAME") {
-            user.hash(&mut hasher);
-        } else if let Ok(user) = std::env::var("USER") {
-            user.hash(&mut hasher);
-        }
-        
-        // Add some additional entropy
-        "crypto_trader_v1".hash(&mut hasher);
-        
-        let hash = hasher.finish();
-        
-        // Expand the hash to a full 256-bit key using a simple method
-        // In production, use a proper KDF like PBKDF2, scrypt, or Argon2
         let mut key = [0u8; KEY_SIZE];
-        for i in 0..KEY_SIZE {
-            key[i] = ((hash >> (i % 8 * 8)) & 0xFF) as u8;
-            if i >= 8 {
-                key[i] ^= key[i - 8]; // Add some mixing
-            }
-        }
+        pbkdf2_hmac::<Sha256>(
+            password_material.as_bytes(),
+            &salt,
+            iterations,
+            &mut key
+        );
         
         Ok(key)
+    }
+
+    /// Generate or load a unique random salt for this installation
+    fn get_or_create_installation_salt() -> Result<[u8; 32], Box<dyn std::error::Error + Send + Sync>> {
+        use std::env;
+        
+        // Store salt in application data directory
+        let salt_dir = if cfg!(windows) {
+            env::var("APPDATA").unwrap_or_else(|_| ".".to_string())
+        } else {
+            env::var("HOME").map(|home| format!("{}/.config", home))
+                .unwrap_or_else(|_| ".".to_string())
+        };
+        
+        let salt_path = std::path::Path::new(&salt_dir)
+            .join("crypto_trader")
+            .join(".installation_salt");
+            
+        // Create directory if it doesn't exist
+        if let Some(parent) = salt_path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+
+        if salt_path.exists() {
+            // Load existing salt
+            let salt_bytes = std::fs::read(&salt_path)?;
+            if salt_bytes.len() != 32 {
+                return Err("Invalid salt file size - regenerating".into());
+            }
+            let mut salt = [0u8; 32];
+            salt.copy_from_slice(&salt_bytes);
+            Ok(salt)
+        } else {
+            // Generate new random salt
+            let mut salt = [0u8; 32];
+            rand::thread_rng().fill_bytes(&mut salt);
+            
+            // Store salt securely
+            std::fs::write(&salt_path, &salt)?;
+            
+            // Set restrictive permissions (Unix-like systems only)
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                if let Ok(metadata) = std::fs::metadata(&salt_path) {
+                    let mut perms = metadata.permissions();
+                    perms.set_mode(0o600); // Read/write for owner only
+                    let _ = std::fs::set_permissions(&salt_path, perms);
+                }
+            }
+            
+            Ok(salt)
+        }
     }
 
     pub fn store_encrypted<T: Serialize>(&self, data: &T) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {

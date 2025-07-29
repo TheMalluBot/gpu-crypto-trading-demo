@@ -214,3 +214,37 @@ impl EnhancedRiskManager {
 
         Ok(assessment)
     }
+
+    // Add missing helper methods (stubs for now)
+    async fn calculate_correlation_exposure(&self, _symbol: &str) -> f64 {
+        0.0 // TODO: Implement correlation calculation
+    }
+
+    async fn calculate_volatility(&self, _symbol: &str) -> f64 {
+        0.0 // TODO: Implement volatility calculation
+    }
+
+    fn calculate_risk_reward_ratio(&self, _order: &OrderRequest, _price: Decimal) -> Option<f64> {
+        None // TODO: Implement risk-reward calculation
+    }
+
+    fn calculate_risk_score(&self, _assessment: &RiskAssessment) -> f64 {
+        0.0 // TODO: Implement risk score calculation
+    }
+}
+
+/// Risk assessment result
+#[derive(Debug, Clone, Default)]
+pub struct RiskAssessment {
+    pub risk_level: RiskLevel,
+    pub risk_score: f64,
+    pub violations: Vec<String>,
+    pub warnings: Vec<String>,
+    pub risk_reward_ratio: Option<f64>,
+}
+
+impl Default for RiskLevel {
+    fn default() -> Self {
+        RiskLevel::Low
+    }
+}

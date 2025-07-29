@@ -41,6 +41,19 @@ regex = "1.10"
 async-trait = "0.1"
 thiserror = "1.0"
 anyhow = "1.0"
+# Phase 1 Security Guardian - Added proper KDF for secure key derivation
+pbkdf2 = "0.12"
+# Phase 1 Security Guardian - Secure string implementation
+zeroize = { version = "1.7", features = ["derive"] }
+subtle = "2.5"
+# Authentication and JWT support
+jsonwebtoken = "9.2"
+
+[dev-dependencies]
+# Phase 1 Test Engineer - Testing framework dependencies
+tokio-test = "0.4"
+mockall = "0.12"
+wiremock = "0.6"
 
 [features]
 # by default Tauri runs in production mode

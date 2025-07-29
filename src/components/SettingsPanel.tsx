@@ -269,7 +269,7 @@ const SettingsPanel: React.FC = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-morphic p-6"
+        className="glass-morphic p-6 z-content"
       >
         <div className="flex items-center space-x-3 mb-6">
           <Settings 
@@ -639,7 +639,7 @@ const SettingsPanel: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass-morphic p-6"
+          className="glass-morphic p-6 z-content"
         >
           <h3 className="text-xl font-bold mb-4 text-theme-primary">
             Account Information
@@ -693,7 +693,7 @@ const SettingsPanel: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="glass-morphic p-6"
+        className="glass-morphic p-6 z-content"
       >
         <div className="flex items-center space-x-3 mb-4">
           <Monitor 

@@ -1,16 +1,21 @@
-# Cargo configuration for Windows build compatibility
+# Cargo configuration for cross-platform compatibility
 [build]
-# Force MSVC target to avoid GNU toolchain issues
-target = "x86_64-pc-windows-msvc"
+# Use native target (auto-detect)
+# target = "x86_64-unknown-linux-gnu"  # Uncomment for Linux development
 
+# Windows-specific configuration (only used when building for Windows)
 [target.x86_64-pc-windows-msvc]
-# Static linking to avoid runtime dependencies
 rustflags = ["-C", "target-feature=+crt-static"]
 
-[env]
-# Force use of MSVC tools
-CC = "cl.exe"
-CXX = "cl.exe"
-AR = "lib.exe"
-# Ensure we use the MSVC linker, not Git's link.exe
-CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER = "link.exe"
+# Linux-specific configuration
+[target.x86_64-unknown-linux-gnu]
+rustflags = []
+
+# Platform-specific environment overrides
+# Uncomment the appropriate section based on your development platform
+
+# [env]  # Uncomment for Windows development
+# CC = "cl.exe"
+# CXX = "cl.exe"
+# AR = "lib.exe"
+# CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER = "link.exe"

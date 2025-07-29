@@ -23,6 +23,7 @@ export const SignalChart: React.FC<SignalChartProps> = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
       className="glass-morphic p-6"
+      style={{ position: 'relative', zIndex: 400 }}
     >
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-bold text-white">Linear Regression Oscillator</h3>

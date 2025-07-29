@@ -1,0 +1,523 @@
+/* Phase 2 Week 4 UI/UX Designer - Enhanced Component Styles */
+/* WCAG 2.1 AA Compliant & Mobile-Responsive */
+
+/* Enhanced Trade Panel */
+.enhanced-trade-panel {
+  background: var(--color-background-primary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
+  box-shadow: var(--shadow-md);
+  max-width: 400px;
+  width: 100%;
+  
+  /* Smooth transitions for interactive elements */
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+.enhanced-trade-panel:focus-within {
+  box-shadow: var(--shadow-lg), var(--focus-ring);
+}
+
+/* Paper Trading Banner */
+.paper-trading-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  background: var(--color-paper-trading-bg);
+  border: 1px solid var(--color-paper-trading-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-3) var(--spacing-4);
+  margin-bottom: var(--spacing-6);
+}
+
+.warning-icon {
+  color: var(--color-paper-trading);
+  flex-shrink: 0;
+}
+
+.warning-title {
+  display: block;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-paper-trading);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-tight);
+}
+
+.warning-subtitle {
+  display: block;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+}
+
+/* Market Header */
+.market-header {
+  margin-bottom: var(--spacing-6);
+  padding-bottom: var(--spacing-4);
+  border-bottom: 1px solid var(--color-border-primary);
+}
+
+.symbol-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-4);
+}
+
+.symbol-name {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.price-display {
+  text-align: right;
+}
+
+.current-price {
+  display: block;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-mono);
+}
+
+.price-change {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.price-change.positive {
+  color: var(--color-text-success);
+}
+
+.price-change.negative {
+  color: var(--color-text-danger);
+}
+
+.market-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-4);
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-label {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--spacing-1);
+}
+
+.stat-value {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-mono);
+}
+
+/* Order Form */
+.order-form {
+  width: 100%;
+}
+
+.form-fieldset {
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Side Selector */
+.side-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-6);
+  background: var(--color-background-secondary);
+  padding: var(--spacing-1);
+  border-radius: var(--radius-md);
+}
+
+.side-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-4);
+  border: none;
+  border-radius: var(--radius-base);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
+  transition: all var(--duration-fast) var(--ease-out);
+  cursor: pointer;
+  
+  /* Minimum touch target size */
+  min-height: 44px;
+}
+
+.side-button:focus {
+  outline: 2px solid var(--color-interactive-primary-focus);
+  outline-offset: 2px;
+}
+
+.buy-button {
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+.buy-button.active {
+  background: var(--color-buy);
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+.buy-button:hover:not(.active) {
+  background: var(--color-buy-light);
+  color: var(--color-buy);
+}
+
+.sell-button {
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+.sell-button.active {
+  background: var(--color-sell);
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+.sell-button:hover:not(.active) {
+  background: var(--color-sell-light);
+  color: var(--color-sell);
+}
+
+/* Form Groups */
+.form-group {
+  margin-bottom: var(--spacing-5);
+}
+
+.form-label {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-2);
+}
+
+.required-indicator {
+  color: var(--color-text-danger);
+  margin-left: var(--spacing-1);
+}
+
+/* Form Inputs */
+.form-input,
+.form-select {
+  width: 100%;
+  padding: var(--spacing-3) var(--spacing-4);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  transition: all var(--duration-fast) var(--ease-out);
+  
+  /* Minimum touch target size */
+  min-height: 44px;
+}
+
+.form-input:focus,
+.form-select:focus {
+  outline: none;
+  border-color: var(--color-interactive-primary);
+  box-shadow: var(--focus-ring);
+}
+
+.form-input:invalid {
+  border-color: var(--color-border-danger);
+}
+
+.form-input::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+/* Input Groups */
+.input-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-group .form-input {
+  padding-right: calc(var(--spacing-4) + 3ch);
+}
+
+.input-suffix {
+  position: absolute;
+  right: var(--spacing-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-medium);
+  pointer-events: none;
+}
+
+/* Form Help Text */
+.form-help {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  margin-top: var(--spacing-2);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  line-height: var(--line-height-normal);
+}
+
+/* Order Summary */
+.order-summary {
+  background: var(--color-background-secondary);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-4);
+  margin-bottom: var(--spacing-6);
+}
+
+.summary-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--spacing-3) 0;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-2) 0;
+  font-size: var(--font-size-sm);
+}
+
+.summary-row:not(:last-child) {
+  border-bottom: 1px solid var(--color-border-primary);
+}
+
+.total-row {
+  font-weight: var(--font-weight-semibold);
+  padding-top: var(--spacing-3);
+  margin-top: var(--spacing-2);
+  border-top: 2px solid var(--color-border-primary);
+}
+
+.total-amount {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  font-family: var(--font-family-mono);
+  color: var(--color-text-primary);
+}
+
+/* Submit Button */
+.submit-button {
+  width: 100%;
+  padding: var(--spacing-4) var(--spacing-6);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+  
+  /* Minimum touch target size */
+  min-height: 48px;
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+}
+
+.buy-submit {
+  background: var(--color-buy);
+  color: white;
+}
+
+.buy-submit:hover:not(:disabled) {
+  background: var(--color-buy-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.sell-submit {
+  background: var(--color-sell);
+  color: white;
+}
+
+.sell-submit:hover:not(:disabled) {
+  background: var(--color-sell-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.submit-button:focus {
+  outline: 2px solid var(--color-interactive-primary-focus);
+  outline-offset: 2px;
+}
+
+.submit-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Success Message */
+.success-message {
+  position: fixed;
+  top: var(--spacing-4);
+  right: var(--spacing-4);
+  z-index: var(--z-modal);
+  animation: slideIn var(--duration-normal) var(--ease-out);
+}
+
+.success-content {
+  background: var(--color-success-600);
+  color: white;
+  padding: var(--spacing-4) var(--spacing-6);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  font-weight: var(--font-weight-medium);
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Screen Reader Only Content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Mobile Responsive Design */
+@media (max-width: 640px) {
+  .enhanced-trade-panel {
+    padding: var(--spacing-4);
+    margin: var(--spacing-2);
+    max-width: calc(100vw - var(--spacing-4));
+  }
+  
+  .symbol-info {
+    flex-direction: column;
+    gap: var(--spacing-2);
+  }
+  
+  .price-display {
+    text-align: left;
+  }
+  
+  .market-stats {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-2);
+  }
+  
+  .side-selector {
+    gap: var(--spacing-1);
+  }
+  
+  .side-button {
+    padding: var(--spacing-2) var(--spacing-3);
+    font-size: var(--font-size-xs);
+  }
+  
+  .form-input,
+  .form-select {
+    padding: var(--spacing-3);
+    font-size: var(--font-size-base);
+  }
+}
+
+/* Tablet Responsive Design */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .enhanced-trade-panel {
+    max-width: 350px;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .enhanced-trade-panel {
+    border-width: 2px;
+  }
+  
+  .form-input:focus,
+  .form-select:focus {
+    border-width: 3px;
+  }
+  
+  .submit-button {
+    border: 2px solid transparent;
+  }
+  
+  .submit-button:focus {
+    border-color: var(--color-interactive-primary-focus);
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .enhanced-trade-panel,
+  .side-button,
+  .form-input,
+  .form-select,
+  .submit-button {
+    transition: none;
+  }
+  
+  .loading-spinner {
+    animation: none;
+  }
+  
+  .success-message {
+    animation: none;
+  }
+  
+  .submit-button:hover:not(:disabled) {
+    transform: none;
+  }
+}

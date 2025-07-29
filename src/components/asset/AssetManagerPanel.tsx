@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { Target, TrendingUp, Shield, AlertTriangle, CheckCircle, DollarSign } from 'lucide-react';
@@ -62,16 +63,19 @@ export const AssetManagerPanel: React.FC<AssetManagerPanelProps> = ({
 
   if (!isVisible) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  const modalContent = (
+    <div 
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+      style={{ zIndex: 1000 }}
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
-        className="w-full max-w-7xl h-full max-h-[90vh] bg-gradient-to-br from-gray-900 to-black rounded-2xl border border-white/20 overflow-hidden"
+        className="w-full max-w-xs sm:max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-6xl 2xl:max-w-7xl h-full max-h-[90vh] bg-gradient-to-br from-gray-900 to-black rounded-2xl border border-white/20 overflow-hidden"
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/20">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/20">
           <div className="flex items-center space-x-3">
             <Target className="w-6 h-6 text-blue-400" />
             <h2 className="text-2xl font-bold text-white">Asset Management System</h2>
@@ -103,7 +107,7 @@ export const AssetManagerPanel: React.FC<AssetManagerPanelProps> = ({
             <button
               key={id}
               onClick={() => setActiveTab(id as any)}
-              className={`flex items-center space-x-2 px-6 py-4 transition-colors ${
+              className={`flex items-center space-x-2 px-4 sm:px-6 py-3 sm:py-4 transition-colors ${
                 activeTab === id
                   ? 'bg-blue-500/20 text-blue-400 border-b-2 border-blue-400'
                   : 'text-white/60 hover:text-white hover:bg-white/5'
@@ -116,12 +120,12 @@ export const AssetManagerPanel: React.FC<AssetManagerPanelProps> = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           {/* Overview Tab */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
               {/* Portfolio Health Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
                   { label: 'Overall Health', value: state.portfolio_health.overall_score, icon: Target },
                   { label: 'Allocation Health', value: state.portfolio_health.allocation_health, icon: TrendingUp },
@@ -147,7 +151,7 @@ export const AssetManagerPanel: React.FC<AssetManagerPanelProps> = ({
               </div>
 
               {/* Capital Allocation Overview */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
                 <div className="glass-card p-6">
                   <h3 className="text-xl font-bold text-white mb-4">Capital Allocation</h3>
                   <div className="space-y-4">
@@ -193,8 +197,8 @@ export const AssetManagerPanel: React.FC<AssetManagerPanelProps> = ({
 
           {/* Allocations Tab */}
           {activeTab === 'allocations' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-4 lg:space-y-6">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
                 {/* Asset Class Allocation Chart */}
                 <div className="glass-card p-6">
                   <h3 className="text-xl font-bold text-white mb-4">Asset Class Allocation</h3>
@@ -291,7 +295,7 @@ export const AssetManagerPanel: React.FC<AssetManagerPanelProps> = ({
               {/* Profit Zones Configuration */}
               <div className="glass-card p-6">
                 <h3 className="text-xl font-bold text-white mb-4">Profit Zones</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {state.config.profit_zones.map((zone, index) => (
                     <div key={index} className="p-4 bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
@@ -342,7 +346,7 @@ export const AssetManagerPanel: React.FC<AssetManagerPanelProps> = ({
               {/* Rebalancing Status */}
               <div className="glass-card p-6">
                 <h3 className="text-xl font-bold text-white mb-4">Rebalancing Status</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-white">
                       {state.allocation_status.rebalancing_needed ? 'NEEDED' : 'NOT NEEDED'}
@@ -410,4 +414,6 @@ export const AssetManagerPanel: React.FC<AssetManagerPanelProps> = ({
       </motion.div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };

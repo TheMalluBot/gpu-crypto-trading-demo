@@ -20,6 +20,12 @@ pub enum TradingError {
     Validation(ValidationError),
     /// Internal system errors
     Internal(InternalError),
+    /// WebSocket connection and data streaming errors
+    WebSocket(WebSocketError),
+    /// Enhanced LRO calculation errors
+    EnhancedLRO(EnhancedLROError),
+    /// Performance cache errors
+    Cache(CacheError),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -52,13 +58,19 @@ pub struct AuthError {
     pub message: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum AuthErrorType {
     InvalidApiKey,
     InvalidSignature,
     TimestampOutOfSync,
     InsufficientPermissions,
     CredentialsNotFound,
+    TokenGenerationFailed,
+    TokenExpired,
+    InvalidToken,
+    TokenValidationFailed,
+    PermissionDenied,
+    SessionInvalid,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -85,6 +97,8 @@ pub enum TradingLogicErrorType {
     PriceOutOfRange,
     RiskLimitExceeded,
     EmergencyStopActive,
+    OrderNotFound,
+    InvalidConfiguration,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -115,6 +129,55 @@ pub struct InternalError {
     pub source: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WebSocketError {
+    pub error_type: WebSocketErrorType,
+    pub message: String,
+    pub symbol: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum WebSocketErrorType {
+    ConnectionFailed,
+    MessageParsing,
+    SubscriptionFailed,
+    Reconnection,
+    AuthenticationFailed,
+    Disconnected,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EnhancedLROError {
+    pub error_type: EnhancedLROErrorType,
+    pub message: String,
+    pub period: Option<usize>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum EnhancedLROErrorType {
+    InsufficientData,
+    CalculationFailed,
+    InvalidPeriod,
+    ConfigurationError,
+    MultiTimeframeError,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CacheError {
+    pub error_type: CacheErrorType,
+    pub message: String,
+    pub cache_key: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum CacheErrorType {
+    KeyNotFound,
+    Expired,
+    Serialization,
+    MemoryFull,
+    ConcurrencyError,
+}
+
 impl fmt::Display for TradingError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -126,6 +189,9 @@ impl fmt::Display for TradingError {
             TradingError::Gpu(err) => write!(f, "GPU Error: {} (type: {:?})", err.message, err.error_type),
             TradingError::Validation(err) => write!(f, "Validation Error in '{}': {}", err.field, err.message),
             TradingError::Internal(err) => write!(f, "Internal Error: {}", err.message),
+            TradingError::WebSocket(err) => write!(f, "WebSocket Error: {} (type: {:?})", err.message, err.error_type),
+            TradingError::EnhancedLRO(err) => write!(f, "Enhanced LRO Error: {} (type: {:?})", err.message, err.error_type),
+            TradingError::Cache(err) => write!(f, "Cache Error: {} (type: {:?})", err.message, err.error_type),
         }
     }
 }
@@ -200,6 +266,11 @@ impl TradingError {
         })
     }
 
+    /// Alias for trading_error for backward compatibility
+    pub fn trading_logic_error(error_type: TradingLogicErrorType, message: String, symbol: Option<String>) -> Self {
+        Self::trading_error(error_type, message, symbol)
+    }
+
     /// Create a GPU error
     pub fn gpu_error(error_type: GpuErrorType, message: String) -> Self {
         TradingError::Gpu(GpuError {
@@ -216,11 +287,40 @@ impl TradingError {
         })
     }
 
+    /// Create a WebSocket error
+    pub fn websocket_error(error_type: WebSocketErrorType, message: String, symbol: Option<String>) -> Self {
+        TradingError::WebSocket(WebSocketError {
+            error_type,
+            message,
+            symbol,
+        })
+    }
+
+    /// Create an Enhanced LRO error
+    pub fn enhanced_lro_error(error_type: EnhancedLROErrorType, message: String, period: Option<usize>) -> Self {
+        TradingError::EnhancedLRO(EnhancedLROError {
+            error_type,
+            message,
+            period,
+        })
+    }
+
+    /// Create a cache error
+    pub fn cache_error(error_type: CacheErrorType, message: String, cache_key: Option<String>) -> Self {
+        TradingError::Cache(CacheError {
+            error_type,
+            message,
+            cache_key,
+        })
+    }
+
     /// Check if this error is retryable
     pub fn is_retryable(&self) -> bool {
         match self {
             TradingError::Network(err) => matches!(err.error_type, NetworkErrorType::Timeout | NetworkErrorType::ConnectionFailed),
             TradingError::Api(err) => err.code == 429 || err.code == -1021, // Rate limit or timestamp sync
+            TradingError::WebSocket(err) => matches!(err.error_type, WebSocketErrorType::ConnectionFailed | WebSocketErrorType::Disconnected),
+            TradingError::Cache(err) => matches!(err.error_type, CacheErrorType::ConcurrencyError),
             _ => false,
         }
     }

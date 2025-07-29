@@ -111,7 +111,7 @@ export const AutomatedAssetManagerStatus: React.FC<AutomatedAssetManagerStatusPr
           >
             {/* Configuration Status */}
             <div className="p-4 space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div className="flex items-center space-x-2">
                   <TrendingUp className={`w-4 h-4 ${assetManager.config.auto_profit_taking ? 'text-green-400' : 'text-gray-400'}`} />
                   <span className="text-sm text-white/80">Profit Taking</span>
@@ -153,7 +153,7 @@ export const AutomatedAssetManagerStatus: React.FC<AutomatedAssetManagerStatusPr
               {assetManager.pendingActions.length > 0 && (
                 <div>
                   <h4 className="text-sm font-medium text-white mb-2">Pending Actions</h4>
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                  <div className="space-y-2 max-h-24 sm:max-h-32 lg:max-h-40 overflow-y-auto">
                     {assetManager.pendingActions.slice(0, 5).map((action: any, index: number) => (
                       <div key={index} className="flex items-center justify-between p-2 bg-white/5 rounded">
                         <div className="flex items-center space-x-2">
@@ -182,7 +182,7 @@ export const AutomatedAssetManagerStatus: React.FC<AutomatedAssetManagerStatusPr
               {recentActions.length > 0 && (
                 <div>
                   <h4 className="text-sm font-medium text-white mb-2">Recent Actions</h4>
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                  <div className="space-y-2 max-h-24 sm:max-h-32 lg:max-h-40 overflow-y-auto">
                     {recentActions.map((action: any, index: number) => (
                       <div key={index} className="flex items-center justify-between p-2 bg-white/5 rounded">
                         <div className="flex items-center space-x-2">

@@ -6,9 +6,8 @@ use crate::config::GpuConfig;
 use crate::errors::{TradingError, TradingResult, GpuErrorType};
 
 /// GPU memory allocation tracking
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct MemoryAllocation {
-    pub buffer: wgpu::Buffer,
     pub size: u64,
     pub usage: wgpu::BufferUsages,
     pub label: String,
@@ -85,7 +84,6 @@ impl GpuMemoryManager {
 
         // Track allocation
         let allocation = MemoryAllocation {
-            buffer: buffer.clone(),
             size,
             usage,
             label: label.to_string(),
@@ -103,17 +101,9 @@ impl GpuMemoryManager {
     }
 
     /// Try to reuse a buffer from the pool
-    async fn try_reuse_buffer(&self, size: u64, usage: wgpu::BufferUsages) -> Option<wgpu::Buffer> {
-        let mut pool = self.buffer_pool.write().await;
-
-        // Find a suitable buffer in the pool
-        if let Some(index) = pool.iter().position(|alloc| {
-            alloc.size >= size && alloc.usage.contains(usage)
-        }) {
-            let allocation = pool.remove(index);
-            return Some(allocation.buffer);
-        }
-
+    async fn try_reuse_buffer(&self, _size: u64, _usage: wgpu::BufferUsages) -> Option<wgpu::Buffer> {
+        // Buffer reuse disabled since wgpu::Buffer doesn't implement Clone
+        // TODO: Implement proper buffer pool with reference counting
         None
     }
 

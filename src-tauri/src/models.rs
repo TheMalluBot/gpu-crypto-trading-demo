@@ -68,6 +68,12 @@ pub struct MarketStats {
     pub price: Decimal,
     pub price_change: Decimal,
     pub price_change_percent: Decimal,
+    pub weighted_avg_price: Decimal,
+    pub prev_close_price: Decimal,
+    pub last_price: Decimal,
+    pub last_qty: Decimal,
+    pub bid_price: Decimal,
+    pub ask_price: Decimal,
     pub high: Decimal,
     pub low: Decimal,
     pub volume: Decimal,
@@ -105,10 +111,12 @@ pub struct Trade {
     pub pnl: Option<Decimal>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum TradeSide {
     Long,
     Short,
+    Buy,
+    Sell,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -139,6 +147,7 @@ pub struct OrderRequest {
 pub struct AccountInfo {
     pub balances: Vec<Balance>,
     pub can_trade: bool,
+    pub total_wallet_balance: Decimal,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

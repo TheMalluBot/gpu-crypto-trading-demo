@@ -41,9 +41,6 @@ impl PooledClient {
             .pool_idle_timeout(Duration::from_secs(config.connection_idle_timeout_secs))
             .pool_max_idle_per_host(config.max_connections as usize)
             .user_agent("CryptoTrader/1.0")
-            .gzip(config.enable_compression)
-            .brotli(config.enable_compression)
-            .deflate(config.enable_compression)
             .build()
             .map_err(|e| TradingError::internal_error(format!("Failed to create HTTP client: {}", e)))?;
 
@@ -101,8 +98,9 @@ impl ConnectionPoolManager {
         // Try to find an available healthy client
         if let Some(pooled_client) = clients.iter_mut().find(|c| c.is_healthy) {
             stats.pool_hits += 1;
+            let client = pooled_client.use_client().clone();
             stats.active_connections = clients.len();
-            return Ok(pooled_client.use_client().clone());
+            return Ok(client);
         }
 
         // Create new client if pool is not full

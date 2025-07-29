@@ -252,7 +252,7 @@ const TradePanel: React.FC = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-morphic responsive-padding relative"
+        className="glass-morphic responsive-padding relative z-content"
       >
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 flex-grow">
@@ -299,7 +299,7 @@ const TradePanel: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="glass-morphic responsive-padding relative"
+          className="glass-morphic responsive-padding relative z-content"
         >
           <h3 className="text-hierarchy-secondary mb-4">Place Order</h3>
           
@@ -487,7 +487,7 @@ const TradePanel: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="glass-morphic responsive-padding relative"
+          className="glass-morphic responsive-padding relative z-content"
         >
           <h3 className="text-hierarchy-secondary mb-4">Portfolio</h3>
           

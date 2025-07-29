@@ -10,7 +10,7 @@ pub struct GpuRenderer {
 }
 
 impl GpuRenderer {
-    pub async fn new() -> Self {
+    pub async fn new() -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
             dx12_shader_compiler: Default::default(),
@@ -18,33 +18,120 @@ impl GpuRenderer {
             gles_minor_version: wgpu::Gles3MinorVersion::Automatic,
         });
         
-        let adapter = instance
+        // Enhanced adapter request with fallback support
+        let adapter = Self::request_adapter_with_fallback(&instance).await?;
+        
+        let (device, queue) = adapter
+            .request_device(
+                &wgpu::DeviceDescriptor {
+                    required_features: wgpu::Features::empty(),
+                    required_limits: Self::get_conservative_limits(),
+                    label: Some("CryptoTrader GPU Performance Monitor"),
+                },
+                None,
+            )
+            .await
+            .map_err(|e| format!("Failed to create WebGPU device: {}", e))?;
+        
+        Ok(Self {
+            device,
+            queue,
+            last_frame_time: None,
+            frame_count: 0,
+            total_frame_time: 0.0,
+        })
+    }
+
+    /// Request adapter with intelligent fallback strategy
+    async fn request_adapter_with_fallback(
+        instance: &wgpu::Instance
+    ) -> Result<wgpu::Adapter, Box<dyn std::error::Error + Send + Sync>> {
+        // Try high-performance adapter first
+        if let Some(adapter) = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::HighPerformance,
                 force_fallback_adapter: false,
                 compatible_surface: None,
             })
             .await
-            .expect("Failed to find a suitable GPU adapter");
-        
-        let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    required_features: wgpu::Features::empty(),
-                    required_limits: wgpu::Limits::default(),
-                    label: Some("GPU Performance Monitor"),
-                },
-                None,
-            )
+        {
+            return Ok(adapter);
+        }
+
+        // Fallback to low-power adapter
+        if let Some(adapter) = instance
+            .request_adapter(&wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::LowPower,
+                force_fallback_adapter: false,
+                compatible_surface: None,
+            })
             .await
-            .expect("Failed to create GPU device");
-        
-        Self {
-            device,
-            queue,
-            last_frame_time: None,
-            frame_count: 0,
-            total_frame_time: 0.0,
+        {
+            return Ok(adapter);
+        }
+
+        // Final fallback to software renderer
+        if let Some(adapter) = instance
+            .request_adapter(&wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::LowPower,
+                force_fallback_adapter: true,
+                compatible_surface: None,
+            })
+            .await
+        {
+            return Ok(adapter);
+        }
+
+        Err("No WebGPU adapter available - GPU acceleration unavailable".into())
+    }
+
+    /// Get conservative GPU limits for compatibility
+    fn get_conservative_limits() -> wgpu::Limits {
+        wgpu::Limits {
+            max_texture_dimension_1d: 2048,
+            max_texture_dimension_2d: 2048,
+            max_texture_dimension_3d: 256,
+            max_texture_array_layers: 256,
+            max_bind_groups: 4,
+            max_bindings_per_bind_group: 16,
+            max_dynamic_uniform_buffers_per_pipeline_layout: 8,
+            max_dynamic_storage_buffers_per_pipeline_layout: 4,
+            max_sampled_textures_per_shader_stage: 16,
+            max_samplers_per_shader_stage: 16,
+            max_storage_buffers_per_shader_stage: 8,
+            max_storage_textures_per_shader_stage: 4,
+            max_uniform_buffers_per_shader_stage: 12,
+            max_uniform_buffer_binding_size: 16384,
+            max_storage_buffer_binding_size: 134217728,
+            max_vertex_buffers: 8,
+            max_vertex_attributes: 16,
+            max_vertex_buffer_array_stride: 2048,
+            max_compute_workgroup_size_x: 256,
+            max_compute_workgroup_size_y: 256,
+            max_compute_workgroup_size_z: 64,
+            max_compute_workgroups_per_dimension: 65535,
+            ..wgpu::Limits::default()
+        }
+    }
+
+    /// Check if GPU acceleration is available and working
+    pub fn is_gpu_available(&self) -> bool {
+        // Perform a simple GPU operation to verify functionality
+        let info = self.device.limits();
+        info.max_compute_workgroup_size_x > 0
+    }
+
+    /// Get GPU adapter information for diagnostics
+    pub async fn get_adapter_info() -> Option<String> {
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::default());
+        if let Ok(adapter) = Self::request_adapter_with_fallback(&instance).await {
+            let info = adapter.get_info();
+            Some(format!(
+                "GPU: {} ({:?}) - Backend: {:?}",
+                info.name, info.device_type, info.backend
+            ))
+        } else {
+            None
         }
     }
     

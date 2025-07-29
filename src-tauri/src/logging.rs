@@ -139,7 +139,10 @@ impl TradingLogger {
             return Ok(());
         }
 
-        let last_rotation = *self.last_rotation.lock().unwrap();
+        let last_rotation = match self.last_rotation.lock() {
+            Ok(guard) => *guard,
+            Err(_) => return Ok(()), // Mutex poisoned, skip rotation
+        };
         let now = Utc::now();
         let hours_since_rotation = (now - last_rotation).num_hours();
 

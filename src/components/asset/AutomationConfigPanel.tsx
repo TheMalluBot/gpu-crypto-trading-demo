@@ -33,7 +33,7 @@ export const AutomationConfigPanel: React.FC<AutomationConfigPanelProps> = ({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} maxWidth="4xl">
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         {/* Header */}
         <div className="flex items-center space-x-3 mb-6">
           <Bot className="w-6 h-6 text-blue-400" />
@@ -51,7 +51,7 @@ export const AutomationConfigPanel: React.FC<AutomationConfigPanelProps> = ({
             <button
               key={id}
               onClick={() => setActiveSection(id as any)}
-              className={`flex items-center space-x-2 px-4 py-3 transition-colors ${
+              className={`flex items-center space-x-2 px-3 sm:px-4 py-2 sm:py-3 transition-colors ${
                 activeSection === id
                   ? 'text-blue-400 border-b-2 border-blue-400'
                   : 'text-white/60 hover:text-white'
@@ -183,7 +183,7 @@ export const AutomationConfigPanel: React.FC<AutomationConfigPanelProps> = ({
                   <div>
                     <div className="text-white font-medium mb-3">Profit Zones</div>
                     <div className="space-y-3">
-                      <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                         <div className="text-white/60">Profit Level</div>
                         <div className="text-white/60">Action</div>
                         <div className="text-white/60">Amount to Secure</div>
@@ -194,7 +194,7 @@ export const AutomationConfigPanel: React.FC<AutomationConfigPanelProps> = ({
                         { level: 20, action: 'secure', amount: 50 },
                         { level: 50, action: 'trail', amount: 0 }
                       ].map((zone, index) => (
-                        <div key={index} className="grid grid-cols-3 gap-4 items-center p-3 bg-white/5 rounded">
+                        <div key={index} className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center p-3 bg-white/5 rounded">
                           <div className="text-green-400 font-medium">{zone.level}%</div>
                           <div className="text-white capitalize">{zone.action}</div>
                           <div className="text-white">{zone.amount}%</div>
@@ -325,7 +325,7 @@ export const AutomationConfigPanel: React.FC<AutomationConfigPanelProps> = ({
                   {/* Risk Thresholds */}
                   <div>
                     <div className="text-white font-medium mb-3">Risk Thresholds</div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-white/60 text-sm mb-1">Portfolio Health Threshold</label>
                         <div className="flex items-center space-x-2">

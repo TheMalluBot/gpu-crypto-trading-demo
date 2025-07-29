@@ -13,7 +13,10 @@ mod websocket;
 mod trading_strategy;
 mod rate_limiter;
 mod secure_storage;
+mod secure_string;
 mod secure_path;
+mod auth;
+mod atomic_operations;
 mod binance_client;
 mod secure_commands;
 mod logging;
@@ -24,6 +27,10 @@ mod cache;
 mod connection_pool;
 mod gpu_memory_manager;
 mod enhanced_risk_manager;
+mod advanced_trading;
+mod performance_cache;
+mod enhanced_lro;
+mod backtesting;
 
 use gpu_renderer::GpuRenderer;
 use gpu_trading::GpuTradingAccelerator;
@@ -31,6 +38,11 @@ use cpu_worker::CpuWorker;
 use websocket::ImprovedBinanceWebSocket;
 use models::Trade;
 use trading_strategy::{SwingTradingBot, LROConfig};
+use advanced_trading::AdvancedTradingEngine;
+use backtesting::BacktestEngine;
+use validation::InputValidator;
+use atomic_operations::AtomicBotState;
+use auth::BotAuthMiddleware;
 
 #[derive(Debug, Clone, serde::Serialize)]
 struct SystemStats {
@@ -46,10 +58,14 @@ pub struct TradingState {
     pub websocket: Arc<ImprovedBinanceWebSocket>,
     pub swing_bot: Arc<RwLock<SwingTradingBot>>,
     pub gpu_accelerator: Arc<RwLock<Option<GpuTradingAccelerator>>>,
-    // Concurrency control
-    pub bot_operation_lock: Arc<Mutex<()>>, // Ensures atomic bot operations
-    pub is_processing_signal: Arc<AtomicBool>, // Prevents concurrent signal processing
-    pub last_operation_timestamp: Arc<AtomicU64>, // Tracks last operation time
+    pub advanced_trading_engine: Arc<RwLock<Option<AdvancedTradingEngine>>>,
+    // Modern atomic state management
+    pub atomic_state: Arc<AtomicBotState>,
+    pub auth_middleware: Arc<BotAuthMiddleware>,
+    // Legacy fields for compatibility (deprecated)
+    pub bot_operation_lock: Arc<Mutex<()>>,
+    pub is_processing_signal: Arc<AtomicBool>, 
+    pub last_operation_timestamp: Arc<AtomicU64>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -64,12 +80,18 @@ pub fn run() {
             paper_trades: Arc::new(RwLock::new(Vec::new())),
             websocket: Arc::new(ImprovedBinanceWebSocket::new()),
             swing_bot: Arc::new(RwLock::new(SwingTradingBot::new(LROConfig::default()))),
-            gpu_accelerator: Arc::new(RwLock::new(None)), // Initialize as None, will be set up in setup
-            // Initialize concurrency control
+            gpu_accelerator: Arc::new(RwLock::new(None)),
+            advanced_trading_engine: Arc::new(RwLock::new(None)),
+            // Modern atomic state management
+            atomic_state: Arc::new(AtomicBotState::new()),
+            auth_middleware: Arc::new(BotAuthMiddleware::new()),
+            // Legacy fields for compatibility (deprecated)
             bot_operation_lock: Arc::new(Mutex::new(())),
             is_processing_signal: Arc::new(AtomicBool::new(false)),
             last_operation_timestamp: Arc::new(AtomicU64::new(0)),
         })
+        .manage(Arc::new(RwLock::new(None::<BacktestEngine>)))
+        .manage(Arc::new(RwLock::new(InputValidator::new())))
         .invoke_handler(tauri::generate_handler![
             commands::cpu_stats,
             commands::gpu_stats,
@@ -108,7 +130,40 @@ pub fn run() {
             commands::get_market_depth_analysis,
             commands::get_liquidity_levels,
             commands::enable_depth_analysis,
-            commands::start_order_book_feed
+            commands::start_order_book_feed,
+            commands::initialize_advanced_trading,
+            commands::place_advanced_order,
+            commands::cancel_advanced_order,
+            commands::get_active_orders,
+            commands::get_order_history,
+            commands::get_portfolio_metrics,
+            commands::assess_portfolio_risk,
+            commands::get_technical_analysis,
+            commands::get_performance_report,
+            commands::emergency_stop_advanced_trading,
+            commands::multi_timeframe_analysis,
+            commands::get_enhanced_lro_statistics,
+            commands::reset_enhanced_lro,
+            commands::initialize_backtest_engine,
+            commands::run_backtest_analysis,
+            commands::get_backtest_progress,
+            commands::run_walk_forward_optimization,
+            commands::get_backtest_trades,
+            commands::generate_performance_report,
+            commands::compare_strategies,
+            commands::optimize_strategy_parameters,
+            commands::initialize_validator,
+            commands::validate_api_settings,
+            commands::validate_trading_symbol,
+            commands::validate_order_request,
+            commands::validate_enhanced_lro_config,
+            commands::validate_backtest_config,
+            commands::validate_trading_config,
+            commands::validate_price_data,
+            commands::validate_price_data_batch,
+            commands::validate_user_input,
+            commands::validate_file_path,
+            commands::validate_comprehensive_config
         ])
         .setup(|app| {
             // Initialize logging system

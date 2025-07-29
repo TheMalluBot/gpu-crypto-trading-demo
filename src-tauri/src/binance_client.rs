@@ -2,6 +2,8 @@ use reqwest::Client;
 use serde_json::Value;
 use std::collections::HashMap;
 use rust_decimal::Decimal;
+use rust_decimal::prelude::ToPrimitive;
+use std::str::FromStr;
 use chrono::{DateTime, Utc};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -159,18 +161,30 @@ impl ImprovedBinanceClient {
         let client_time = Utc::now().timestamp_millis();
         let offset = adjusted_server_time - client_time;
         
-        *self.server_time_offset.lock().unwrap() = Some(offset);
+        match self.server_time_offset.lock() {
+            Ok(mut offset_guard) => *offset_guard = Some(offset),
+            Err(_) => {
+                eprintln!("Warning: Failed to acquire server time offset lock");
+                return Err("Mutex lock failed for server time offset".into());
+            }
+        }
         
         eprintln!("Server time synchronized. Offset: {}ms", offset);
         Ok(())
     }
 
     fn get_server_time(&self) -> i64 {
-        let offset = self.server_time_offset.lock().unwrap();
+        let offset = match self.server_time_offset.lock() {
+            Ok(guard) => *guard,
+            Err(_) => {
+                eprintln!("Warning: Failed to acquire server time offset lock, using client time");
+                None
+            }
+        };
         let client_time = Utc::now().timestamp_millis();
         
-        if let Some(offset) = *offset {
-            client_time + offset
+        if let Some(offset_value) = offset {
+            client_time + offset_value
         } else {
             // If we haven't synced, use client time but log warning
             eprintln!("Warning: Using client time without server sync");
@@ -338,6 +352,10 @@ impl ImprovedBinanceClient {
         Ok(AccountInfo {
             balances,
             can_trade: data["canTrade"].as_bool().unwrap_or(false),
+            total_wallet_balance: data["totalWalletBalance"]
+                .as_str()
+                .and_then(|s| Decimal::from_str(s).ok())
+                .unwrap_or(Decimal::ZERO),
         })
     }
 
@@ -420,8 +438,8 @@ impl ImprovedBinanceClient {
         let execution_price = match order.order_type {
             OrderType::Market => {
                 let slippage_bps = match order.side {
-                    TradeSide::Long => 5, // 0.05% slippage for buy orders
-                    TradeSide::Short => -5, // -0.05% slippage for sell orders
+                    TradeSide::Long | TradeSide::Buy => 5, // 0.05% slippage for buy orders
+                    TradeSide::Short | TradeSide::Sell => -5, // -0.05% slippage for sell orders
                 };
                 market_price * (Decimal::from(10000 + slippage_bps) / Decimal::from(10000))
             }
@@ -438,14 +456,14 @@ impl ImprovedBinanceClient {
             exit_price: None,
             take_profit: order.take_profit_percent.map(|tp| {
                 match order.side {
-                    TradeSide::Long => execution_price * (Decimal::from(100) + tp) / Decimal::from(100),
-                    TradeSide::Short => execution_price * (Decimal::from(100) - tp) / Decimal::from(100),
+                    TradeSide::Long | TradeSide::Buy => execution_price * (Decimal::from(100) + tp) / Decimal::from(100),
+                    TradeSide::Short | TradeSide::Sell => execution_price * (Decimal::from(100) - tp) / Decimal::from(100),
                 }
             }),
             stop_loss: order.stop_loss_percent.map(|sl| {
                 match order.side {
-                    TradeSide::Long => execution_price * (Decimal::from(100) - sl) / Decimal::from(100),
-                    TradeSide::Short => execution_price * (Decimal::from(100) + sl) / Decimal::from(100),
+                    TradeSide::Long | TradeSide::Buy => execution_price * (Decimal::from(100) - sl) / Decimal::from(100),
+                    TradeSide::Short | TradeSide::Sell => execution_price * (Decimal::from(100) + sl) / Decimal::from(100),
                 }
             }),
             status: TradeStatus::Open,
@@ -673,22 +691,48 @@ impl ImprovedBinanceClient {
             
         Ok(MarketStats {
             symbol: data["symbol"].as_str().unwrap_or(symbol).to_string(),
-            price_change: data["priceChange"].as_str().and_then(|s| s.parse().ok()).unwrap_or(0.0),
-            price_change_percent: data["priceChangePercent"].as_str().and_then(|s| s.parse().ok()).unwrap_or(0.0),
-            weighted_avg_price: data["weightedAvgPrice"].as_str().and_then(|s| s.parse().ok()).unwrap_or(0.0),
-            prev_close_price: data["prevClosePrice"].as_str().and_then(|s| s.parse().ok()).unwrap_or(0.0),
-            last_price: data["lastPrice"].as_str().and_then(|s| s.parse().ok()).unwrap_or(0.0),
-            last_qty: data["lastQty"].as_str().and_then(|s| s.parse().ok()).unwrap_or(0.0),
-            bid_price: data["bidPrice"].as_str().and_then(|s| s.parse().ok()).unwrap_or(0.0),
-            ask_price: data["askPrice"].as_str().and_then(|s| s.parse().ok()).unwrap_or(0.0),
-            open_price: data["openPrice"].as_str().and_then(|s| s.parse().ok()).unwrap_or(0.0),
-            high_price: data["highPrice"].as_str().and_then(|s| s.parse().ok()).unwrap_or(0.0),
-            low_price: data["lowPrice"].as_str().and_then(|s| s.parse().ok()).unwrap_or(0.0),
-            volume: data["volume"].as_str().and_then(|s| s.parse().ok()).unwrap_or(0.0),
-            quote_volume: data["quoteVolume"].as_str().and_then(|s| s.parse().ok()).unwrap_or(0.0),
-            open_time: data["openTime"].as_u64().unwrap_or(0),
-            close_time: data["closeTime"].as_u64().unwrap_or(0),
+            price_change: data["priceChange"].as_str()
+                .and_then(|s| Decimal::from_str(s).ok())
+                .unwrap_or_default(),
+            price_change_percent: data["priceChangePercent"].as_str()
+                .and_then(|s| Decimal::from_str(s).ok())
+                .unwrap_or_default(),
+            weighted_avg_price: data["weightedAvgPrice"].as_str()
+                .and_then(|s| Decimal::from_str(s).ok())
+                .unwrap_or_default(),
+            prev_close_price: data["prevClosePrice"].as_str()
+                .and_then(|s| Decimal::from_str(s).ok())
+                .unwrap_or_default(),
+            last_price: data["lastPrice"].as_str()
+                .and_then(|s| Decimal::from_str(s).ok())
+                .unwrap_or_default(),
+            last_qty: data["lastQty"].as_str()
+                .and_then(|s| Decimal::from_str(s).ok())
+                .unwrap_or_default(),
+            bid_price: data["bidPrice"].as_str()
+                .and_then(|s| Decimal::from_str(s).ok())
+                .unwrap_or_default(),
+            ask_price: data["askPrice"].as_str()
+                .and_then(|s| Decimal::from_str(s).ok())
+                .unwrap_or_default(),
+            high: data["highPrice"].as_str()
+                .and_then(|s| Decimal::from_str(s).ok())
+                .unwrap_or_default(),
+            low: data["lowPrice"].as_str()
+                .and_then(|s| Decimal::from_str(s).ok())
+                .unwrap_or_default(),
+            volume: data["volume"].as_str()
+                .and_then(|s| Decimal::from_str(s).ok())
+                .unwrap_or_default(),
+            quote_volume: data["quoteVolume"].as_str()
+                .and_then(|s| Decimal::from_str(s).ok())
+                .unwrap_or_default(),
             count: data["count"].as_u64().unwrap_or(0),
+            open_time: Utc::now(), // TODO: Parse actual timestamp
+            close_time: Utc::now(), // TODO: Parse actual timestamp
+            price: data["lastPrice"].as_str()
+                .and_then(|s| Decimal::from_str(s).ok()) 
+                .unwrap_or_default(),
         })
     }
 
@@ -702,17 +746,17 @@ impl ImprovedBinanceClient {
             return Err("Order book has no bids or asks".into());
         }
         
-        let best_bid = order_book.bids.first().map(|b| b.price).unwrap_or(0.0);
-        let best_ask = order_book.asks.first().map(|a| a.price).unwrap_or(0.0);
+        let best_bid = order_book.bids.first().map(|b| b.price).unwrap_or(Decimal::ZERO);
+        let best_ask = order_book.asks.first().map(|a| a.price).unwrap_or(Decimal::ZERO);
         
-        let spread = if best_ask > 0.0 && best_bid > 0.0 {
+        let spread = if best_ask > Decimal::ZERO && best_bid > Decimal::ZERO {
             best_ask - best_bid
         } else {
-            0.0
+            Decimal::ZERO
         };
         
-        let spread_percentage = if best_bid > 0.0 {
-            (spread / best_bid) * 100.0
+        let spread_percentage = if best_bid > Decimal::ZERO {
+            (spread / best_bid * Decimal::from(100)).to_f64().unwrap_or(0.0)
         } else {
             0.0
         };

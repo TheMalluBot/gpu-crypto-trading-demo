@@ -157,7 +157,7 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
   const statusInfo = getStatusInfo();
 
   return (
-    <div className="glass-morphic overflow-x-hidden">
+    <div className="glass-morphic overflow-x-hidden z-content">
       {/* Header */}
       <div className="p-4 sm:p-6 border-b border-white/10">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
