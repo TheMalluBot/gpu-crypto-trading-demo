@@ -8,7 +8,7 @@ import { HELP_CONTENT } from '../../utils/helpContent';
 const FloatingHelpButton: React.FC = () => {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const location = useLocation();
-  
+
   const getCurrentHelpContent = () => {
     const path = location.pathname;
     switch (path) {
@@ -22,30 +22,30 @@ const FloatingHelpButton: React.FC = () => {
         return HELP_CONTENT.settings;
       default:
         return {
-          title: "General Help",
+          title: 'General Help',
           sections: [
             {
-              title: "Navigation",
+              title: 'Navigation',
               content: [
-                "Use the bottom navigation bar to switch between different sections of the app.",
-                "Dashboard: View your trading overview and performance metrics",
-                "Trade: Execute manual trades and monitor market data",
-                "Bot: Configure and run automated trading strategies",
-                "Analytics: View detailed performance charts and statistics",
-                "Settings: Configure app preferences and API connections"
-              ]
+                'Use the bottom navigation bar to switch between different sections of the app.',
+                'Dashboard: View your trading overview and performance metrics',
+                'Trade: Execute manual trades and monitor market data',
+                'Bot: Configure and run automated trading strategies',
+                'Analytics: View detailed performance charts and statistics',
+                'Settings: Configure app preferences and API connections',
+              ],
             },
             {
-              title: "Getting Started",
+              title: 'Getting Started',
               content: [
-                "1. Start by configuring your API keys in the Settings panel",
-                "2. Explore the Dashboard to understand your current portfolio",
-                "3. Use the Trade panel to execute your first manual trade",
-                "4. Once comfortable, configure and test the trading bot",
-                "5. Monitor your performance in the Analytics section"
-              ]
-            }
-          ]
+                '1. Start by configuring your API keys in the Settings panel',
+                '2. Explore the Dashboard to understand your current portfolio',
+                '3. Use the Trade panel to execute your first manual trade',
+                '4. Once comfortable, configure and test the trading bot',
+                '5. Monitor your performance in the Analytics section',
+              ],
+            },
+          ],
         };
     }
   };
@@ -68,11 +68,7 @@ const FloatingHelpButton: React.FC = () => {
 
       <AnimatePresence>
         {isHelpOpen && (
-          <Modal
-            isOpen={isHelpOpen}
-            onClose={() => setIsHelpOpen(false)}
-            maxWidth="2xl"
-          >
+          <Modal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} maxWidth="2xl">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center space-x-3">
@@ -137,11 +133,15 @@ const FloatingHelpButton: React.FC = () => {
                       Need More Help?
                     </h4>
                     <div className="text-sm text-white/70 space-y-2">
-                      <p>Each page has a help button (?) in the top-right corner for specific guidance.</p>
+                      <p>
+                        Each page has a help button (?) in the top-right corner for specific
+                        guidance.
+                      </p>
                       <p>Check the documentation or contact support for advanced features.</p>
                       <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
                         <p className="text-blue-300 text-xs">
-                          <strong>Tip:</strong> This help panel adapts to show relevant information based on the current page.
+                          <strong>Tip:</strong> This help panel adapts to show relevant information
+                          based on the current page.
                         </p>
                       </div>
                     </div>

@@ -13,7 +13,7 @@ export const OnboardingBanner: React.FC<OnboardingBannerProps> = ({
   isVisible,
   onDismiss,
   onStartTour,
-  onRemindLater
+  onRemindLater,
 }) => {
   return (
     <AnimatePresence>
@@ -22,7 +22,7 @@ export const OnboardingBanner: React.FC<OnboardingBannerProps> = ({
           initial={{ opacity: 0, y: -50, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -50, scale: 0.95 }}
-          transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
+          transition={{ duration: 0.3, type: 'spring', stiffness: 300 }}
           className="relative mb-4"
         >
           <div className="glass-morphic rounded-lg p-4 border border-blue-500/20 bg-gradient-to-r from-blue-500/10 to-purple-500/10">
@@ -33,10 +33,13 @@ export const OnboardingBanner: React.FC<OnboardingBannerProps> = ({
                 </div>
                 <div className="flex-1">
                   <h3 className="text-white font-semibold text-sm">New to Trading Bot?</h3>
-                  <p className="text-white/70 text-sm">Take a quick 2-minute tour to learn the basics of paper trading and bot configuration.</p>
+                  <p className="text-white/70 text-sm">
+                    Take a quick 2-minute tour to learn the basics of paper trading and bot
+                    configuration.
+                  </p>
                 </div>
               </div>
-              
+
               <div className="flex items-center space-x-2 ml-4">
                 <button
                   onClick={onStartTour}
@@ -45,14 +48,14 @@ export const OnboardingBanner: React.FC<OnboardingBannerProps> = ({
                   Start Tour
                   <ChevronRight className="w-4 h-4 ml-1" />
                 </button>
-                
+
                 <button
                   onClick={onRemindLater}
                   className="px-3 py-2 text-white/60 hover:text-white text-sm transition-colors"
                 >
                   Later
                 </button>
-                
+
                 <button
                   onClick={onDismiss}
                   className="p-1 text-white/40 hover:text-white transition-colors"

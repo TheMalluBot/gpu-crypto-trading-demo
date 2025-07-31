@@ -40,28 +40,28 @@ export class SecurityHeadersManager {
     return {
       // Strict Transport Security (HTTPS enforcement)
       'Strict-Transport-Security': this.getHSTSHeader(),
-      
+
       // Content Type Options (prevent MIME sniffing)
       'X-Content-Type-Options': 'nosniff',
-      
+
       // Frame Options (prevent clickjacking)
       'X-Frame-Options': 'DENY',
-      
+
       // XSS Protection
       'X-XSS-Protection': '1; mode=block',
-      
+
       // Referrer Policy
       'Referrer-Policy': 'strict-origin-when-cross-origin',
-      
+
       // Permissions Policy (formerly Feature Policy)
       'Permissions-Policy': this.getPermissionsPolicy(),
-      
+
       // Cross-Origin Embedder Policy
       'Cross-Origin-Embedder-Policy': 'require-corp',
-      
+
       // Cross-Origin Opener Policy
       'Cross-Origin-Opener-Policy': 'same-origin',
-      
+
       // Cross-Origin Resource Policy
       'Cross-Origin-Resource-Policy': 'same-origin',
     };
@@ -73,19 +73,19 @@ export class SecurityHeadersManager {
   validateURL(url: string): boolean {
     try {
       const urlObj = new URL(url);
-      
+
       // Check protocol
       if (this.config.enforceHTTPS && urlObj.protocol !== 'https:' && urlObj.protocol !== 'wss:') {
         if (!this.isLocalhost(urlObj.hostname)) {
           throw new Error(`HTTPS required for external URLs: ${url}`);
         }
       }
-      
+
       // Check allowed hosts
       if (!this.isAllowedHost(urlObj.hostname)) {
         throw new Error(`Host not allowed: ${urlObj.hostname}`);
       }
-      
+
       return true;
     } catch (error) {
       ErrorHandler.handle(error, {
@@ -106,19 +106,23 @@ export class SecurityHeadersManager {
 
     try {
       const urlObj = new URL(url);
-      
+
       // Skip if already secure or localhost
-      if (urlObj.protocol === 'https:' || urlObj.protocol === 'wss:' || this.isLocalhost(urlObj.hostname)) {
+      if (
+        urlObj.protocol === 'https:' ||
+        urlObj.protocol === 'wss:' ||
+        this.isLocalhost(urlObj.hostname)
+      ) {
         return url;
       }
-      
+
       // Upgrade to HTTPS
       if (urlObj.protocol === 'http:') {
         urlObj.protocol = 'https:';
       } else if (urlObj.protocol === 'ws:') {
         urlObj.protocol = 'wss:';
       }
-      
+
       return urlObj.toString();
     } catch (error) {
       ErrorHandler.handle(error, { showNotification: false });
@@ -133,7 +137,7 @@ export class SecurityHeadersManager {
     return async (url: string, options: RequestInit = {}): Promise<Response> => {
       // Validate and secure the URL
       const secureURL = this.enforceHTTPS(url);
-      
+
       if (!this.validateURL(secureURL)) {
         throw new Error(`Security validation failed for URL: ${url}`);
       }
@@ -149,10 +153,10 @@ export class SecurityHeadersManager {
 
       try {
         const response = await fetch(secureURL, secureOptions);
-        
+
         // Validate response security
         this.validateResponseHeaders(response);
-        
+
         return response;
       } catch (error) {
         ErrorHandler.handle(error, {
@@ -169,7 +173,7 @@ export class SecurityHeadersManager {
    */
   createSecureWebSocket(url: string, protocols?: string | string[]): WebSocket {
     const secureURL = this.enforceHTTPS(url);
-    
+
     if (!this.validateURL(secureURL)) {
       throw new Error(`Security validation failed for WebSocket URL: ${url}`);
     }
@@ -182,7 +186,11 @@ export class SecurityHeadersManager {
    */
   private isLocalhost(hostname: string): boolean {
     const localhostPatterns = ['localhost', '127.0.0.1', '::1'];
-    return localhostPatterns.includes(hostname) || hostname.startsWith('192.168.') || hostname.startsWith('10.');
+    return (
+      localhostPatterns.includes(hostname) ||
+      hostname.startsWith('192.168.') ||
+      hostname.startsWith('10.')
+    );
   }
 
   /**
@@ -204,15 +212,15 @@ export class SecurityHeadersManager {
    */
   private getHSTSHeader(): string {
     let header = `max-age=${this.config.maxAge}`;
-    
+
     if (this.config.includeSubdomains) {
       header += '; includeSubDomains';
     }
-    
+
     if (this.config.preload) {
       header += '; preload';
     }
-    
+
     return header;
   }
 
@@ -230,7 +238,7 @@ export class SecurityHeadersManager {
       'payment=()',
       'usb=()',
     ];
-    
+
     return policies.join(', ');
   }
 
@@ -241,7 +249,7 @@ export class SecurityHeadersManager {
     return {
       'X-Requested-With': 'XMLHttpRequest',
       'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
+      Pragma: 'no-cache',
     };
   }
 
@@ -250,20 +258,20 @@ export class SecurityHeadersManager {
    */
   private validateResponseHeaders(response: Response): void {
     const headers = response.headers;
-    
+
     // Check for security headers
     const securityHeaders = [
       'strict-transport-security',
       'x-content-type-options',
       'x-frame-options',
     ];
-    
+
     for (const header of securityHeaders) {
       if (!headers.has(header)) {
         console.warn(`Missing security header: ${header}`);
       }
     }
-    
+
     // Validate content type
     const contentType = headers.get('content-type');
     if (contentType && !this.isAllowedContentType(contentType)) {
@@ -284,7 +292,7 @@ export class SecurityHeadersManager {
       'image/',
       'font/',
     ];
-    
+
     return allowedTypes.some(type => contentType.toLowerCase().includes(type));
   }
 }

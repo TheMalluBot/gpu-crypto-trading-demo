@@ -1,23 +1,23 @@
-import '@testing-library/jest-dom'
-import { vi } from 'vitest'
+import '@testing-library/jest-dom';
+import { vi } from 'vitest';
 
 // Mock Tauri API
-global.window = Object.create(window)
+global.window = Object.create(window);
 Object.defineProperty(window, '__TAURI__', {
   value: {
     invoke: vi.fn(),
     convertFileSrc: vi.fn(),
   },
-})
+});
 
 // Mock Tauri APIs that are used throughout the app
 vi.mock('@tauri-apps/api/tauri', () => ({
   invoke: vi.fn(),
-}))
+}));
 
 vi.mock('@tauri-apps/api/path', () => ({
   appDataDir: vi.fn(() => Promise.resolve('/mock/app/data')),
-}))
+}));
 
 // Mock GPU/WebGL context for ParticleCanvas tests
 Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
@@ -47,14 +47,14 @@ Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
     rect: vi.fn(),
     clip: vi.fn(),
   })),
-})
+});
 
 // Mock ResizeObserver
 global.ResizeObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
   disconnect: vi.fn(),
-}))
+}));
 
 // Mock matchMedia
 Object.defineProperty(window, 'matchMedia', {
@@ -69,11 +69,11 @@ Object.defineProperty(window, 'matchMedia', {
     removeEventListener: vi.fn(),
     dispatchEvent: vi.fn(),
   })),
-})
+});
 
 // Mock IntersectionObserver
 global.IntersectionObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
   disconnect: vi.fn(),
-}))
+}));

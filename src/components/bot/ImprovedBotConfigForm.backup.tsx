@@ -22,7 +22,7 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
   setConfig,
   botStatus,
   marketConditions,
-  updateAccountBalance
+  updateAccountBalance,
 }) => {
   const [showPresets, setShowPresets] = useState(false);
   const [activeTab, setActiveTab] = useState<'basic' | 'advanced' | 'safety'>('basic');
@@ -31,7 +31,7 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
     const newConfig = { ...config, [key]: value };
     setConfig(newConfig);
     // Auto-save to backend with error handling
-    safeInvoke('update_bot_config', { config: newConfig }).catch((error) => {
+    safeInvoke('update_bot_config', { config: newConfig }).catch(error => {
       console.error('Failed to save config:', error);
       NotificationManager.error(
         'Configuration Error',
@@ -43,7 +43,7 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
   const handlePresetSelect = (presetConfig: Partial<LROConfig>) => {
     const newConfig = { ...config, ...presetConfig };
     setConfig(newConfig);
-    safeInvoke('update_bot_config', { config: newConfig }).catch((error) => {
+    safeInvoke('update_bot_config', { config: newConfig }).catch(error => {
       console.error('Failed to apply preset:', error);
       NotificationManager.error(
         'Preset Error',
@@ -54,26 +54,26 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
 
   const calculateRiskScore = (): { score: number; level: string; color: string } => {
     let score = 0;
-    
+
     // Risk factors
     if (config.stop_loss_percent < 2) score += 30;
     else if (config.stop_loss_percent < 3) score += 20;
     else if (config.stop_loss_percent < 5) score += 10;
-    
+
     if (config.max_position_size > 2000) score += 25;
     else if (config.max_position_size > 1000) score += 15;
     else if (config.max_position_size > 500) score += 5;
-    
+
     if (config.max_daily_loss > 200) score += 20;
     else if (config.max_daily_loss > 100) score += 10;
-    
+
     if (!config.paper_trading_enabled) score += 15;
     if (!config.circuit_breaker_enabled) score += 10;
     if (config.signal_strength_threshold < 0.5) score += 10;
-    
+
     let level = 'Low';
     let color = 'text-green-400';
-    
+
     if (score > 60) {
       level = 'High';
       color = 'text-red-400';
@@ -81,7 +81,7 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
       level = 'Medium';
       color = 'text-yellow-400';
     }
-    
+
     return { score, level, color };
   };
 
@@ -97,7 +97,9 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
       {/* Header with Preset Button */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 id="bot-config-heading" className="text-xl font-bold text-white mb-2">Strategy Configuration</h3>
+          <h3 id="bot-config-heading" className="text-xl font-bold text-white mb-2">
+            Strategy Configuration
+          </h3>
           <p className="text-white/60 text-sm">
             Configure your trading bot's behavior and risk management settings
           </p>
@@ -134,7 +136,7 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
           {[
             { id: 'basic', label: 'Basic Settings', icon: Settings },
             { id: 'advanced', label: 'Advanced', icon: Brain },
-            { id: 'safety', label: 'Safety & Risk', icon: Shield }
+            { id: 'safety', label: 'Safety & Risk', icon: Shield },
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -158,12 +160,7 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
 
       {/* Basic Settings Tab */}
       {activeTab === 'basic' && (
-        <div 
-          id="basic-panel" 
-          role="tabpanel" 
-          aria-labelledby="basic-tab"
-          className="space-y-6"
-        >
+        <div id="basic-panel" role="tabpanel" aria-labelledby="basic-tab" className="space-y-6">
           <ConfigurationSection
             title="Trading Strategy"
             description="Core parameters that define how your bot identifies trading opportunities"
@@ -174,7 +171,7 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
               <ConfigInput
                 label="Analysis Period"
                 value={config.period}
-                onChange={(value) => handleConfigChange('period', value)}
+                onChange={value => handleConfigChange('period', value)}
                 type="number"
                 min={5}
                 max={100}
@@ -187,7 +184,7 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
               <ConfigInput
                 label="Signal Period"
                 value={config.signal_period}
-                onChange={(value) => handleConfigChange('signal_period', value)}
+                onChange={value => handleConfigChange('signal_period', value)}
                 type="number"
                 min={3}
                 max={50}
@@ -200,7 +197,7 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
               <ConfigInput
                 label="Take Profit"
                 value={config.take_profit_percent}
-                onChange={(value) => handleConfigChange('take_profit_percent', value)}
+                onChange={value => handleConfigChange('take_profit_percent', value)}
                 type="number"
                 step={0.1}
                 min={0.1}
@@ -215,7 +212,7 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
               <ConfigInput
                 label="Stop Loss"
                 value={config.stop_loss_percent}
-                onChange={(value) => handleConfigChange('stop_loss_percent', value)}
+                onChange={value => handleConfigChange('stop_loss_percent', value)}
                 type="number"
                 step={0.1}
                 min={0.1}
@@ -230,7 +227,7 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
               <ConfigInput
                 label="Position Size"
                 value={config.max_position_size}
-                onChange={(value) => handleConfigChange('max_position_size', value)}
+                onChange={value => handleConfigChange('max_position_size', value)}
                 type="number"
                 min={100}
                 max={10000}
@@ -244,7 +241,7 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
               <ConfigInput
                 label="Daily Loss Limit"
                 value={config.max_daily_loss}
-                onChange={(value) => handleConfigChange('max_daily_loss', value)}
+                onChange={value => handleConfigChange('max_daily_loss', value)}
                 type="number"
                 min={10}
                 max={1000}
@@ -273,7 +270,9 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
                   </div>
                 </div>
                 <button
-                  onClick={() => handleConfigChange('paper_trading_enabled', !config.paper_trading_enabled)}
+                  onClick={() =>
+                    handleConfigChange('paper_trading_enabled', !config.paper_trading_enabled)
+                  }
                   className={`w-14 h-7 rounded-full p-1 transition-colors ${
                     config.paper_trading_enabled ? 'bg-green-500' : 'bg-white/20'
                   }`}
@@ -290,7 +289,7 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
                 <ConfigInput
                   label="Virtual Balance"
                   value={config.virtual_balance}
-                  onChange={(value) => handleConfigChange('virtual_balance', value)}
+                  onChange={value => handleConfigChange('virtual_balance', value)}
                   type="number"
                   min={1000}
                   max={1000000}
@@ -308,7 +307,8 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
                     <div>
                       <div className="text-orange-400 font-medium">Live Trading Mode Active</div>
                       <div className="text-orange-300/80 text-sm mt-1">
-                        Bot will execute trades with real money. Make sure you've tested your strategy thoroughly in paper trading mode first.
+                        Bot will execute trades with real money. Make sure you've tested your
+                        strategy thoroughly in paper trading mode first.
                       </div>
                     </div>
                   </div>
@@ -321,9 +321,9 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
 
       {/* Advanced Settings Tab */}
       {activeTab === 'advanced' && (
-        <div 
-          id="advanced-panel" 
-          role="tabpanel" 
+        <div
+          id="advanced-panel"
+          role="tabpanel"
           aria-labelledby="advanced-tab"
           className="space-y-6"
         >
@@ -337,7 +337,7 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
               <ConfigInput
                 label="Overbought Level"
                 value={config.overbought}
-                onChange={(value) => handleConfigChange('overbought', value)}
+                onChange={value => handleConfigChange('overbought', value)}
                 type="number"
                 step={0.1}
                 min={0.1}
@@ -350,7 +350,7 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
               <ConfigInput
                 label="Oversold Level"
                 value={config.oversold}
-                onChange={(value) => handleConfigChange('oversold', value)}
+                onChange={value => handleConfigChange('oversold', value)}
                 type="number"
                 step={0.1}
                 min={-1.0}
@@ -363,7 +363,7 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
               <ConfigInput
                 label="Minimum Swing Bars"
                 value={config.min_swing_bars}
-                onChange={(value) => handleConfigChange('min_swing_bars', value)}
+                onChange={value => handleConfigChange('min_swing_bars', value)}
                 type="number"
                 min={1}
                 max={20}
@@ -375,7 +375,7 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
               <ConfigInput
                 label="Signal Strength Threshold"
                 value={config.signal_strength_threshold}
-                onChange={(value) => handleConfigChange('signal_strength_threshold', value)}
+                onChange={value => handleConfigChange('signal_strength_threshold', value)}
                 type="number"
                 step={0.1}
                 min={0.1}
@@ -389,7 +389,7 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
               <ConfigInput
                 label="Max Position Hold"
                 value={config.max_position_hold_hours}
-                onChange={(value) => handleConfigChange('max_position_hold_hours', value)}
+                onChange={value => handleConfigChange('max_position_hold_hours', value)}
                 type="number"
                 min={1}
                 max={168}
@@ -420,7 +420,9 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
                   </div>
                 </div>
                 <button
-                  onClick={() => handleConfigChange('auto_strategy_enabled', !config.auto_strategy_enabled)}
+                  onClick={() =>
+                    handleConfigChange('auto_strategy_enabled', !config.auto_strategy_enabled)
+                  }
                   className={`w-14 h-7 rounded-full p-1 transition-colors ${
                     config.auto_strategy_enabled ? 'bg-blue-500' : 'bg-white/20'
                   }`}
@@ -442,50 +444,61 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <div className="text-center">
                           <div className="text-xs text-white/60 mb-1">Volatility</div>
-                          <div className="text-sm font-bold text-white">{(marketConditions.volatility * 100).toFixed(1)}%</div>
+                          <div className="text-sm font-bold text-white">
+                            {(marketConditions.volatility * 100).toFixed(1)}%
+                          </div>
                         </div>
                         <div className="text-center">
                           <div className="text-xs text-white/60 mb-1">Trend</div>
-                          <div className="text-sm font-bold text-white">{(marketConditions.trend_strength * 100).toFixed(1)}%</div>
+                          <div className="text-sm font-bold text-white">
+                            {(marketConditions.trend_strength * 100).toFixed(1)}%
+                          </div>
                         </div>
                         <div className="text-center">
                           <div className="text-xs text-white/60 mb-1">Volume</div>
-                          <div className="text-sm font-bold text-white">{(marketConditions.volume_profile * 100).toFixed(1)}%</div>
+                          <div className="text-sm font-bold text-white">
+                            {(marketConditions.volume_profile * 100).toFixed(1)}%
+                          </div>
                         </div>
                         <div className="text-center">
                           <div className="text-xs text-white/60 mb-1">Regime</div>
-                          <div className={`text-xs font-bold px-2 py-1 rounded ${
-                            marketConditions.market_regime === 'Bull' ? 'bg-green-500/20 text-green-400' :
-                            marketConditions.market_regime === 'Bear' ? 'bg-red-500/20 text-red-400' :
-                            marketConditions.market_regime === 'Volatile' ? 'bg-orange-500/20 text-orange-400' :
-                            'bg-blue-500/20 text-blue-400'
-                          }`}>
+                          <div
+                            className={`text-xs font-bold px-2 py-1 rounded ${
+                              marketConditions.market_regime === 'Bull'
+                                ? 'bg-green-500/20 text-green-400'
+                                : marketConditions.market_regime === 'Bear'
+                                  ? 'bg-red-500/20 text-red-400'
+                                  : marketConditions.market_regime === 'Volatile'
+                                    ? 'bg-orange-500/20 text-orange-400'
+                                    : 'bg-blue-500/20 text-blue-400'
+                            }`}
+                          >
                             {marketConditions.market_regime}
                           </div>
                         </div>
                       </div>
                     </div>
                   )}
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {['Conservative', 'Moderate', 'Aggressive'].map((level) => (
-                    <button
-                      key={level}
-                      onClick={() => handleConfigChange('market_adaptation_level', level)}
-                      className={`p-4 rounded-lg border transition-colors ${
-                        config.market_adaptation_level === level
-                          ? 'bg-blue-500/20 border-blue-500 text-blue-400'
-                          : 'border-white/20 text-white hover:bg-white/5'
-                      }`}
-                    >
-                      <div className="text-sm font-medium">{level}</div>
-                      <div className="text-xs mt-1 opacity-80">
-                        {level === 'Conservative' && 'Small, careful adjustments'}
-                        {level === 'Moderate' && 'Balanced adaptation'}
-                        {level === 'Aggressive' && 'Large, rapid adjustments'}
-                      </div>
-                    </button>
-                  ))}
+                    {['Conservative', 'Moderate', 'Aggressive'].map(level => (
+                      <button
+                        key={level}
+                        onClick={() => handleConfigChange('market_adaptation_level', level)}
+                        className={`p-4 rounded-lg border transition-colors ${
+                          config.market_adaptation_level === level
+                            ? 'bg-blue-500/20 border-blue-500 text-blue-400'
+                            : 'border-white/20 text-white hover:bg-white/5'
+                        }`}
+                      >
+                        <div className="text-sm font-medium">{level}</div>
+                        <div className="text-xs mt-1 opacity-80">
+                          {level === 'Conservative' && 'Small, careful adjustments'}
+                          {level === 'Moderate' && 'Balanced adaptation'}
+                          {level === 'Aggressive' && 'Large, rapid adjustments'}
+                        </div>
+                      </button>
+                    ))}
                   </div>
                 </>
               )}
@@ -502,7 +515,9 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
                   </div>
                 </div>
                 <button
-                  onClick={() => handleConfigChange('trailing_stop_enabled', !config.trailing_stop_enabled)}
+                  onClick={() =>
+                    handleConfigChange('trailing_stop_enabled', !config.trailing_stop_enabled)
+                  }
                   className={`w-14 h-7 rounded-full p-1 transition-colors ${
                     config.trailing_stop_enabled ? 'bg-purple-500' : 'bg-white/20'
                   }`}
@@ -519,7 +534,7 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
                 <ConfigInput
                   label="Trailing Stop Distance"
                   value={config.trailing_stop_percent}
-                  onChange={(value) => handleConfigChange('trailing_stop_percent', value)}
+                  onChange={value => handleConfigChange('trailing_stop_percent', value)}
                   type="number"
                   step={0.1}
                   min={0.1}
@@ -552,7 +567,9 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
                   </div>
                 </div>
                 <button
-                  onClick={() => handleConfigChange('auto_resume_enabled', !config.auto_resume_enabled)}
+                  onClick={() =>
+                    handleConfigChange('auto_resume_enabled', !config.auto_resume_enabled)
+                  }
                   className={`w-14 h-7 rounded-full p-1 transition-colors ${
                     config.auto_resume_enabled ? 'bg-emerald-500' : 'bg-white/20'
                   }`}
@@ -576,7 +593,9 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
                     <ConfigInput
                       label="Volatility Resume Threshold"
                       value={config.volatility_resume_threshold_multiplier || 0.8}
-                      onChange={(value) => handleConfigChange('volatility_resume_threshold_multiplier', value)}
+                      onChange={value =>
+                        handleConfigChange('volatility_resume_threshold_multiplier', value)
+                      }
                       type="number"
                       step={0.1}
                       min={0.1}
@@ -599,7 +618,9 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
                       <ConfigInput
                         label="Data Quality Issues"
                         value={config.data_quality_resume_delay_minutes || 2}
-                        onChange={(value) => handleConfigChange('data_quality_resume_delay_minutes', value)}
+                        onChange={value =>
+                          handleConfigChange('data_quality_resume_delay_minutes', value)
+                        }
                         type="number"
                         min={1}
                         max={60}
@@ -612,7 +633,9 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
                       <ConfigInput
                         label="Connection Problems"
                         value={config.connection_resume_delay_minutes || 3}
-                        onChange={(value) => handleConfigChange('connection_resume_delay_minutes', value)}
+                        onChange={value =>
+                          handleConfigChange('connection_resume_delay_minutes', value)
+                        }
                         type="number"
                         min={1}
                         max={60}
@@ -625,7 +648,9 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
                       <ConfigInput
                         label="Flash Crash Recovery"
                         value={config.flash_crash_resume_delay_minutes || 10}
-                        onChange={(value) => handleConfigChange('flash_crash_resume_delay_minutes', value)}
+                        onChange={value =>
+                          handleConfigChange('flash_crash_resume_delay_minutes', value)
+                        }
                         type="number"
                         min={5}
                         max={120}
@@ -638,7 +663,9 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
                       <ConfigInput
                         label="Max Auto-Pause Duration"
                         value={config.max_auto_pause_duration_hours || 2}
-                        onChange={(value) => handleConfigChange('max_auto_pause_duration_hours', value)}
+                        onChange={value =>
+                          handleConfigChange('max_auto_pause_duration_hours', value)
+                        }
                         type="number"
                         min={1}
                         max={24}
@@ -657,13 +684,24 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
                       <div>
                         <div className="text-blue-400 font-medium">Strategy-Aware Resume</div>
                         <div className="text-blue-300/80 text-sm mt-1">
-                          Auto-resume conditions automatically adapt based on your chosen strategy preset:
+                          Auto-resume conditions automatically adapt based on your chosen strategy
+                          preset:
                         </div>
                         <ul className="text-blue-300/70 text-sm mt-2 space-y-1 ml-4">
-                          <li>• <strong>Scalping:</strong> Quick resume for fast market opportunities</li>
-                          <li>• <strong>Swing Trading:</strong> Balanced approach with moderate delays</li>
-                          <li>• <strong>Trend Following:</strong> Conservative resume for stable trends</li>
-                          <li>• <strong>Range Trading:</strong> Moderate resume suitable for ranging markets</li>
+                          <li>
+                            • <strong>Scalping:</strong> Quick resume for fast market opportunities
+                          </li>
+                          <li>
+                            • <strong>Swing Trading:</strong> Balanced approach with moderate delays
+                          </li>
+                          <li>
+                            • <strong>Trend Following:</strong> Conservative resume for stable
+                            trends
+                          </li>
+                          <li>
+                            • <strong>Range Trading:</strong> Moderate resume suitable for ranging
+                            markets
+                          </li>
                         </ul>
                       </div>
                     </div>
@@ -677,12 +715,7 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
 
       {/* Safety & Risk Tab */}
       {activeTab === 'safety' && (
-        <div 
-          id="safety-panel" 
-          role="tabpanel" 
-          aria-labelledby="safety-tab"
-          className="space-y-6"
-        >
+        <div id="safety-panel" role="tabpanel" aria-labelledby="safety-tab" className="space-y-6">
           <ConfigurationSection
             title="Safety Controls"
             description="Emergency stops and risk management tools"
@@ -699,7 +732,9 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
                     </div>
                   </div>
                   <button
-                    onClick={() => handleConfigChange('emergency_stop_enabled', !config.emergency_stop_enabled)}
+                    onClick={() =>
+                      handleConfigChange('emergency_stop_enabled', !config.emergency_stop_enabled)
+                    }
                     className={`w-14 h-7 rounded-full p-1 transition-colors ${
                       config.emergency_stop_enabled ? 'bg-red-500' : 'bg-white/20'
                     }`}
@@ -715,12 +750,12 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
                 <div className="flex items-center justify-between p-4 glass-card rounded-lg">
                   <div>
                     <div className="text-white font-medium">Circuit Breaker</div>
-                    <div className="text-white/60 text-sm mt-1">
-                      Auto-halt on loss thresholds
-                    </div>
+                    <div className="text-white/60 text-sm mt-1">Auto-halt on loss thresholds</div>
                   </div>
                   <button
-                    onClick={() => handleConfigChange('circuit_breaker_enabled', !config.circuit_breaker_enabled)}
+                    onClick={() =>
+                      handleConfigChange('circuit_breaker_enabled', !config.circuit_breaker_enabled)
+                    }
                     className={`w-14 h-7 rounded-full p-1 transition-colors ${
                       config.circuit_breaker_enabled ? 'bg-red-500' : 'bg-white/20'
                     }`}
@@ -737,7 +772,7 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
               <ConfigInput
                 label="Account Balance"
                 value={botStatus?.account_balance || 10000}
-                onChange={(value) => updateAccountBalance(value as number)}
+                onChange={value => updateAccountBalance(value as number)}
                 type="number"
                 min={100}
                 max={1000000}
@@ -759,48 +794,52 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="glass-card p-4 text-center">
                 <div className="text-white/60 text-sm mb-1">Daily Loss</div>
-                <div className={`text-lg font-bold ${
-                  botStatus.current_daily_loss > config.max_daily_loss * 0.8 ? 'text-red-400' : 'text-white'
-                }`}>
+                <div
+                  className={`text-lg font-bold ${
+                    botStatus.current_daily_loss > config.max_daily_loss * 0.8
+                      ? 'text-red-400'
+                      : 'text-white'
+                  }`}
+                >
                   ${botStatus.current_daily_loss.toFixed(2)}
                 </div>
-                <div className="text-xs text-white/40 mt-1">
-                  Limit: ${config.max_daily_loss}
-                </div>
+                <div className="text-xs text-white/40 mt-1">Limit: ${config.max_daily_loss}</div>
               </div>
-              
+
               <div className="glass-card p-4 text-center">
                 <div className="text-white/60 text-sm mb-1">Risk Exposure</div>
                 <div className="text-lg font-bold text-white">
-                  {((config.max_position_size / (botStatus?.account_balance || 10000)) * 100).toFixed(1)}%
+                  {(
+                    (config.max_position_size / (botStatus?.account_balance || 10000)) *
+                    100
+                  ).toFixed(1)}
+                  %
                 </div>
-                <div className="text-xs text-white/40 mt-1">
-                  Per trade
-                </div>
+                <div className="text-xs text-white/40 mt-1">Per trade</div>
               </div>
-              
+
               <div className="glass-card p-4 text-center">
                 <div className="text-white/60 text-sm mb-1">Circuit Breaks</div>
-                <div className={`text-lg font-bold ${
-                  botStatus.circuit_breaker_count > 0 ? 'text-orange-400' : 'text-white'
-                }`}>
+                <div
+                  className={`text-lg font-bold ${
+                    botStatus.circuit_breaker_count > 0 ? 'text-orange-400' : 'text-white'
+                  }`}
+                >
                   {botStatus.circuit_breaker_count}
                 </div>
-                <div className="text-xs text-white/40 mt-1">
-                  Today
-                </div>
+                <div className="text-xs text-white/40 mt-1">Today</div>
               </div>
-              
+
               <div className="glass-card p-4 text-center">
                 <div className="text-white/60 text-sm mb-1">Auto-Closed</div>
-                <div className={`text-lg font-bold ${
-                  botStatus.positions_auto_closed > 0 ? 'text-blue-400' : 'text-white'
-                }`}>
+                <div
+                  className={`text-lg font-bold ${
+                    botStatus.positions_auto_closed > 0 ? 'text-blue-400' : 'text-white'
+                  }`}
+                >
                   {botStatus.positions_auto_closed}
                 </div>
-                <div className="text-xs text-white/40 mt-1">
-                  Positions
-                </div>
+                <div className="text-xs text-white/40 mt-1">Positions</div>
               </div>
             </div>
           </ConfigurationSection>

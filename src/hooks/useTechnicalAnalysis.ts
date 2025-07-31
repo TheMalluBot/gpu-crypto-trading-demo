@@ -38,35 +38,40 @@ interface MultiTimeframeAnalysis {
 
 export const useTechnicalAnalysis = (symbol: string) => {
   const [technicalAnalysis, setTechnicalAnalysis] = useState<TechnicalAnalysis | null>(null);
-  const [multiTimeframeAnalysis, setMultiTimeframeAnalysis] = useState<MultiTimeframeAnalysis | null>(null);
+  const [multiTimeframeAnalysis, setMultiTimeframeAnalysis] =
+    useState<MultiTimeframeAnalysis | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
 
   // Get technical analysis for specific timeframe
-  const getTechnicalAnalysis = useCallback(async (targetSymbol: string, timeframe: string = '1h') => {
-    try {
-      setIsLoading(true);
-      setError(null);
+  const getTechnicalAnalysis = useCallback(
+    async (targetSymbol: string, timeframe: string = '1h') => {
+      try {
+        setIsLoading(true);
+        setError(null);
 
-      const analysis = await safeInvoke<TechnicalAnalysis>('get_technical_analysis', {
-        symbol: targetSymbol,
-        timeframe,
-      });
+        const analysis = await safeInvoke<TechnicalAnalysis>('get_technical_analysis', {
+          symbol: targetSymbol,
+          timeframe,
+        });
 
-      if (analysis) {
-        setTechnicalAnalysis(analysis);
-        setLastUpdateTime(new Date());
-        return analysis;
+        if (analysis) {
+          setTechnicalAnalysis(analysis);
+          setLastUpdateTime(new Date());
+          return analysis;
+        }
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to get technical analysis';
+        setError(errorMessage);
+        console.error('Technical analysis error:', err);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to get technical analysis';
-      setError(errorMessage);
-      console.error('Technical analysis error:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    },
+    []
+  );
 
   // Get multi-timeframe analysis
   const getMultiTimeframeAnalysis = useCallback(async (targetSymbol: string) => {
@@ -84,7 +89,8 @@ export const useTechnicalAnalysis = (symbol: string) => {
         return analysis;
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to get multi-timeframe analysis';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to get multi-timeframe analysis';
       setError(errorMessage);
       console.error('Multi-timeframe analysis error:', err);
     } finally {
@@ -93,14 +99,17 @@ export const useTechnicalAnalysis = (symbol: string) => {
   }, []);
 
   // Refresh analysis data
-  const refreshAnalysis = useCallback(async (timeframe: string = '1h') => {
-    if (!symbol) return;
-    
-    await Promise.all([
-      getTechnicalAnalysis(symbol, timeframe),
-      getMultiTimeframeAnalysis(symbol),
-    ]);
-  }, [symbol, getTechnicalAnalysis, getMultiTimeframeAnalysis]);
+  const refreshAnalysis = useCallback(
+    async (timeframe: string = '1h') => {
+      if (!symbol) return;
+
+      await Promise.all([
+        getTechnicalAnalysis(symbol, timeframe),
+        getMultiTimeframeAnalysis(symbol),
+      ]);
+    },
+    [symbol, getTechnicalAnalysis, getMultiTimeframeAnalysis]
+  );
 
   // Auto-refresh analysis every 60 seconds
   useEffect(() => {
@@ -127,7 +136,9 @@ export const useTechnicalAnalysis = (symbol: string) => {
       isBearish: technicalAnalysis.trendDirection.toLowerCase().includes('bearish'),
       isOverbought: technicalAnalysis.rsi > 70,
       isOversold: technicalAnalysis.rsi < 30,
-      strongSignals: technicalAnalysis.signals.filter(s => s.strength === 'Strong' || s.strength === 'VeryStrong'),
+      strongSignals: technicalAnalysis.signals.filter(
+        s => s.strength === 'Strong' || s.strength === 'VeryStrong'
+      ),
       buySignals: technicalAnalysis.signals.filter(s => s.signalType.includes('Buy')),
       sellSignals: technicalAnalysis.signals.filter(s => s.signalType.includes('Sell')),
     };
@@ -138,28 +149,32 @@ export const useTechnicalAnalysis = (symbol: string) => {
     if (!multiTimeframeAnalysis) return null;
 
     const timeframes = Object.keys(multiTimeframeAnalysis);
-    const bullishCount = timeframes.filter(tf => 
+    const bullishCount = timeframes.filter(tf =>
       multiTimeframeAnalysis[tf].trendDirection.toLowerCase().includes('bullish')
     ).length;
-    
-    const bearishCount = timeframes.filter(tf => 
+
+    const bearishCount = timeframes.filter(tf =>
       multiTimeframeAnalysis[tf].trendDirection.toLowerCase().includes('bearish')
     ).length;
 
-    const avgConfidence = timeframes.reduce((sum, tf) => 
-      sum + multiTimeframeAnalysis[tf].confidenceScore, 0
-    ) / timeframes.length;
+    const avgConfidence =
+      timeframes.reduce((sum, tf) => sum + multiTimeframeAnalysis[tf].confidenceScore, 0) /
+      timeframes.length;
 
-    const avgRsi = timeframes.reduce((sum, tf) => 
-      sum + multiTimeframeAnalysis[tf].rsi, 0
-    ) / timeframes.length;
+    const avgRsi =
+      timeframes.reduce((sum, tf) => sum + multiTimeframeAnalysis[tf].rsi, 0) / timeframes.length;
 
     return {
       totalTimeframes: timeframes.length,
       bullishCount,
       bearishCount,
       neutralCount: timeframes.length - bullishCount - bearishCount,
-      consensus: bullishCount > bearishCount ? 'Bullish' : bearishCount > bullishCount ? 'Bearish' : 'Neutral',
+      consensus:
+        bullishCount > bearishCount
+          ? 'Bullish'
+          : bearishCount > bullishCount
+            ? 'Bearish'
+            : 'Neutral',
       averageConfidence: avgConfidence,
       averageRsi: avgRsi,
       isStrongConsensus: Math.max(bullishCount, bearishCount) / timeframes.length >= 0.7,
@@ -171,12 +186,12 @@ export const useTechnicalAnalysis = (symbol: string) => {
     if (!technicalAnalysis) return null;
 
     const currentPrice = technicalAnalysis.currentPrice;
-    
+
     // Find nearest support and resistance
     const nearestSupport = technicalAnalysis.supportLevels
       .filter(level => level < currentPrice)
       .sort((a, b) => b - a)[0]; // Highest support below current price
-    
+
     const nearestResistance = technicalAnalysis.resistanceLevels
       .filter(level => level > currentPrice)
       .sort((a, b) => a - b)[0]; // Lowest resistance above current price
@@ -184,8 +199,12 @@ export const useTechnicalAnalysis = (symbol: string) => {
     return {
       nearestSupport,
       nearestResistance,
-      supportDistance: nearestSupport ? ((currentPrice - nearestSupport) / currentPrice) * 100 : null,
-      resistanceDistance: nearestResistance ? ((nearestResistance - currentPrice) / currentPrice) * 100 : null,
+      supportDistance: nearestSupport
+        ? ((currentPrice - nearestSupport) / currentPrice) * 100
+        : null,
+      resistanceDistance: nearestResistance
+        ? ((nearestResistance - currentPrice) / currentPrice) * 100
+        : null,
       allSupports: technicalAnalysis.supportLevels.sort((a, b) => b - a),
       allResistances: technicalAnalysis.resistanceLevels.sort((a, b) => a - b),
     };
@@ -225,8 +244,11 @@ export const useTechnicalAnalysis = (symbol: string) => {
       reasoning,
       entryPrice: recommendation.includes('Buy') ? keyLevels.nearestSupport : undefined,
       exitPrice: recommendation.includes('Sell') ? keyLevels.nearestResistance : undefined,
-      stopLoss: recommendation.includes('Buy') ? keyLevels.nearestSupport * 0.98 : 
-                recommendation.includes('Sell') ? keyLevels.nearestResistance * 1.02 : undefined,
+      stopLoss: recommendation.includes('Buy')
+        ? keyLevels.nearestSupport * 0.98
+        : recommendation.includes('Sell')
+          ? keyLevels.nearestResistance * 1.02
+          : undefined,
     };
   }, [technicalAnalysis, keyLevels]);
 
@@ -234,18 +256,18 @@ export const useTechnicalAnalysis = (symbol: string) => {
     // Raw data
     technicalAnalysis,
     multiTimeframeAnalysis,
-    
+
     // Processed data
     analysisData,
     timeframeConsensus,
     keyLevels,
     recommendations,
-    
+
     // State
     isLoading,
     error,
     lastUpdateTime,
-    
+
     // Actions
     getTechnicalAnalysis,
     getMultiTimeframeAnalysis,

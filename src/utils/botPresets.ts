@@ -14,14 +14,14 @@ export interface BotPreset {
 
 export const BOT_PRESETS: BotPreset[] = [
   {
-    name: "Conservative Starter",
-    description: "Perfect for beginners - low risk, steady returns with strong safety measures",
-    difficulty: "Beginner",
-    riskLevel: "Low",
-    expectedReturn: "2-5% monthly",
-    timeframe: "4-hour charts (Swing/Position)",
+    name: 'Conservative Starter',
+    description: 'Perfect for beginners - low risk, steady returns with strong safety measures',
+    difficulty: 'Beginner',
+    riskLevel: 'Low',
+    expectedReturn: '2-5% monthly',
+    timeframe: '4-hour charts (Swing/Position)',
     config: {
-      timeframe: "4h",
+      timeframe: '4h',
       period: 20,
       signal_period: 10,
       overbought: 0.7,
@@ -44,34 +44,30 @@ export const BOT_PRESETS: BotPreset[] = [
       circuit_breaker_enabled: true,
       // Conservative auto-resume settings - very cautious approach
       auto_resume_enabled: true,
-      volatility_resume_threshold_multiplier: 1.0,  // Wait for full stability
-      data_quality_resume_delay_minutes: 5,         // Longer wait for data issues
-      connection_resume_delay_minutes: 10,          // Conservative connection wait
-      flash_crash_resume_delay_minutes: 30,         // Long stabilization period
-      max_auto_pause_duration_hours: 6              // Max 6 hours - position trading
+      volatility_resume_threshold_multiplier: 1.0, // Wait for full stability
+      data_quality_resume_delay_minutes: 5, // Longer wait for data issues
+      connection_resume_delay_minutes: 10, // Conservative connection wait
+      flash_crash_resume_delay_minutes: 30, // Long stabilization period
+      max_auto_pause_duration_hours: 6, // Max 6 hours - position trading
     },
     pros: [
-      "Low risk with tight stop losses",
-      "Paper trading enabled by default",
-      "Strong safety measures",
-      "Easy to understand settings"
+      'Low risk with tight stop losses',
+      'Paper trading enabled by default',
+      'Strong safety measures',
+      'Easy to understand settings',
     ],
-    cons: [
-      "Lower profit potential",
-      "May miss quick opportunities",
-      "Conservative approach"
-    ]
+    cons: ['Lower profit potential', 'May miss quick opportunities', 'Conservative approach'],
   },
-  
+
   {
-    name: "Balanced Growth",
-    description: "Balanced approach for steady growth with moderate risk tolerance",
-    difficulty: "Intermediate",
-    riskLevel: "Medium",
-    expectedReturn: "5-12% monthly",
-    timeframe: "1-hour charts (Day trading)",
+    name: 'Balanced Growth',
+    description: 'Balanced approach for steady growth with moderate risk tolerance',
+    difficulty: 'Intermediate',
+    riskLevel: 'Medium',
+    expectedReturn: '5-12% monthly',
+    timeframe: '1-hour charts (Day trading)',
     config: {
-      timeframe: "1h",
+      timeframe: '1h',
       period: 15,
       signal_period: 8,
       overbought: 0.8,
@@ -94,34 +90,34 @@ export const BOT_PRESETS: BotPreset[] = [
       circuit_breaker_enabled: true,
       // Balanced auto-resume settings - moderate approach
       auto_resume_enabled: true,
-      volatility_resume_threshold_multiplier: 0.8,  // Balanced resume (80%)
-      data_quality_resume_delay_minutes: 2,         // Standard wait for data issues
-      connection_resume_delay_minutes: 3,           // Standard wait for connection issues
-      flash_crash_resume_delay_minutes: 10,         // Medium wait for flash crash
-      max_auto_pause_duration_hours: 2              // Max 2 hours pause
+      volatility_resume_threshold_multiplier: 0.8, // Balanced resume (80%)
+      data_quality_resume_delay_minutes: 2, // Standard wait for data issues
+      connection_resume_delay_minutes: 3, // Standard wait for connection issues
+      flash_crash_resume_delay_minutes: 10, // Medium wait for flash crash
+      max_auto_pause_duration_hours: 2, // Max 2 hours pause
     },
     pros: [
-      "Good balance of risk and reward",
-      "Adaptive to market conditions",
-      "Reasonable profit targets",
-      "Moderate safety measures"
+      'Good balance of risk and reward',
+      'Adaptive to market conditions',
+      'Reasonable profit targets',
+      'Moderate safety measures',
     ],
     cons: [
-      "Higher risk than conservative",
-      "Requires some market knowledge",
-      "May have drawdown periods"
-    ]
+      'Higher risk than conservative',
+      'Requires some market knowledge',
+      'May have drawdown periods',
+    ],
   },
-  
+
   {
-    name: "Aggressive Scalper",
-    description: "High-frequency trading for experienced users seeking maximum returns",
-    difficulty: "Advanced",
-    riskLevel: "High",
-    expectedReturn: "3-8% monthly",
-    timeframe: "5-minute charts (Scalping)",
+    name: 'Aggressive Scalper',
+    description: 'High-frequency trading for experienced users seeking maximum returns',
+    difficulty: 'Advanced',
+    riskLevel: 'High',
+    expectedReturn: '3-8% monthly',
+    timeframe: '5-minute charts (Scalping)',
     config: {
-      timeframe: "5m",
+      timeframe: '5m',
       period: 10,
       signal_period: 5,
       overbought: 0.9,
@@ -144,35 +140,35 @@ export const BOT_PRESETS: BotPreset[] = [
       circuit_breaker_enabled: true,
       // Aggressive scalping auto-resume settings - fast recovery
       auto_resume_enabled: true,
-      volatility_resume_threshold_multiplier: 0.6,  // More aggressive resume (60%)
-      data_quality_resume_delay_minutes: 1,         // Quick resume for data issues
-      connection_resume_delay_minutes: 2,           // Quick resume for connection issues
-      flash_crash_resume_delay_minutes: 5,          // Short wait for flash crash
-      max_auto_pause_duration_hours: 1              // Max 1 hour pause
+      volatility_resume_threshold_multiplier: 0.6, // More aggressive resume (60%)
+      data_quality_resume_delay_minutes: 1, // Quick resume for data issues
+      connection_resume_delay_minutes: 2, // Quick resume for connection issues
+      flash_crash_resume_delay_minutes: 5, // Short wait for flash crash
+      max_auto_pause_duration_hours: 1, // Max 1 hour pause
     },
     pros: [
-      "High profit potential",
-      "Quick trades with fast exits",
-      "Adaptive to rapid market changes",
-      "Maximizes trading opportunities"
+      'High profit potential',
+      'Quick trades with fast exits',
+      'Adaptive to rapid market changes',
+      'Maximizes trading opportunities',
     ],
     cons: [
-      "High risk and volatility",
-      "Requires constant monitoring",
-      "Higher transaction costs",
-      "Not suitable for beginners"
-    ]
+      'High risk and volatility',
+      'Requires constant monitoring',
+      'Higher transaction costs',
+      'Not suitable for beginners',
+    ],
   },
-  
+
   {
-    name: "Swing Trader",
-    description: "Medium-term positions targeting larger price movements",
-    difficulty: "Intermediate",
-    riskLevel: "Medium",
-    expectedReturn: "8-15% monthly",
-    timeframe: "Daily charts (Swing trading)",
+    name: 'Swing Trader',
+    description: 'Medium-term positions targeting larger price movements',
+    difficulty: 'Intermediate',
+    riskLevel: 'Medium',
+    expectedReturn: '8-15% monthly',
+    timeframe: 'Daily charts (Swing trading)',
     config: {
-      timeframe: "1d",
+      timeframe: '1d',
       period: 25,
       signal_period: 12,
       overbought: 0.6,
@@ -195,35 +191,35 @@ export const BOT_PRESETS: BotPreset[] = [
       circuit_breaker_enabled: true,
       // Swing trading auto-resume settings - balanced approach
       auto_resume_enabled: true,
-      volatility_resume_threshold_multiplier: 0.8,  // Balanced resume (80%)
-      data_quality_resume_delay_minutes: 2,         // Standard wait for data issues
-      connection_resume_delay_minutes: 3,           // Standard wait for connection issues
-      flash_crash_resume_delay_minutes: 10,         // Medium wait for flash crash
-      max_auto_pause_duration_hours: 2              // Max 2 hours pause
+      volatility_resume_threshold_multiplier: 0.8, // Balanced resume (80%)
+      data_quality_resume_delay_minutes: 2, // Standard wait for data issues
+      connection_resume_delay_minutes: 3, // Standard wait for connection issues
+      flash_crash_resume_delay_minutes: 10, // Medium wait for flash crash
+      max_auto_pause_duration_hours: 2, // Max 2 hours pause
     },
     pros: [
-      "Captures larger price movements",
-      "Lower transaction costs",
-      "Less screen time required",
-      "Good risk-reward ratio"
+      'Captures larger price movements',
+      'Lower transaction costs',
+      'Less screen time required',
+      'Good risk-reward ratio',
     ],
     cons: [
-      "Longer holding periods",
-      "May miss short-term opportunities",
-      "Requires patience",
-      "Overnight risk exposure"
-    ]
+      'Longer holding periods',
+      'May miss short-term opportunities',
+      'Requires patience',
+      'Overnight risk exposure',
+    ],
   },
-  
+
   {
-    name: "Ultra-Fast Scalper",
-    description: "1-minute chart scalping for maximum trade frequency - expert traders only",
-    difficulty: "Advanced",
-    riskLevel: "High",
-    expectedReturn: "4-10% monthly",
-    timeframe: "1-minute charts (Ultra-scalping)",
+    name: 'Ultra-Fast Scalper',
+    description: '1-minute chart scalping for maximum trade frequency - expert traders only',
+    difficulty: 'Advanced',
+    riskLevel: 'High',
+    expectedReturn: '4-10% monthly',
+    timeframe: '1-minute charts (Ultra-scalping)',
     config: {
-      timeframe: "1m",
+      timeframe: '1m',
       period: 8,
       signal_period: 3,
       overbought: 0.85,
@@ -246,36 +242,36 @@ export const BOT_PRESETS: BotPreset[] = [
       circuit_breaker_enabled: true,
       // Ultra-fast scalping auto-resume settings - extremely aggressive
       auto_resume_enabled: true,
-      volatility_resume_threshold_multiplier: 0.7,  // More conservative resume (70%)
-      data_quality_resume_delay_minutes: 1,         // Ultra-quick resume for data issues (minimum 1 min)
-      connection_resume_delay_minutes: 1,           // Ultra-quick resume for connection issues
-      flash_crash_resume_delay_minutes: 3,          // Very short wait for flash crash
-      max_auto_pause_duration_hours: 1              // Max 1 hour pause (minimum allowed)
+      volatility_resume_threshold_multiplier: 0.7, // More conservative resume (70%)
+      data_quality_resume_delay_minutes: 1, // Ultra-quick resume for data issues (minimum 1 min)
+      connection_resume_delay_minutes: 1, // Ultra-quick resume for connection issues
+      flash_crash_resume_delay_minutes: 3, // Very short wait for flash crash
+      max_auto_pause_duration_hours: 1, // Max 1 hour pause (minimum allowed)
     },
     pros: [
-      "Maximum trading frequency",
-      "Captures micro-movements",
-      "Very tight stops minimize losses",
-      "High profit potential"
+      'Maximum trading frequency',
+      'Captures micro-movements',
+      'Very tight stops minimize losses',
+      'High profit potential',
     ],
     cons: [
-      "Extremely high risk",
-      "Requires constant monitoring",
-      "High transaction costs",
-      "Prone to false signals",
-      "Not for beginners"
-    ]
+      'Extremely high risk',
+      'Requires constant monitoring',
+      'High transaction costs',
+      'Prone to false signals',
+      'Not for beginners',
+    ],
   },
-  
+
   {
-    name: "Range Bound",
-    description: "Optimized for sideways markets with clear support and resistance",
-    difficulty: "Intermediate",
-    riskLevel: "Low",
-    expectedReturn: "4-8% monthly",
-    timeframe: "2-hour charts (Range trading)",
+    name: 'Range Bound',
+    description: 'Optimized for sideways markets with clear support and resistance',
+    difficulty: 'Intermediate',
+    riskLevel: 'Low',
+    expectedReturn: '4-8% monthly',
+    timeframe: '2-hour charts (Range trading)',
     config: {
-      timeframe: "2h",
+      timeframe: '2h',
       period: 30,
       signal_period: 15,
       overbought: 0.5,
@@ -298,32 +294,34 @@ export const BOT_PRESETS: BotPreset[] = [
       circuit_breaker_enabled: true,
       // Range trading auto-resume settings - moderate approach
       auto_resume_enabled: true,
-      volatility_resume_threshold_multiplier: 0.7,  // Moderate resume (70%)
-      data_quality_resume_delay_minutes: 2,         // Quick resume for range trading
-      connection_resume_delay_minutes: 3,           // Standard wait
-      flash_crash_resume_delay_minutes: 8,          // Medium wait - range sensitive
-      max_auto_pause_duration_hours: 3              // Max 3 hours pause
+      volatility_resume_threshold_multiplier: 0.7, // Moderate resume (70%)
+      data_quality_resume_delay_minutes: 2, // Quick resume for range trading
+      connection_resume_delay_minutes: 3, // Standard wait
+      flash_crash_resume_delay_minutes: 8, // Medium wait - range sensitive
+      max_auto_pause_duration_hours: 3, // Max 3 hours pause
     },
     pros: [
-      "Works well in sideways markets",
-      "Predictable entry/exit points",
-      "Lower risk profile",
-      "Consistent small profits"
+      'Works well in sideways markets',
+      'Predictable entry/exit points',
+      'Lower risk profile',
+      'Consistent small profits',
     ],
     cons: [
-      "Poor performance in trending markets",
-      "Limited profit potential",
-      "Requires range-bound conditions",
-      "May get caught in breakouts"
-    ]
-  }
+      'Poor performance in trending markets',
+      'Limited profit potential',
+      'Requires range-bound conditions',
+      'May get caught in breakouts',
+    ],
+  },
 ];
 
 export const getPresetByName = (name: string): BotPreset | undefined => {
   return BOT_PRESETS.find(preset => preset.name === name);
 };
 
-export const getPresetsByDifficulty = (difficulty: 'Beginner' | 'Intermediate' | 'Advanced'): BotPreset[] => {
+export const getPresetsByDifficulty = (
+  difficulty: 'Beginner' | 'Intermediate' | 'Advanced'
+): BotPreset[] => {
   return BOT_PRESETS.filter(preset => preset.difficulty === difficulty);
 };
 

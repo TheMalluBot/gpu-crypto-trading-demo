@@ -11,7 +11,7 @@ export const formatCurrency = (amount: number, decimals: number = 2): string => 
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals
+    maximumFractionDigits: decimals,
   }).format(amount);
 };
 
@@ -29,7 +29,7 @@ export const formatPrice = (price: number, decimals?: number): string => {
   if (decimals !== undefined) {
     return price.toFixed(decimals);
   }
-  
+
   // Auto-adjust decimal places based on price magnitude
   if (price < 1) return price.toFixed(4);
   if (price < 10) return price.toFixed(3);
@@ -64,7 +64,7 @@ export const formatDate = (date: string | Date): string => {
   return new Date(date).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
-    day: 'numeric'
+    day: 'numeric',
   });
 };
 
@@ -72,10 +72,10 @@ export const formatDate = (date: string | Date): string => {
  * Format time in a consistent way across the app
  */
 export const formatTime = (date: string | Date): string => {
-  return new Date(date).toLocaleTimeString('en-US', { 
-    hour: '2-digit', 
+  return new Date(date).toLocaleTimeString('en-US', {
+    hour: '2-digit',
     minute: '2-digit',
-    hour12: false
+    hour12: false,
   });
 };
 
@@ -101,21 +101,32 @@ export const formatPnLWithSign = (value: number, showPercentage: boolean = false
  */
 export const getSignalColor = (signalType: string): string => {
   switch (signalType) {
-    case 'StrongBuy': return 'bg-green-500 text-white';
-    case 'Buy': return 'bg-green-500/70 text-white';
-    case 'StrongSell': return 'bg-red-500 text-white';
-    case 'Sell': return 'bg-red-500/70 text-white';
-    case 'Hold': return 'bg-yellow-500/70 text-white';
-    default: return 'bg-gray-500 text-white';
+    case 'StrongBuy':
+      return 'bg-green-500 text-white';
+    case 'Buy':
+      return 'bg-green-500/70 text-white';
+    case 'StrongSell':
+      return 'bg-red-500 text-white';
+    case 'Sell':
+      return 'bg-red-500/70 text-white';
+    case 'Hold':
+      return 'bg-yellow-500/70 text-white';
+    default:
+      return 'bg-gray-500 text-white';
   }
 };
 
 export const getMarketPhaseColor = (phase: string): string => {
   switch (phase) {
-    case 'Trending': return 'bg-blue-500/70 text-white';
-    case 'Ranging': return 'bg-purple-500/70 text-white';
-    case 'Breakout': return 'bg-orange-500/70 text-white';
-    case 'Reversal': return 'bg-pink-500/70 text-white';
-    default: return 'bg-gray-500 text-white';
+    case 'Trending':
+      return 'bg-blue-500/70 text-white';
+    case 'Ranging':
+      return 'bg-purple-500/70 text-white';
+    case 'Breakout':
+      return 'bg-orange-500/70 text-white';
+    case 'Reversal':
+      return 'bg-pink-500/70 text-white';
+    default:
+      return 'bg-gray-500 text-white';
   }
 };

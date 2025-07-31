@@ -17,10 +17,12 @@ interface AutomationConfigPanelProps {
 export const AutomationConfigPanel: React.FC<AutomationConfigPanelProps> = ({
   isOpen,
   onClose,
-  assetManager
+  assetManager,
 }) => {
   const [config, setConfig] = useState(assetManager.config);
-  const [activeSection, setActiveSection] = useState<'general' | 'profit' | 'rebalance' | 'risk'>('general');
+  const [activeSection, setActiveSection] = useState<'general' | 'profit' | 'rebalance' | 'risk'>(
+    'general'
+  );
 
   const handleSave = () => {
     assetManager.updateConfig(config);
@@ -46,7 +48,7 @@ export const AutomationConfigPanel: React.FC<AutomationConfigPanelProps> = ({
             { id: 'general', label: 'General', icon: Settings },
             { id: 'profit', label: 'Profit Management', icon: TrendingUp },
             { id: 'rebalance', label: 'Rebalancing', icon: Shield },
-            { id: 'risk', label: 'Risk Controls', icon: AlertTriangle }
+            { id: 'risk', label: 'Risk Controls', icon: AlertTriangle },
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -74,13 +76,15 @@ export const AutomationConfigPanel: React.FC<AutomationConfigPanelProps> = ({
             >
               <div className="glass-card p-6">
                 <h3 className="text-lg font-bold text-white mb-4">General Automation Settings</h3>
-                
+
                 <div className="space-y-4">
                   {/* Master Enable/Disable */}
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-white font-medium">Enable Automation</div>
-                      <div className="text-sm text-white/60">Master switch for all automated features</div>
+                      <div className="text-sm text-white/60">
+                        Master switch for all automated features
+                      </div>
                     </div>
                     <button
                       onClick={() => handleConfigChange('enabled', !config.enabled)}
@@ -98,9 +102,7 @@ export const AutomationConfigPanel: React.FC<AutomationConfigPanelProps> = ({
 
                   {/* Monitoring Interval */}
                   <div>
-                    <label className="block text-white font-medium mb-2">
-                      Monitoring Interval
-                    </label>
+                    <label className="block text-white font-medium mb-2">Monitoring Interval</label>
                     <div className="flex items-center space-x-4">
                       <input
                         type="range"
@@ -108,7 +110,9 @@ export const AutomationConfigPanel: React.FC<AutomationConfigPanelProps> = ({
                         max="300000"
                         step="5000"
                         value={config.monitoring_interval}
-                        onChange={(e) => handleConfigChange('monitoring_interval', parseInt(e.target.value))}
+                        onChange={e =>
+                          handleConfigChange('monitoring_interval', parseInt(e.target.value))
+                        }
                         className="flex-1"
                       />
                       <span className="text-white min-w-0 text-sm">
@@ -133,16 +137,20 @@ export const AutomationConfigPanel: React.FC<AutomationConfigPanelProps> = ({
             >
               <div className="glass-card p-6">
                 <h3 className="text-lg font-bold text-white mb-4">Automated Profit Taking</h3>
-                
+
                 <div className="space-y-4">
                   {/* Enable Profit Taking */}
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-white font-medium">Auto Profit Taking</div>
-                      <div className="text-sm text-white/60">Automatically secure profits at predefined levels</div>
+                      <div className="text-sm text-white/60">
+                        Automatically secure profits at predefined levels
+                      </div>
                     </div>
                     <button
-                      onClick={() => handleConfigChange('auto_profit_taking', !config.auto_profit_taking)}
+                      onClick={() =>
+                        handleConfigChange('auto_profit_taking', !config.auto_profit_taking)
+                      }
                       className={`w-14 h-7 rounded-full p-1 transition-colors ${
                         config.auto_profit_taking ? 'bg-green-500' : 'bg-white/20'
                       }`}
@@ -167,7 +175,9 @@ export const AutomationConfigPanel: React.FC<AutomationConfigPanelProps> = ({
                         max="20"
                         step="0.5"
                         value={config.profit_taking_threshold}
-                        onChange={(e) => handleConfigChange('profit_taking_threshold', parseFloat(e.target.value))}
+                        onChange={e =>
+                          handleConfigChange('profit_taking_threshold', parseFloat(e.target.value))
+                        }
                         className="flex-1"
                       />
                       <span className="text-white min-w-0 text-sm">
@@ -188,13 +198,16 @@ export const AutomationConfigPanel: React.FC<AutomationConfigPanelProps> = ({
                         <div className="text-white/60">Action</div>
                         <div className="text-white/60">Amount to Secure</div>
                       </div>
-                      
+
                       {[
                         { level: 10, action: 'secure', amount: 25 },
                         { level: 20, action: 'secure', amount: 50 },
-                        { level: 50, action: 'trail', amount: 0 }
+                        { level: 50, action: 'trail', amount: 0 },
                       ].map((zone, index) => (
-                        <div key={index} className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center p-3 bg-white/5 rounded">
+                        <div
+                          key={index}
+                          className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center p-3 bg-white/5 rounded"
+                        >
                           <div className="text-green-400 font-medium">{zone.level}%</div>
                           <div className="text-white capitalize">{zone.action}</div>
                           <div className="text-white">{zone.amount}%</div>
@@ -216,13 +229,15 @@ export const AutomationConfigPanel: React.FC<AutomationConfigPanelProps> = ({
             >
               <div className="glass-card p-6">
                 <h3 className="text-lg font-bold text-white mb-4">Automated Rebalancing</h3>
-                
+
                 <div className="space-y-4">
                   {/* Enable Rebalancing */}
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-white font-medium">Auto Rebalancing</div>
-                      <div className="text-sm text-white/60">Automatically rebalance portfolio to target allocations</div>
+                      <div className="text-sm text-white/60">
+                        Automatically rebalance portfolio to target allocations
+                      </div>
                     </div>
                     <button
                       onClick={() => handleConfigChange('auto_rebalance', !config.auto_rebalance)}
@@ -240,9 +255,7 @@ export const AutomationConfigPanel: React.FC<AutomationConfigPanelProps> = ({
 
                   {/* Rebalance Threshold */}
                   <div>
-                    <label className="block text-white font-medium mb-2">
-                      Rebalance Threshold
-                    </label>
+                    <label className="block text-white font-medium mb-2">Rebalance Threshold</label>
                     <div className="flex items-center space-x-4">
                       <input
                         type="range"
@@ -250,7 +263,9 @@ export const AutomationConfigPanel: React.FC<AutomationConfigPanelProps> = ({
                         max="10"
                         step="0.5"
                         value={config.rebalance_threshold}
-                        onChange={(e) => handleConfigChange('rebalance_threshold', parseFloat(e.target.value))}
+                        onChange={e =>
+                          handleConfigChange('rebalance_threshold', parseFloat(e.target.value))
+                        }
                         className="flex-1"
                       />
                       <span className="text-white min-w-0 text-sm">
@@ -294,7 +309,7 @@ export const AutomationConfigPanel: React.FC<AutomationConfigPanelProps> = ({
             >
               <div className="glass-card p-6">
                 <h3 className="text-lg font-bold text-white mb-4">Risk Management Controls</h3>
-                
+
                 <div className="space-y-6">
                   {/* Emergency Controls */}
                   <div>
@@ -303,17 +318,21 @@ export const AutomationConfigPanel: React.FC<AutomationConfigPanelProps> = ({
                       <div className="flex items-center justify-between p-3 bg-red-500/10 border border-red-500/20 rounded">
                         <div>
                           <div className="text-white font-medium">Flash Crash Protection</div>
-                          <div className="text-sm text-red-300">Auto-reduce positions during rapid price movements</div>
+                          <div className="text-sm text-red-300">
+                            Auto-reduce positions during rapid price movements
+                          </div>
                         </div>
                         <button className="w-12 h-6 bg-red-500 rounded-full p-1">
                           <div className="w-4 h-4 bg-white rounded-full transform translate-x-6" />
                         </button>
                       </div>
-                      
+
                       <div className="flex items-center justify-between p-3 bg-yellow-500/10 border border-yellow-500/20 rounded">
                         <div>
                           <div className="text-white font-medium">High Volatility Scaling</div>
-                          <div className="text-sm text-yellow-300">Reduce position sizes during high volatility</div>
+                          <div className="text-sm text-yellow-300">
+                            Reduce position sizes during high volatility
+                          </div>
                         </div>
                         <button className="w-12 h-6 bg-yellow-500 rounded-full p-1">
                           <div className="w-4 h-4 bg-white rounded-full transform translate-x-6" />
@@ -327,29 +346,21 @@ export const AutomationConfigPanel: React.FC<AutomationConfigPanelProps> = ({
                     <div className="text-white font-medium mb-3">Risk Thresholds</div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-white/60 text-sm mb-1">Portfolio Health Threshold</label>
+                        <label className="block text-white/60 text-sm mb-1">
+                          Portfolio Health Threshold
+                        </label>
                         <div className="flex items-center space-x-2">
-                          <input
-                            type="range"
-                            min="30"
-                            max="80"
-                            value="50"
-                            className="flex-1"
-                          />
+                          <input type="range" min="30" max="80" value="50" className="flex-1" />
                           <span className="text-white text-sm">50%</span>
                         </div>
                       </div>
-                      
+
                       <div>
-                        <label className="block text-white/60 text-sm mb-1">Volatility Threshold</label>
+                        <label className="block text-white/60 text-sm mb-1">
+                          Volatility Threshold
+                        </label>
                         <div className="flex items-center space-x-2">
-                          <input
-                            type="range"
-                            min="5"
-                            max="20"
-                            value="8"
-                            className="flex-1"
-                          />
+                          <input type="range" min="5" max="20" value="8" className="flex-1" />
                           <span className="text-white text-sm">8%</span>
                         </div>
                       </div>
@@ -385,7 +396,7 @@ export const AutomationConfigPanel: React.FC<AutomationConfigPanelProps> = ({
           <div className="text-sm text-white/60">
             Changes will take effect immediately after saving
           </div>
-          
+
           <div className="flex items-center space-x-3">
             <button
               onClick={onClose}

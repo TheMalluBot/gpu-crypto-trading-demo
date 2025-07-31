@@ -16,7 +16,7 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
   onChange,
   disabled = false,
   ariaLabel,
-  ariaDescribedBy
+  ariaDescribedBy,
 }) => {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === ' ' || e.key === 'Enter') {
@@ -43,9 +43,9 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
         disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
       }`}
       style={{
-        backgroundColor: checked 
-          ? `rgb(var(--color-primary-500))` 
-          : `rgba(var(--color-surface-400), 0.3)`
+        backgroundColor: checked
+          ? `rgb(var(--color-primary-500))`
+          : `rgba(var(--color-surface-400), 0.3)`,
       }}
     >
       <motion.div

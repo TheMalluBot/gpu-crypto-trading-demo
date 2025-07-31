@@ -44,15 +44,15 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   // Apply theme to DOM when it changes
   useEffect(() => {
     applyTheme(currentTheme);
-    
+
     // Add transition class for smooth theme changes
     document.documentElement.classList.add('animate-theme-transition');
-    
+
     // Remove transition class after animation completes
     const timer = setTimeout(() => {
       document.documentElement.classList.remove('animate-theme-transition');
     }, 300);
-    
+
     return () => clearTimeout(timer);
   }, [currentTheme]);
 
@@ -72,9 +72,5 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     toggleTheme,
   };
 
-  return (
-    <ThemeContext.Provider value={contextValue}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={contextValue}>{children}</ThemeContext.Provider>;
 };

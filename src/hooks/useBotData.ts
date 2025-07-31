@@ -15,11 +15,11 @@ import {
   MarketConditions,
   VirtualPortfolio,
   LROConfig,
-  PaperTrade
+  PaperTrade,
 } from '../types/bot';
 
 const defaultConfig: LROConfig = {
-  timeframe: "1h",
+  timeframe: '1h',
   period: 25,
   signal_period: 9,
   overbought: 0.8,
@@ -44,7 +44,7 @@ const defaultConfig: LROConfig = {
 
 /**
  * Custom hook for managing bot data, signals, and trading operations
- * 
+ *
  * @description This hook provides a comprehensive interface for:
  * - Bot status monitoring and control
  * - Signal generation and analysis
@@ -52,7 +52,7 @@ const defaultConfig: LROConfig = {
  * - Market conditions analysis
  * - Virtual portfolio management
  * - Configuration management
- * 
+ *
  * @returns {Object} Bot data and control functions
  * @returns {BotStatus | null} returns.botStatus - Current bot status and configuration
  * @returns {LROSignal[]} returns.signals - Array of recent trading signals
@@ -73,7 +73,7 @@ const defaultConfig: LROConfig = {
  * @returns {Function} returns.simulateData - Trigger data refresh
  * @returns {Function} returns.applyStrategyPreset - Apply predefined strategy configuration
  * @returns {Object} returns.assetManager - Automated asset management instance
- * 
+ *
  * @example
  * ```tsx
  * const {
@@ -85,12 +85,12 @@ const defaultConfig: LROConfig = {
  *   config,
  *   setConfig
  * } = useBotData();
- * 
+ *
  * // Start the bot
  * const handleStart = () => {
  *   toggleBot();
  * };
- * 
+ *
  * // Update configuration
  * const updateConfig = (newConfig) => {
  *   setConfig(newConfig);
@@ -100,7 +100,7 @@ const defaultConfig: LROConfig = {
 export const useBotData = () => {
   const [botStatus, setBotStatus] = useState<BotStatus | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  
+
   // Initialize automated asset manager
   const assetManager = useAutomatedAssetManager();
   const [signals, setSignals] = useState<LROSignal[]>([]);
@@ -110,7 +110,6 @@ export const useBotData = () => {
   const [virtualPortfolio, setVirtualPortfolio] = useState<VirtualPortfolio | null>(null);
   const [config, setConfig] = useState<LROConfig>(defaultConfig);
   const [loading, setLoading] = useState(false);
-  
 
   const generateMockBotStatus = useCallback(() => {
     const mockStatus: BotStatus = {
@@ -127,8 +126,10 @@ export const useBotData = () => {
           trend_strength: Math.random(),
           volatility: Math.random(),
           volume_profile: Math.random(),
-          market_phase: ['Trending', 'Ranging', 'Breakout', 'Reversal'][Math.floor(Math.random() * 4)] as any,
-        }
+          market_phase: ['Trending', 'Ranging', 'Breakout', 'Reversal'][
+            Math.floor(Math.random() * 4)
+          ] as any,
+        },
       },
       performance: {
         total_trades: 0, // No trades when bot is inactive
@@ -143,7 +144,8 @@ export const useBotData = () => {
         ...config,
         // Ensure auto-resume settings have defaults if missing
         auto_resume_enabled: config.auto_resume_enabled ?? true,
-        volatility_resume_threshold_multiplier: config.volatility_resume_threshold_multiplier ?? 0.8,
+        volatility_resume_threshold_multiplier:
+          config.volatility_resume_threshold_multiplier ?? 0.8,
         data_quality_resume_delay_minutes: config.data_quality_resume_delay_minutes ?? 2,
         connection_resume_delay_minutes: config.connection_resume_delay_minutes ?? 3,
         flash_crash_resume_delay_minutes: config.flash_crash_resume_delay_minutes ?? 10,
@@ -161,7 +163,7 @@ export const useBotData = () => {
       last_circuit_breaker_time: undefined,
       depth_analysis_enabled: true,
     };
-    
+
     setBotStatus(mockStatus);
   }, [config]);
 
@@ -174,7 +176,7 @@ export const useBotData = () => {
         return;
       }
       setBotStatus(status);
-      
+
       // Ensure minimum viable configuration
       if (status.account_balance <= 0) {
         console.warn('⚠️ Zero balance detected, setting default balance');
@@ -187,7 +189,7 @@ export const useBotData = () => {
           console.error('Failed to update balance:', balanceError);
         }
       }
-      
+
       // Set config from status if auto-strategy is disabled
       if (!status.config?.auto_strategy_enabled) {
         setConfig(status.config);
@@ -201,12 +203,12 @@ export const useBotData = () => {
   const generateMockSignals = useCallback(() => {
     const mockSignals: LROSignal[] = [];
     const now = new Date();
-    
+
     for (let i = 50; i >= 0; i--) {
       const timestamp = new Date(now.getTime() - i * 5 * 60 * 1000);
       const lroValue = Math.sin(i * 0.1) * 0.8 + (Math.random() - 0.5) * 0.3;
       const signalLine = lroValue * 0.8 + (Math.random() - 0.5) * 0.2;
-      
+
       let signalType: 'Buy' | 'Sell' | 'StrongBuy' | 'StrongSell' | 'Hold' = 'Hold';
       if (lroValue > 0.8) {
         signalType = lroValue > 0.9 ? 'StrongSell' : 'Sell';
@@ -224,27 +226,32 @@ export const useBotData = () => {
           trend_strength: Math.random(),
           volatility: Math.random() * 0.5 + 0.2,
           volume_profile: Math.random(),
-          market_phase: ['Trending', 'Ranging', 'Breakout', 'Reversal'][Math.floor(Math.random() * 4)] as any,
-        }
+          market_phase: ['Trending', 'Ranging', 'Breakout', 'Reversal'][
+            Math.floor(Math.random() * 4)
+          ] as any,
+        },
       });
     }
-    
+
     setSignals(mockSignals.reverse());
-    
+
     // Notify asset manager of new signals
     if (mockSignals.length > 0 && botStatus) {
       assetManager.onBotSignal(mockSignals[mockSignals.length - 1], botStatus);
     }
-    
+
     const chartPoints: ChartDataPoint[] = mockSignals.map(signal => ({
       timestamp: signal.timestamp,
-      time: new Date(signal.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      time: new Date(signal.timestamp).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
       lro_value: signal.lro_value,
       signal_line: signal.signal_line,
       overbought: 0.8,
       oversold: -0.8,
     }));
-    
+
     setChartData(chartPoints);
   }, []);
 
@@ -257,21 +264,26 @@ export const useBotData = () => {
         return;
       }
       setSignals(signalData);
-      
+
       // Notify asset manager of new signals
       if (signalData.length > 0 && botStatus) {
         assetManager.onBotSignal(signalData[signalData.length - 1], botStatus);
       }
-      
-      const chartPoints: ChartDataPoint[] = signalData.map(signal => ({
-        timestamp: signal.timestamp,
-        time: new Date(signal.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        lro_value: signal.lro_value,
-        signal_line: signal.signal_line,
-        overbought: 0.8,
-        oversold: -0.8,
-      })).reverse();
-      
+
+      const chartPoints: ChartDataPoint[] = signalData
+        .map(signal => ({
+          timestamp: signal.timestamp,
+          time: new Date(signal.timestamp).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+          lro_value: signal.lro_value,
+          signal_line: signal.signal_line,
+          overbought: 0.8,
+          oversold: -0.8,
+        }))
+        .reverse();
+
       setChartData(chartPoints);
     } catch (error) {
       console.error('Failed to load signals:', error);
@@ -279,10 +291,11 @@ export const useBotData = () => {
     }
   }, [generateMockSignals]);
 
-
   const loadPerformanceData = useCallback(async () => {
     try {
-      const perfData = await safeInvoke<PerformanceDataPoint[]>('get_bot_performance_history', { days: 30 });
+      const perfData = await safeInvoke<PerformanceDataPoint[]>('get_bot_performance_history', {
+        days: 30,
+      });
       if (!perfData || perfData.length === 0) {
         console.warn('No performance data available from backend');
         setPerformanceData([]);
@@ -303,17 +316,17 @@ export const useBotData = () => {
         const time = Date.now();
         const cyclePeriod = 60000;
         const cyclePhase = (time % cyclePeriod) / cyclePeriod;
-        
+
         const volatility = 0.3 + Math.sin(cyclePhase * Math.PI * 2) * 0.2 + Math.random() * 0.1;
         const trendStrength = 0.5 + Math.cos(cyclePhase * Math.PI * 2) * 0.3 + Math.random() * 0.1;
         const volumeProfile = 0.4 + Math.sin(cyclePhase * Math.PI * 4) * 0.3 + Math.random() * 0.1;
         const priceMomentum = Math.sin(cyclePhase * Math.PI * 6) * 0.1 + Math.random() * 0.05;
-        
+
         let marketRegime: 'Bull' | 'Bear' | 'Sideways' | 'Volatile' = 'Sideways';
         if (trendStrength > 0.7 && priceMomentum > 0) marketRegime = 'Bull';
         else if (trendStrength > 0.7 && priceMomentum < 0) marketRegime = 'Bear';
         else if (volatility > 0.6) marketRegime = 'Volatile';
-        
+
         setMarketConditions({
           volatility,
           trend_strength: trendStrength,
@@ -335,26 +348,26 @@ export const useBotData = () => {
     let balance = config.virtual_balance;
     let totalPnL = 0;
     let winningTrades = 0;
-    
+
     for (let i = 0; i < 10; i++) {
       const timestamp = new Date(Date.now() - (10 - i) * 4 * 60 * 60 * 1000);
       const side = Math.random() > 0.5 ? 'Long' : 'Short';
       const entryPrice = 45000 + Math.random() * 10000;
-      const quantity = (Math.random() * 0.1 + 0.05);
+      const quantity = Math.random() * 0.1 + 0.05;
       const isOpen = i >= 8;
-      
+
       let exitPrice, pnl, pnlPercentage;
       if (!isOpen) {
         const priceChange = (Math.random() - 0.4) * 0.1;
         exitPrice = entryPrice * (1 + priceChange);
         pnl = (exitPrice - entryPrice) * quantity * (side === 'Long' ? 1 : -1);
         pnlPercentage = (pnl / (entryPrice * quantity)) * 100;
-        
+
         if (pnl > 0) winningTrades++;
         totalPnL += pnl;
         balance += pnl;
       }
-      
+
       paperTrades.push({
         id: `trade-${i}`,
         timestamp: timestamp.toISOString(),
@@ -366,19 +379,20 @@ export const useBotData = () => {
         status: isOpen ? 'Open' : 'Closed',
         pnl,
         pnl_percentage: pnlPercentage,
-        reason: isOpen ? undefined : (pnl! > 0 ? 'Take Profit' : 'Stop Loss'),
+        reason: isOpen ? undefined : pnl! > 0 ? 'Take Profit' : 'Stop Loss',
       });
     }
-    
+
     const openTrades = paperTrades.filter(t => t.status === 'Open');
     const currentPrice = 50000;
     let unrealizedPnL = 0;
-    
+
     openTrades.forEach(trade => {
-      const pnl = (currentPrice - trade.entry_price) * trade.quantity * (trade.side === 'Long' ? 1 : -1);
+      const pnl =
+        (currentPrice - trade.entry_price) * trade.quantity * (trade.side === 'Long' ? 1 : -1);
       unrealizedPnL += pnl;
     });
-    
+
     setVirtualPortfolio({
       balance,
       equity: balance + unrealizedPnL,
@@ -405,29 +419,31 @@ export const useBotData = () => {
 
   const toggleBot = useCallback(async () => {
     if (!botStatus) return;
-    
+
     setLoading(true);
     try {
       // Pre-startup diagnostics
       if (!botStatus.is_active) {
         console.log('🔍 Starting bot diagnostics...');
-        
+
         // Check for common startup blockers
         if (botStatus.emergency_stop_triggered) {
           throw new Error('Emergency stop is active. Please reset emergency stop first.');
         }
-        
+
         if (!botStatus.config.paper_trading_enabled) {
           throw new Error('Paper trading must be enabled for safety.');
         }
-        
+
         if (botStatus.account_balance <= 0) {
-          throw new Error('Account balance must be positive. Current balance: ' + botStatus.account_balance);
+          throw new Error(
+            'Account balance must be positive. Current balance: ' + botStatus.account_balance
+          );
         }
-        
+
         console.log('✅ All startup checks passed');
       }
-      
+
       if (isTauriApp()) {
         // Real Tauri environment
         if (botStatus.is_active) {
@@ -440,13 +456,17 @@ export const useBotData = () => {
         await loadBotStatus();
       } else {
         // Web preview mode - update mock status directly
-        console.log(`🌐 Web preview mode: ${botStatus.is_active ? 'Stopping' : 'Starting'} bot simulation`);
+        console.log(
+          `🌐 Web preview mode: ${botStatus.is_active ? 'Stopping' : 'Starting'} bot simulation`
+        );
         const updatedStatus = {
           ...botStatus,
-          is_active: !botStatus.is_active
+          is_active: !botStatus.is_active,
         };
         setBotStatus(updatedStatus);
-        console.log(`✅ Bot ${updatedStatus.is_active ? 'started' : 'stopped'} successfully (simulation)`);
+        console.log(
+          `✅ Bot ${updatedStatus.is_active ? 'started' : 'stopped'} successfully (simulation)`
+        );
       }
     } catch (error) {
       console.error('❌ Failed to toggle bot:', error);
@@ -461,55 +481,61 @@ export const useBotData = () => {
     }
   }, [botStatus, loadBotStatus]);
 
-  const triggerEmergencyStop = useCallback(async (reason: string) => {
-    try {
-      if (isTauriApp()) {
-        await safeInvoke('trigger_emergency_stop', { reason });
-        await loadBotStatus();
-      } else {
-        // Web preview mode - update mock status
-        console.log(`🚨 Web preview mode: Emergency stop triggered - ${reason}`);
-        if (botStatus) {
-          const updatedStatus = {
-            ...botStatus,
-            is_active: false,
-            emergency_stop_triggered: true
-          };
-          setBotStatus(updatedStatus);
+  const triggerEmergencyStop = useCallback(
+    async (reason: string) => {
+      try {
+        if (isTauriApp()) {
+          await safeInvoke('trigger_emergency_stop', { reason });
+          await loadBotStatus();
+        } else {
+          // Web preview mode - update mock status
+          console.log(`🚨 Web preview mode: Emergency stop triggered - ${reason}`);
+          if (botStatus) {
+            const updatedStatus = {
+              ...botStatus,
+              is_active: false,
+              emergency_stop_triggered: true,
+            };
+            setBotStatus(updatedStatus);
+          }
         }
+      } catch (error) {
+        console.error('Failed to trigger emergency stop:', error);
       }
-    } catch (error) {
-      console.error('Failed to trigger emergency stop:', error);
-    }
-  }, [botStatus, loadBotStatus]);
+    },
+    [botStatus, loadBotStatus]
+  );
 
-  const pauseBot = useCallback(async (reason?: string) => {
-    try {
-      if (isTauriApp()) {
-        await safeInvoke('pause_swing_bot', { reason });
-        await loadBotStatus();
-      } else {
-        // Web preview mode - update mock status
-        console.log(`⏸️ Web preview mode: Bot paused - ${reason || 'Manual pause'}`);
-        if (botStatus) {
-          const updatedStatus = {
-            ...botStatus,
-            is_active: false,
-            state: 'Paused' as any,
-            pause_info: {
-              reason: { Manual: null },
-              paused_at: new Date().toISOString(),
-              auto_resume_at: undefined,
-              conditions_for_resume: ['Manual resume required']
-            }
-          };
-          setBotStatus(updatedStatus);
+  const pauseBot = useCallback(
+    async (reason?: string) => {
+      try {
+        if (isTauriApp()) {
+          await safeInvoke('pause_swing_bot', { reason });
+          await loadBotStatus();
+        } else {
+          // Web preview mode - update mock status
+          console.log(`⏸️ Web preview mode: Bot paused - ${reason || 'Manual pause'}`);
+          if (botStatus) {
+            const updatedStatus = {
+              ...botStatus,
+              is_active: false,
+              state: 'Paused' as any,
+              pause_info: {
+                reason: { Manual: null },
+                paused_at: new Date().toISOString(),
+                auto_resume_at: undefined,
+                conditions_for_resume: ['Manual resume required'],
+              },
+            };
+            setBotStatus(updatedStatus);
+          }
         }
+      } catch (error) {
+        console.error('Failed to pause bot:', error);
       }
-    } catch (error) {
-      console.error('Failed to pause bot:', error);
-    }
-  }, [botStatus, loadBotStatus]);
+    },
+    [botStatus, loadBotStatus]
+  );
 
   const resumeBot = useCallback(async () => {
     try {
@@ -524,7 +550,7 @@ export const useBotData = () => {
             ...botStatus,
             is_active: true,
             state: 'Running' as any,
-            pause_info: undefined
+            pause_info: undefined,
           };
           setBotStatus(updatedStatus);
         }
@@ -548,7 +574,7 @@ export const useBotData = () => {
         if (botStatus) {
           const updatedStatus = {
             ...botStatus,
-            emergency_stop_triggered: false
+            emergency_stop_triggered: false,
           };
           setBotStatus(updatedStatus);
         }
@@ -558,14 +584,17 @@ export const useBotData = () => {
     }
   }, [botStatus, loadBotStatus]);
 
-  const updateAccountBalance = useCallback(async (balance: number) => {
-    try {
-      await safeInvoke('update_account_balance', { balance });
-      await loadBotStatus();
-    } catch (error) {
-      console.error('Failed to update account balance:', error);
-    }
-  }, [loadBotStatus]);
+  const updateAccountBalance = useCallback(
+    async (balance: number) => {
+      try {
+        await safeInvoke('update_account_balance', { balance });
+        await loadBotStatus();
+      } catch (error) {
+        console.error('Failed to update account balance:', error);
+      }
+    },
+    [loadBotStatus]
+  );
 
   const resetVirtualPortfolio = useCallback(() => {
     setVirtualPortfolio({
@@ -593,97 +622,106 @@ export const useBotData = () => {
     } finally {
       setLoading(false);
     }
-  }, [loadBotStatus, loadSignals, loadPerformanceData, analyzeMarketConditions, loadVirtualPortfolio]);
+  }, [
+    loadBotStatus,
+    loadSignals,
+    loadPerformanceData,
+    analyzeMarketConditions,
+    loadVirtualPortfolio,
+  ]);
 
-  const applyStrategyPreset = useCallback((preset: 'scalping' | 'swing' | 'trend' | 'range') => {
-    let newConfig = { ...config };
-    
-    switch (preset) {
-      case 'scalping':
-        newConfig = {
-          ...newConfig,
-          timeframe: "5m",
-          period: 10,
-          signal_period: 5,
-          stop_loss_percent: 0.5,
-          take_profit_percent: 1.0,
-          trailing_stop_enabled: true,
-          trailing_stop_percent: 0.3,
-          // Scalping-specific auto-resume settings
-          auto_resume_enabled: true,
-          volatility_resume_threshold_multiplier: 0.6,  // More aggressive resume (60%)
-          data_quality_resume_delay_minutes: 1,         // Quick resume for data issues
-          connection_resume_delay_minutes: 2,           // Quick resume for connection issues
-          flash_crash_resume_delay_minutes: 5,          // Short wait for flash crash
-          max_auto_pause_duration_hours: 1,             // Max 1 hour pause
-        };
-        break;
-      case 'swing':
-        newConfig = {
-          ...newConfig,
-          timeframe: "1d",
-          period: 25,
-          signal_period: 9,
-          stop_loss_percent: 2.0,
-          take_profit_percent: 4.0,
-          trailing_stop_enabled: false,
-          // Swing trading auto-resume settings
-          auto_resume_enabled: true,
-          volatility_resume_threshold_multiplier: 0.8,  // Balanced resume (80%)
-          data_quality_resume_delay_minutes: 2,         // Standard wait for data issues
-          connection_resume_delay_minutes: 3,           // Standard wait for connection issues
-          flash_crash_resume_delay_minutes: 10,         // Medium wait for flash crash
-          max_auto_pause_duration_hours: 2,             // Max 2 hours pause
-        };
-        break;
-      case 'trend':
-        newConfig = {
-          ...newConfig,
-          timeframe: "4h",
-          period: 50,
-          signal_period: 20,
-          stop_loss_percent: 3.0,
-          take_profit_percent: 8.0,
-          trailing_stop_enabled: true,
-          trailing_stop_percent: 2.0,
-          // Trend following auto-resume settings
-          auto_resume_enabled: true,
-          volatility_resume_threshold_multiplier: 0.9,  // More conservative resume (90%)
-          data_quality_resume_delay_minutes: 5,         // Longer wait - can afford it
-          connection_resume_delay_minutes: 10,          // Longer wait for connection issues
-          flash_crash_resume_delay_minutes: 30,         // Long stabilization period
-          max_auto_pause_duration_hours: 6,             // Max 6 hours pause - position trading
-        };
-        break;
-      case 'range':
-        newConfig = {
-          ...newConfig,
-          timeframe: "2h",
-          period: 20,
-          signal_period: 7,
-          stop_loss_percent: 1.5,
-          take_profit_percent: 2.5,
-          overbought: 0.6,
-          oversold: -0.6,
-          // Range trading auto-resume settings
-          auto_resume_enabled: true,
-          volatility_resume_threshold_multiplier: 0.7,  // Moderate resume (70%)
-          data_quality_resume_delay_minutes: 2,         // Quick resume for range trading
-          connection_resume_delay_minutes: 3,           // Standard wait
-          flash_crash_resume_delay_minutes: 8,          // Medium wait - range sensitive
-          max_auto_pause_duration_hours: 3,             // Max 3 hours pause
-        };
-        break;
-    }
-    
-    setConfig(newConfig);
-    safeInvoke('update_bot_config', { config: newConfig }).catch(console.error);
-  }, [config]);
+  const applyStrategyPreset = useCallback(
+    (preset: 'scalping' | 'swing' | 'trend' | 'range') => {
+      let newConfig = { ...config };
+
+      switch (preset) {
+        case 'scalping':
+          newConfig = {
+            ...newConfig,
+            timeframe: '5m',
+            period: 10,
+            signal_period: 5,
+            stop_loss_percent: 0.5,
+            take_profit_percent: 1.0,
+            trailing_stop_enabled: true,
+            trailing_stop_percent: 0.3,
+            // Scalping-specific auto-resume settings
+            auto_resume_enabled: true,
+            volatility_resume_threshold_multiplier: 0.6, // More aggressive resume (60%)
+            data_quality_resume_delay_minutes: 1, // Quick resume for data issues
+            connection_resume_delay_minutes: 2, // Quick resume for connection issues
+            flash_crash_resume_delay_minutes: 5, // Short wait for flash crash
+            max_auto_pause_duration_hours: 1, // Max 1 hour pause
+          };
+          break;
+        case 'swing':
+          newConfig = {
+            ...newConfig,
+            timeframe: '1d',
+            period: 25,
+            signal_period: 9,
+            stop_loss_percent: 2.0,
+            take_profit_percent: 4.0,
+            trailing_stop_enabled: false,
+            // Swing trading auto-resume settings
+            auto_resume_enabled: true,
+            volatility_resume_threshold_multiplier: 0.8, // Balanced resume (80%)
+            data_quality_resume_delay_minutes: 2, // Standard wait for data issues
+            connection_resume_delay_minutes: 3, // Standard wait for connection issues
+            flash_crash_resume_delay_minutes: 10, // Medium wait for flash crash
+            max_auto_pause_duration_hours: 2, // Max 2 hours pause
+          };
+          break;
+        case 'trend':
+          newConfig = {
+            ...newConfig,
+            timeframe: '4h',
+            period: 50,
+            signal_period: 20,
+            stop_loss_percent: 3.0,
+            take_profit_percent: 8.0,
+            trailing_stop_enabled: true,
+            trailing_stop_percent: 2.0,
+            // Trend following auto-resume settings
+            auto_resume_enabled: true,
+            volatility_resume_threshold_multiplier: 0.9, // More conservative resume (90%)
+            data_quality_resume_delay_minutes: 5, // Longer wait - can afford it
+            connection_resume_delay_minutes: 10, // Longer wait for connection issues
+            flash_crash_resume_delay_minutes: 30, // Long stabilization period
+            max_auto_pause_duration_hours: 6, // Max 6 hours pause - position trading
+          };
+          break;
+        case 'range':
+          newConfig = {
+            ...newConfig,
+            timeframe: '2h',
+            period: 20,
+            signal_period: 7,
+            stop_loss_percent: 1.5,
+            take_profit_percent: 2.5,
+            overbought: 0.6,
+            oversold: -0.6,
+            // Range trading auto-resume settings
+            auto_resume_enabled: true,
+            volatility_resume_threshold_multiplier: 0.7, // Moderate resume (70%)
+            data_quality_resume_delay_minutes: 2, // Quick resume for range trading
+            connection_resume_delay_minutes: 3, // Standard wait
+            flash_crash_resume_delay_minutes: 8, // Medium wait - range sensitive
+            max_auto_pause_duration_hours: 3, // Max 3 hours pause
+          };
+          break;
+      }
+
+      setConfig(newConfig);
+      safeInvoke('update_bot_config', { config: newConfig }).catch(console.error);
+    },
+    [config]
+  );
 
   // Optimized polling that pauses when tab is not visible
   const startPolling = useCallback(() => {
     if (intervalRef.current) return; // Already polling
-    
+
     intervalRef.current = setInterval(() => {
       // Only poll if document is visible (performance optimization)
       if (!document.hidden) {
@@ -694,8 +732,14 @@ export const useBotData = () => {
         loadVirtualPortfolio();
       }
     }, 5000);
-  }, [loadBotStatus, loadSignals, loadPerformanceData, analyzeMarketConditions, loadVirtualPortfolio]);
-  
+  }, [
+    loadBotStatus,
+    loadSignals,
+    loadPerformanceData,
+    analyzeMarketConditions,
+    loadVirtualPortfolio,
+  ]);
+
   const stopPolling = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -712,10 +756,10 @@ export const useBotData = () => {
       analyzeMarketConditions();
       loadVirtualPortfolio();
     }, 100);
-    
+
     // Start polling
     startPolling();
-    
+
     // Add visibility change listener for performance optimization
     const handleVisibilityChange = () => {
       if (document.hidden) {
@@ -730,7 +774,7 @@ export const useBotData = () => {
         startPolling();
       }
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
@@ -738,7 +782,15 @@ export const useBotData = () => {
       stopPolling();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [startPolling, stopPolling, loadBotStatus, loadSignals, loadPerformanceData, analyzeMarketConditions, loadVirtualPortfolio]);
+  }, [
+    startPolling,
+    stopPolling,
+    loadBotStatus,
+    loadSignals,
+    loadPerformanceData,
+    analyzeMarketConditions,
+    loadVirtualPortfolio,
+  ]);
 
   return {
     // State
@@ -750,7 +802,7 @@ export const useBotData = () => {
     virtualPortfolio,
     config,
     loading,
-    
+
     // Actions
     setConfig,
     toggleBot,
@@ -762,7 +814,7 @@ export const useBotData = () => {
     resetVirtualPortfolio,
     simulateData,
     applyStrategyPreset,
-    
+
     // Asset Manager
     assetManager,
   };

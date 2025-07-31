@@ -1,10 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from 'recharts';
 import { Target, TrendingUp, Shield, AlertTriangle, CheckCircle, DollarSign } from 'lucide-react';
 import { AssetManager, DEFAULT_CONSERVATIVE_CONFIG } from '../../utils/assetManager';
-import { AssetManagerState, AllocationStatus, PortfolioHealth, ProfitSecuringAction } from '../../types/assetManagement';
+import {
+  AssetManagerState,
+  AllocationStatus,
+  PortfolioHealth,
+  ProfitSecuringAction,
+} from '../../types/assetManagement';
 
 interface AssetManagerPanelProps {
   isVisible: boolean;
@@ -13,13 +30,12 @@ interface AssetManagerPanelProps {
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
-export const AssetManagerPanel: React.FC<AssetManagerPanelProps> = ({
-  isVisible,
-  onToggle
-}) => {
+export const AssetManagerPanel: React.FC<AssetManagerPanelProps> = ({ isVisible, onToggle }) => {
   const [assetManager] = useState(() => new AssetManager(DEFAULT_CONSERVATIVE_CONFIG));
   const [state, setState] = useState<AssetManagerState>(assetManager.getState());
-  const [activeTab, setActiveTab] = useState<'overview' | 'allocations' | 'profit' | 'rebalance'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'allocations' | 'profit' | 'rebalance'>(
+    'overview'
+  );
 
   useEffect(() => {
     // Simulate real-time updates
@@ -36,14 +52,14 @@ export const AssetManagerPanel: React.FC<AssetManagerPanelProps> = ({
     name: asset.name,
     target: asset.target_allocation,
     current: asset.current_allocation,
-    color: COLORS[index % COLORS.length]
+    color: COLORS[index % COLORS.length],
   }));
 
   const riskBucketData = state.config.risk_buckets.map((bucket, index) => ({
     name: bucket.name,
     allocation: bucket.current_allocation,
     max: bucket.max_allocation,
-    color: COLORS[index % COLORS.length]
+    color: COLORS[index % COLORS.length],
   }));
 
   const profitSecuringActions = assetManager.checkProfitPreservation();
@@ -64,7 +80,7 @@ export const AssetManagerPanel: React.FC<AssetManagerPanelProps> = ({
   if (!isVisible) return null;
 
   const modalContent = (
-    <div 
+    <div
       className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
       style={{ zIndex: 1000 }}
     >
@@ -102,7 +118,7 @@ export const AssetManagerPanel: React.FC<AssetManagerPanelProps> = ({
             { id: 'overview', label: 'Overview', icon: TrendingUp },
             { id: 'allocations', label: 'Allocations', icon: Target },
             { id: 'profit', label: 'Profit Management', icon: DollarSign },
-            { id: 'rebalance', label: 'Rebalancing', icon: Shield }
+            { id: 'rebalance', label: 'Rebalancing', icon: Shield },
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -127,10 +143,22 @@ export const AssetManagerPanel: React.FC<AssetManagerPanelProps> = ({
               {/* Portfolio Health Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                  { label: 'Overall Health', value: state.portfolio_health.overall_score, icon: Target },
-                  { label: 'Allocation Health', value: state.portfolio_health.allocation_health, icon: TrendingUp },
+                  {
+                    label: 'Overall Health',
+                    value: state.portfolio_health.overall_score,
+                    icon: Target,
+                  },
+                  {
+                    label: 'Allocation Health',
+                    value: state.portfolio_health.allocation_health,
+                    icon: TrendingUp,
+                  },
                   { label: 'Risk Health', value: state.portfolio_health.risk_health, icon: Shield },
-                  { label: 'Profit Health', value: state.portfolio_health.profit_health, icon: DollarSign }
+                  {
+                    label: 'Profit Health',
+                    value: state.portfolio_health.profit_health,
+                    icon: DollarSign,
+                  },
                 ].map(({ label, value, icon: Icon }) => (
                   <div key={label} className="glass-card p-4">
                     <div className="flex items-center justify-between mb-2">
@@ -157,19 +185,27 @@ export const AssetManagerPanel: React.FC<AssetManagerPanelProps> = ({
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <span className="text-white/60">Total Capital</span>
-                      <span className="text-white font-bold">${state.config.total_capital.toLocaleString()}</span>
+                      <span className="text-white font-bold">
+                        ${state.config.total_capital.toLocaleString()}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-white/60">Currently Allocated</span>
-                      <span className="text-green-400 font-bold">${state.allocation_status.total_allocated.toLocaleString()}</span>
+                      <span className="text-green-400 font-bold">
+                        ${state.allocation_status.total_allocated.toLocaleString()}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-white/60">Available Cash</span>
-                      <span className="text-blue-400 font-bold">${state.allocation_status.cash_available.toLocaleString()}</span>
+                      <span className="text-blue-400 font-bold">
+                        ${state.allocation_status.cash_available.toLocaleString()}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-white/60">Profit Secured Today</span>
-                      <span className="text-yellow-400 font-bold">${state.profit_secured_today.toLocaleString()}</span>
+                      <span className="text-yellow-400 font-bold">
+                        ${state.profit_secured_today.toLocaleString()}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -178,13 +214,19 @@ export const AssetManagerPanel: React.FC<AssetManagerPanelProps> = ({
                   <h3 className="text-xl font-bold text-white mb-4">Warnings & Recommendations</h3>
                   <div className="space-y-3">
                     {state.portfolio_health.warnings.map((warning, index) => (
-                      <div key={index} className="flex items-start space-x-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                      <div
+                        key={index}
+                        className="flex items-start space-x-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg"
+                      >
                         <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
                         <span className="text-red-300 text-sm">{warning}</span>
                       </div>
                     ))}
                     {state.portfolio_health.recommendations.map((rec, index) => (
-                      <div key={index} className="flex items-start space-x-2 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                      <div
+                        key={index}
+                        className="flex items-start space-x-2 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg"
+                      >
                         <CheckCircle className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
                         <span className="text-blue-300 text-sm">{rec}</span>
                       </div>
@@ -221,7 +263,7 @@ export const AssetManagerPanel: React.FC<AssetManagerPanelProps> = ({
                           backgroundColor: 'rgba(0, 0, 0, 0.8)',
                           border: '1px solid rgba(255, 255, 255, 0.2)',
                           borderRadius: '8px',
-                          color: 'white'
+                          color: 'white',
                         }}
                       />
                     </PieChart>
@@ -241,7 +283,7 @@ export const AssetManagerPanel: React.FC<AssetManagerPanelProps> = ({
                           backgroundColor: 'rgba(0, 0, 0, 0.8)',
                           border: '1px solid rgba(255, 255, 255, 0.2)',
                           borderRadius: '8px',
-                          color: 'white'
+                          color: 'white',
                         }}
                       />
                       <Bar dataKey="allocation" fill="#3b82f6" />
@@ -271,13 +313,24 @@ export const AssetManagerPanel: React.FC<AssetManagerPanelProps> = ({
                         return (
                           <tr key={index} className="border-b border-white/10">
                             <td className="py-3 text-white">{asset.name}</td>
-                            <td className="py-3 text-right text-white">{asset.target.toFixed(1)}%</td>
-                            <td className="py-3 text-right text-white">{asset.current.toFixed(1)}%</td>
-                            <td className={`py-3 text-right ${Math.abs(deviation) > 2 ? 'text-red-400' : 'text-green-400'}`}>
-                              {deviation > 0 ? '+' : ''}{deviation.toFixed(1)}%
+                            <td className="py-3 text-right text-white">
+                              {asset.target.toFixed(1)}%
                             </td>
                             <td className="py-3 text-right text-white">
-                              ${((asset.current / 100) * state.config.total_capital).toLocaleString()}
+                              {asset.current.toFixed(1)}%
+                            </td>
+                            <td
+                              className={`py-3 text-right ${Math.abs(deviation) > 2 ? 'text-red-400' : 'text-green-400'}`}
+                            >
+                              {deviation > 0 ? '+' : ''}
+                              {deviation.toFixed(1)}%
+                            </td>
+                            <td className="py-3 text-right text-white">
+                              $
+                              {(
+                                (asset.current / 100) *
+                                state.config.total_capital
+                              ).toLocaleString()}
                             </td>
                           </tr>
                         );
@@ -297,10 +350,15 @@ export const AssetManagerPanel: React.FC<AssetManagerPanelProps> = ({
                 <h3 className="text-xl font-bold text-white mb-4">Profit Zones</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {state.config.profit_zones.map((zone, index) => (
-                    <div key={index} className="p-4 bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20 rounded-lg">
+                    <div
+                      key={index}
+                      className="p-4 bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20 rounded-lg"
+                    >
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-green-400 font-bold">{zone.level}% Profit</span>
-                        <span className="text-xs text-white/60 bg-white/10 px-2 py-1 rounded">{zone.action}</span>
+                        <span className="text-xs text-white/60 bg-white/10 px-2 py-1 rounded">
+                          {zone.action}
+                        </span>
                       </div>
                       <div className="text-sm text-white/60">
                         Secure: {zone.percentage_to_secure}%
@@ -319,14 +377,19 @@ export const AssetManagerPanel: React.FC<AssetManagerPanelProps> = ({
                 {profitSecuringActions.length > 0 ? (
                   <div className="space-y-3">
                     {profitSecuringActions.map((action, index) => (
-                      <div key={index} className="flex items-center justify-between p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg"
+                      >
                         <div>
                           <div className="text-white font-medium">{action.symbol}</div>
                           <div className="text-sm text-white/60">{action.reason}</div>
                         </div>
                         <div className="text-right">
                           <div className="text-yellow-400 font-bold">{action.action_type}</div>
-                          <div className="text-xs text-white/60">{action.profit_level_achieved}% profit</div>
+                          <div className="text-xs text-white/60">
+                            {action.profit_level_achieved}% profit
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -361,7 +424,10 @@ export const AssetManagerPanel: React.FC<AssetManagerPanelProps> = ({
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-yellow-400">
-                      {Math.floor((Date.now() - state.last_rebalance.getTime()) / (1000 * 60 * 60 * 24))} days
+                      {Math.floor(
+                        (Date.now() - state.last_rebalance.getTime()) / (1000 * 60 * 60 * 24)
+                      )}{' '}
+                      days
                     </div>
                     <div className="text-sm text-white/60">Since Last Rebalance</div>
                   </div>
@@ -374,29 +440,43 @@ export const AssetManagerPanel: React.FC<AssetManagerPanelProps> = ({
                 {rebalancingSuggestions.length > 0 ? (
                   <div className="space-y-3">
                     {rebalancingSuggestions.map((suggestion, index) => (
-                      <div key={index} className="flex items-center justify-between p-4 border border-white/20 rounded-lg">
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-4 border border-white/20 rounded-lg"
+                      >
                         <div>
                           <div className="flex items-center space-x-2">
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${
-                              suggestion.action === 'buy' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                            }`}>
+                            <span
+                              className={`px-2 py-1 rounded text-xs font-medium ${
+                                suggestion.action === 'buy'
+                                  ? 'bg-green-500/20 text-green-400'
+                                  : 'bg-red-500/20 text-red-400'
+                              }`}
+                            >
                               {suggestion.action.toUpperCase()}
                             </span>
                             <span className="text-white font-medium">{suggestion.symbol}</span>
-                            <span className={`px-2 py-1 rounded text-xs ${
-                              suggestion.priority === 'high' ? 'bg-red-500/20 text-red-400' :
-                              suggestion.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                              'bg-blue-500/20 text-blue-400'
-                            }`}>
+                            <span
+                              className={`px-2 py-1 rounded text-xs ${
+                                suggestion.priority === 'high'
+                                  ? 'bg-red-500/20 text-red-400'
+                                  : suggestion.priority === 'medium'
+                                    ? 'bg-yellow-500/20 text-yellow-400'
+                                    : 'bg-blue-500/20 text-blue-400'
+                              }`}
+                            >
                               {suggestion.priority}
                             </span>
                           </div>
                           <div className="text-sm text-white/60 mt-1">{suggestion.reason}</div>
                         </div>
                         <div className="text-right">
-                          <div className="text-white font-bold">${suggestion.suggested_amount.toLocaleString()}</div>
+                          <div className="text-white font-bold">
+                            ${suggestion.suggested_amount.toLocaleString()}
+                          </div>
                           <div className="text-xs text-white/60">
-                            {suggestion.current_allocation.toFixed(1)}% → {suggestion.target_allocation.toFixed(1)}%
+                            {suggestion.current_allocation.toFixed(1)}% →{' '}
+                            {suggestion.target_allocation.toFixed(1)}%
                           </div>
                         </div>
                       </div>

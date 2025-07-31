@@ -43,11 +43,7 @@ export function useValidation(
   validationRules: Record<string, FieldValidationRule>,
   options: UseValidationOptions = {}
 ): UseValidationReturn {
-  const {
-    validateOnChange = true,
-    validateOnBlur = true,
-    showWarnings = true
-  } = options;
+  const { validateOnChange = true, validateOnBlur = true, showWarnings = true } = options;
 
   // Initialize field states
   const [fields, setFields] = useState<Record<string, FieldState>>(() => {
@@ -58,7 +54,7 @@ export function useValidation(
         value,
         validation: { isValid: true, errors: [], warnings: [] },
         touched: false,
-        dirty: false
+        dirty: false,
       };
     }
 
@@ -66,80 +62,93 @@ export function useValidation(
   });
 
   // Validate a single field
-  const validateSingleField = useCallback((field: string, value: unknown): ValidationResult => {
-    const rules = validationRules[field];
-    if (!rules) {
-      return { isValid: true, errors: [], warnings: [] };
-    }
+  const validateSingleField = useCallback(
+    (field: string, value: unknown): ValidationResult => {
+      const rules = validationRules[field];
+      if (!rules) {
+        return { isValid: true, errors: [], warnings: [] };
+      }
 
-    return InputValidator.validateField(value, rules);
-  }, [validationRules]);
+      return InputValidator.validateField(value, rules);
+    },
+    [validationRules]
+  );
 
   // Set field value
-  const setValue = useCallback((field: string, value: unknown) => {
-    setFields(prev => {
-      const currentField = prev[field] || {
-        value: '',
-        validation: { isValid: true, errors: [], warnings: [] },
-        touched: false,
-        dirty: false
-      };
+  const setValue = useCallback(
+    (field: string, value: unknown) => {
+      setFields(prev => {
+        const currentField = prev[field] || {
+          value: '',
+          validation: { isValid: true, errors: [], warnings: [] },
+          touched: false,
+          dirty: false,
+        };
 
-      const validation = validateOnChange
-        ? validateSingleField(field, value)
-        : currentField.validation;
+        const validation = validateOnChange
+          ? validateSingleField(field, value)
+          : currentField.validation;
 
-      return {
-        ...prev,
-        [field]: {
-          ...currentField,
-          value,
-          validation,
-          dirty: value !== initialValues[field]
-        }
-      };
-    });
-  }, [validateOnChange, validateSingleField, initialValues]);
+        return {
+          ...prev,
+          [field]: {
+            ...currentField,
+            value,
+            validation,
+            dirty: value !== initialValues[field],
+          },
+        };
+      });
+    },
+    [validateOnChange, validateSingleField, initialValues]
+  );
 
   // Set field touched state
-  const setTouched = useCallback((field: string, touched = true) => {
-    setFields(prev => {
-      const currentField = prev[field];
-      if (!currentField) return prev;
+  const setTouched = useCallback(
+    (field: string, touched = true) => {
+      setFields(prev => {
+        const currentField = prev[field];
+        if (!currentField) return prev;
 
-      const validation = touched && validateOnBlur
-        ? validateSingleField(field, currentField.value)
-        : currentField.validation;
+        const validation =
+          touched && validateOnBlur
+            ? validateSingleField(field, currentField.value)
+            : currentField.validation;
 
-      return {
-        ...prev,
-        [field]: {
-          ...currentField,
-          touched,
-          validation
-        }
-      };
-    });
-  }, [validateOnBlur, validateSingleField]);
+        return {
+          ...prev,
+          [field]: {
+            ...currentField,
+            touched,
+            validation,
+          },
+        };
+      });
+    },
+    [validateOnBlur, validateSingleField]
+  );
 
   // Validate specific field
-  const validateField = useCallback((field: string) => {
-    setFields(prev => {
-      const currentField = prev[field];
-      if (!currentField) return prev;
+  const validateField = useCallback(
+    (field: string) => {
+      setFields(prev => {
+        const currentField = prev[field];
+        if (!currentField) return prev;
 
-      const validation = validateSingleField(field, currentField.value);
+        const validation = validateSingleField(field, currentField.value);
 
-      return {
-        ...prev,
-        [field]: {
-          ...currentField,
-          validation,
-          touched: true
-        }
-      };
-    });
-  }, [validateSingleField]);
+        return {
+          ...prev,
+          [field]: {
+            ...currentField,
+            validation,
+            touched: true,
+          },
+        };
+      });
+    },
+    [validateSingleField]
+  );
 
   // Validate all fields
   const validateAll = useCallback((): boolean => {
@@ -154,7 +163,7 @@ export function useValidation(
         newFields[field] = {
           ...fieldState,
           validation,
-          touched: true
+          touched: true,
         };
 
         if (!validation.isValid) {
@@ -178,7 +187,7 @@ export function useValidation(
           value,
           validation: { isValid: true, errors: [], warnings: [] },
           touched: false,
-          dirty: false
+          dirty: false,
         };
       }
 
@@ -187,32 +196,36 @@ export function useValidation(
   }, [initialValues]);
 
   // Get field props for easy integration with form components
-  const getFieldProps = useCallback((field: string) => {
-    const fieldState = fields[field] || {
-      value: '',
-      validation: { isValid: true, errors: [], warnings: [] },
-      touched: false,
-      dirty: false
-    };
+  const getFieldProps = useCallback(
+    (field: string) => {
+      const fieldState = fields[field] || {
+        value: '',
+        validation: { isValid: true, errors: [], warnings: [] },
+        touched: false,
+        dirty: false,
+      };
 
-    const hasError = fieldState.touched && !fieldState.validation.isValid;
-    const hasWarning = fieldState.touched && showWarnings && fieldState.validation.warnings.length > 0;
+      const hasError = fieldState.touched && !fieldState.validation.isValid;
+      const hasWarning =
+        fieldState.touched && showWarnings && fieldState.validation.warnings.length > 0;
 
-    let helperText = '';
-    if (hasError) {
-      helperText = fieldState.validation.errors[0] || '';
-    } else if (hasWarning) {
-      helperText = fieldState.validation.warnings[0] || '';
-    }
+      let helperText = '';
+      if (hasError) {
+        helperText = fieldState.validation.errors[0] || '';
+      } else if (hasWarning) {
+        helperText = fieldState.validation.warnings[0] || '';
+      }
 
-    return {
-      value: fieldState.value,
-      onChange: (value: any) => setValue(field, value),
-      onBlur: () => setTouched(field, true),
-      error: hasError,
-      helperText
-    };
-  }, [fields, setValue, setTouched, showWarnings]);
+      return {
+        value: fieldState.value,
+        onChange: (value: any) => setValue(field, value),
+        onBlur: () => setTouched(field, true),
+        error: hasError,
+        helperText,
+      };
+    },
+    [fields, setValue, setTouched, showWarnings]
+  );
 
   // Computed values
   const computedValues = useMemo(() => {
@@ -236,7 +249,7 @@ export function useValidation(
       hasErrors: allErrors.length > 0,
       hasWarnings: allWarnings.length > 0,
       errors: allErrors,
-      warnings: allWarnings
+      warnings: allWarnings,
     };
   }, [fields]);
 
@@ -248,6 +261,6 @@ export function useValidation(
     validateField,
     validateAll,
     reset,
-    getFieldProps
+    getFieldProps,
   };
 }

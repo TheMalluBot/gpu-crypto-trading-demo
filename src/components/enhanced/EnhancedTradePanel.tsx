@@ -1,17 +1,17 @@
 // Phase 2 Week 4 UI/UX Designer - Enhanced Trading Panel
-import React, { useState, useCallback, useMemo } from 'react'
-import { TrendingUp, TrendingDown, DollarSign, AlertTriangle, Info } from 'lucide-react'
+import React, { useState, useCallback, useMemo } from 'react';
+import { TrendingUp, TrendingDown, DollarSign, AlertTriangle, Info } from 'lucide-react';
 
 interface EnhancedTradePanelProps {
-  className?: string
+  className?: string;
 }
 
 interface OrderFormData {
-  symbol: string
-  side: 'BUY' | 'SELL'
-  type: 'MARKET' | 'LIMIT'
-  quantity: string
-  price: string
+  symbol: string;
+  side: 'BUY' | 'SELL';
+  type: 'MARKET' | 'LIMIT';
+  quantity: string;
+  price: string;
 }
 
 export default function EnhancedTradePanel({ className = '' }: EnhancedTradePanelProps) {
@@ -20,45 +20,51 @@ export default function EnhancedTradePanel({ className = '' }: EnhancedTradePane
     side: 'BUY',
     type: 'MARKET',
     quantity: '',
-    price: ''
-  })
-  
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [showConfirmation, setShowConfirmation] = useState(false)
+    price: '',
+  });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   // Mocked market data - in real app would come from props/context
-  const marketData = useMemo(() => ({
-    price: 50234.56,
-    change24h: 2.34,
-    volume: 1234567890,
-    high24h: 51000.00,
-    low24h: 49500.00
-  }), [])
+  const marketData = useMemo(
+    () => ({
+      price: 50234.56,
+      change24h: 2.34,
+      volume: 1234567890,
+      high24h: 51000.0,
+      low24h: 49500.0,
+    }),
+    []
+  );
 
   const handleInputChange = useCallback((field: keyof OrderFormData, value: string) => {
-    setOrderForm(prev => ({ ...prev, [field]: value }))
-  }, [])
+    setOrderForm(prev => ({ ...prev, [field]: value }));
+  }, []);
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!orderForm.quantity) return
-    
-    setIsSubmitting(true)
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setIsSubmitting(false)
-    setShowConfirmation(true)
-    setTimeout(() => setShowConfirmation(false), 3000)
-  }, [orderForm])
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!orderForm.quantity) return;
+
+      setIsSubmitting(true);
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setIsSubmitting(false);
+      setShowConfirmation(true);
+      setTimeout(() => setShowConfirmation(false), 3000);
+    },
+    [orderForm]
+  );
 
   const estimatedTotal = useMemo(() => {
-    const qty = parseFloat(orderForm.quantity) || 0
-    const price = orderForm.type === 'MARKET' ? marketData.price : parseFloat(orderForm.price) || 0
-    return qty * price
-  }, [orderForm.quantity, orderForm.price, orderForm.type, marketData.price])
+    const qty = parseFloat(orderForm.quantity) || 0;
+    const price = orderForm.type === 'MARKET' ? marketData.price : parseFloat(orderForm.price) || 0;
+    return qty * price;
+  }, [orderForm.quantity, orderForm.price, orderForm.type, marketData.price]);
 
   return (
-    <div 
+    <div
       className={`enhanced-trade-panel ${className}`}
       data-testid="enhanced-trade-panel"
       role="region"
@@ -66,11 +72,7 @@ export default function EnhancedTradePanel({ className = '' }: EnhancedTradePane
     >
       {/* Paper Trading Warning */}
       <div className="paper-trading-banner">
-        <AlertTriangle 
-          size={20} 
-          aria-hidden="true"
-          className="warning-icon"
-        />
+        <AlertTriangle size={20} aria-hidden="true" className="warning-icon" />
         <div>
           <span className="warning-title">Paper Trading Mode</span>
           <span className="warning-subtitle">No real money involved</span>
@@ -82,16 +84,24 @@ export default function EnhancedTradePanel({ className = '' }: EnhancedTradePane
         <div className="symbol-info">
           <h2 className="symbol-name">{orderForm.symbol}</h2>
           <div className="price-display">
-            <span className="current-price" role="text" aria-label={`Current price ${marketData.price.toLocaleString()} USDT`}>
+            <span
+              className="current-price"
+              role="text"
+              aria-label={`Current price ${marketData.price.toLocaleString()} USDT`}
+            >
               ${marketData.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </span>
             <span className={`price-change ${marketData.change24h >= 0 ? 'positive' : 'negative'}`}>
-              {marketData.change24h >= 0 ? <TrendingUp size={16} aria-hidden="true" /> : <TrendingDown size={16} aria-hidden="true" />}
+              {marketData.change24h >= 0 ? (
+                <TrendingUp size={16} aria-hidden="true" />
+              ) : (
+                <TrendingDown size={16} aria-hidden="true" />
+              )}
               {Math.abs(marketData.change24h)}%
             </span>
           </div>
         </div>
-        
+
         <div className="market-stats">
           <div className="stat-item">
             <span className="stat-label">24h High</span>
@@ -108,7 +118,7 @@ export default function EnhancedTradePanel({ className = '' }: EnhancedTradePane
       <form onSubmit={handleSubmit} className="order-form" noValidate>
         <fieldset className="form-fieldset">
           <legend className="sr-only">Order Type Selection</legend>
-          
+
           {/* Buy/Sell Toggle */}
           <div className="side-selector" role="radiogroup" aria-label="Order side selection">
             <button
@@ -137,11 +147,13 @@ export default function EnhancedTradePanel({ className = '' }: EnhancedTradePane
 
           {/* Order Type */}
           <div className="form-group">
-            <label htmlFor="order-type" className="form-label">Order Type</label>
+            <label htmlFor="order-type" className="form-label">
+              Order Type
+            </label>
             <select
               id="order-type"
               value={orderForm.type}
-              onChange={(e) => handleInputChange('type', e.target.value)}
+              onChange={e => handleInputChange('type', e.target.value)}
               className="form-select"
               aria-describedby="order-type-help"
             >
@@ -150,17 +162,19 @@ export default function EnhancedTradePanel({ className = '' }: EnhancedTradePane
             </select>
             <div id="order-type-help" className="form-help">
               <Info size={14} aria-hidden="true" />
-              {orderForm.type === 'MARKET' 
+              {orderForm.type === 'MARKET'
                 ? 'Execute immediately at current market price'
-                : 'Execute when price reaches your specified limit'
-              }
+                : 'Execute when price reaches your specified limit'}
             </div>
           </div>
 
           {/* Quantity Input */}
           <div className="form-group">
             <label htmlFor="quantity" className="form-label">
-              Quantity <span className="required-indicator" aria-label="required">*</span>
+              Quantity{' '}
+              <span className="required-indicator" aria-label="required">
+                *
+              </span>
             </label>
             <div className="input-group">
               <input
@@ -169,7 +183,7 @@ export default function EnhancedTradePanel({ className = '' }: EnhancedTradePane
                 min="0"
                 step="0.00001"
                 value={orderForm.quantity}
-                onChange={(e) => handleInputChange('quantity', e.target.value)}
+                onChange={e => handleInputChange('quantity', e.target.value)}
                 className="form-input"
                 placeholder="0.00000"
                 aria-describedby="quantity-help"
@@ -187,7 +201,10 @@ export default function EnhancedTradePanel({ className = '' }: EnhancedTradePane
           {orderForm.type === 'LIMIT' && (
             <div className="form-group">
               <label htmlFor="price" className="form-label">
-                Price <span className="required-indicator" aria-label="required">*</span>
+                Price{' '}
+                <span className="required-indicator" aria-label="required">
+                  *
+                </span>
               </label>
               <div className="input-group">
                 <input
@@ -196,7 +213,7 @@ export default function EnhancedTradePanel({ className = '' }: EnhancedTradePane
                   min="0"
                   step="0.01"
                   value={orderForm.price}
-                  onChange={(e) => handleInputChange('price', e.target.value)}
+                  onChange={e => handleInputChange('price', e.target.value)}
                   className="form-input"
                   placeholder="0.00"
                   aria-describedby="price-help"
@@ -216,7 +233,9 @@ export default function EnhancedTradePanel({ className = '' }: EnhancedTradePane
               <h3 className="summary-title">Order Summary</h3>
               <div className="summary-row">
                 <span>Type:</span>
-                <span>{orderForm.side} {orderForm.type}</span>
+                <span>
+                  {orderForm.side} {orderForm.type}
+                </span>
               </div>
               <div className="summary-row">
                 <span>Quantity:</span>
@@ -225,19 +244,18 @@ export default function EnhancedTradePanel({ className = '' }: EnhancedTradePane
               <div className="summary-row">
                 <span>Price:</span>
                 <span>
-                  {orderForm.type === 'MARKET' 
+                  {orderForm.type === 'MARKET'
                     ? `~$${marketData.price.toLocaleString()}`
-                    : `$${parseFloat(orderForm.price || '0').toLocaleString()}`
-                  }
+                    : `$${parseFloat(orderForm.price || '0').toLocaleString()}`}
                 </span>
               </div>
               <div className="summary-row total-row">
                 <span>Estimated Total:</span>
                 <span className="total-amount">
                   <DollarSign size={16} aria-hidden="true" />
-                  {estimatedTotal.toLocaleString('en-US', { 
+                  {estimatedTotal.toLocaleString('en-US', {
                     minimumFractionDigits: 2,
-                    maximumFractionDigits: 2 
+                    maximumFractionDigits: 2,
                   })}
                 </span>
               </div>
@@ -247,7 +265,11 @@ export default function EnhancedTradePanel({ className = '' }: EnhancedTradePane
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={!orderForm.quantity || isSubmitting || (orderForm.type === 'LIMIT' && !orderForm.price)}
+            disabled={
+              !orderForm.quantity ||
+              isSubmitting ||
+              (orderForm.type === 'LIMIT' && !orderForm.price)
+            }
             className={`submit-button ${orderForm.side === 'BUY' ? 'buy-submit' : 'sell-submit'}`}
             aria-describedby="submit-help"
           >
@@ -260,7 +282,7 @@ export default function EnhancedTradePanel({ className = '' }: EnhancedTradePane
               `${orderForm.side} ${orderForm.symbol}`
             )}
           </button>
-          
+
           <div id="submit-help" className="form-help">
             This is a paper trading order - no real money will be used
           </div>
@@ -269,18 +291,12 @@ export default function EnhancedTradePanel({ className = '' }: EnhancedTradePane
 
       {/* Success Message */}
       {showConfirmation && (
-        <div 
-          className="success-message"
-          role="alert"
-          aria-live="polite"
-        >
-          <div className="success-content">
-            ✅ Paper trade order placed successfully!
-          </div>
+        <div className="success-message" role="alert" aria-live="polite">
+          <div className="success-content">✅ Paper trade order placed successfully!</div>
         </div>
       )}
     </div>
-  )
+  );
 }
 
 // CSS-in-JS styles would typically be in a separate stylesheet

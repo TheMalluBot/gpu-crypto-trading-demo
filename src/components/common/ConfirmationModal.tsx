@@ -24,7 +24,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   confirmText = 'Confirm',
   cancelText = 'Cancel',
   type = 'warning',
-  loading = false
+  loading = false,
 }) => {
   const getIcon = () => {
     switch (type) {
@@ -57,17 +57,11 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         className="p-6"
       >
         <div className="flex items-start space-x-4">
-          <div className="flex-shrink-0">
-            {getIcon()}
-          </div>
-          
+          <div className="flex-shrink-0">{getIcon()}</div>
+
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-white mb-2">
-              {title}
-            </h3>
-            <p className="text-sm text-white/80 mb-6">
-              {message}
-            </p>
+            <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
+            <p className="text-sm text-white/80 mb-6">{message}</p>
           </div>
         </div>
 
@@ -79,7 +73,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           >
             {cancelText}
           </button>
-          
+
           <button
             onClick={onConfirm}
             disabled={loading}

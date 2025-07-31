@@ -25,22 +25,22 @@ const Dashboard: React.FC = () => {
           <HelpButton helpContent={HELP_CONTENT.dashboard} />
         </div>
       </div>
-      
+
       {/* Profile Section - handles all profile-related functionality */}
       <ProfileSection />
 
       {/* Market Overview and Quick Actions */}
       <div className="responsive-grid grid-cols-1 lg:grid-cols-3">
         <div className="lg:col-span-2 min-h-0">
-          <MarketOverview 
-            onSymbolSelect={(symbol) => {
+          <MarketOverview
+            onSymbolSelect={symbol => {
               // Handle symbol selection for trading
               console.log(`Selected ${symbol} for trading`);
             }}
             limit={10}
           />
         </div>
-        
+
         <div className="space-y-4 sm:space-y-6 min-h-0">
           <QuickActions />
           <RecentActivity />

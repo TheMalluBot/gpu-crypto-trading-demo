@@ -60,7 +60,7 @@ export const useRiskAssessment = () => {
       if (assessment) {
         setRiskAssessment(assessment);
         setLastUpdateTime(new Date());
-        
+
         // Process risk warnings into alerts
         const alerts: RiskAlert[] = assessment.riskWarnings.map((warning, index) => ({
           id: `warning-${index}-${Date.now()}`,
@@ -72,7 +72,7 @@ export const useRiskAssessment = () => {
           recommendedActions: [warning.recommendedAction],
           triggeredAt: new Date(),
         }));
-        
+
         setRiskAlerts(alerts);
         return assessment;
       }
@@ -122,7 +122,8 @@ export const useRiskAssessment = () => {
     };
 
     const overallRiskScore = Object.entries(weights).reduce(
-      (total, [key, weight]) => total + normalizedRisks[key as keyof typeof normalizedRisks] * weight,
+      (total, [key, weight]) =>
+        total + normalizedRisks[key as keyof typeof normalizedRisks] * weight,
       0
     );
 
@@ -161,12 +162,12 @@ export const useRiskAssessment = () => {
     const scenarios = riskAssessment.stressTestScenarios;
     const totalLoss = scenarios.reduce((sum, scenario) => sum + scenario.potentialLoss, 0);
     const averageLoss = totalLoss / scenarios.length;
-    
+
     const criticalScenarios = scenarios.filter(s => s.impactSeverity === 'Critical');
     const highImpactScenarios = scenarios.filter(s => s.impactSeverity === 'High');
-    
-    const worstCaseScenario = scenarios.reduce((worst, current) => 
-      current.potentialLoss > worst.potentialLoss ? current : worst,
+
+    const worstCaseScenario = scenarios.reduce(
+      (worst, current) => (current.potentialLoss > worst.potentialLoss ? current : worst),
       scenarios[0]
     );
 
@@ -185,8 +186,12 @@ export const useRiskAssessment = () => {
     if (!riskAssessment) return null;
 
     const concentrationLevel = riskAssessment.concentrationRisk;
-    
-    let concentrationRating: 'Well Diversified' | 'Moderately Concentrated' | 'Highly Concentrated' | 'Over Concentrated';
+
+    let concentrationRating:
+      | 'Well Diversified'
+      | 'Moderately Concentrated'
+      | 'Highly Concentrated'
+      | 'Over Concentrated';
     if (concentrationLevel <= 20) concentrationRating = 'Well Diversified';
     else if (concentrationLevel <= 40) concentrationRating = 'Moderately Concentrated';
     else if (concentrationLevel <= 70) concentrationRating = 'Highly Concentrated';
@@ -205,12 +210,16 @@ export const useRiskAssessment = () => {
     if (!riskAssessment) return null;
 
     const correlationLevel = riskAssessment.correlationRisk;
-    
+
     return {
       level: correlationLevel,
       isHigh: correlationLevel > 60,
-      impactOnDiversification: correlationLevel > 70 ? 'Severely Reduced' : 
-                               correlationLevel > 50 ? 'Moderately Reduced' : 'Minimal Impact',
+      impactOnDiversification:
+        correlationLevel > 70
+          ? 'Severely Reduced'
+          : correlationLevel > 50
+            ? 'Moderately Reduced'
+            : 'Minimal Impact',
       recommendsHedging: correlationLevel > 70,
     };
   }, [riskAssessment]);
@@ -220,7 +229,7 @@ export const useRiskAssessment = () => {
     if (!riskAssessment) return null;
 
     const liquidityLevel = riskAssessment.liquidityRisk;
-    
+
     let liquidityRating: 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Concerning';
     if (liquidityLevel <= 1) liquidityRating = 'Excellent';
     else if (liquidityLevel <= 2) liquidityRating = 'Good';
@@ -247,7 +256,7 @@ export const useRiskAssessment = () => {
       actions.push({
         priority: 'High',
         action: 'Reduce position sizes immediately',
-        reason: 'Overall risk level is critical'
+        reason: 'Overall risk level is critical',
       });
     }
 
@@ -256,7 +265,7 @@ export const useRiskAssessment = () => {
       actions.push({
         priority: 'High',
         action: 'Diversify portfolio holdings',
-        reason: 'Concentration risk exceeds safe limits'
+        reason: 'Concentration risk exceeds safe limits',
       });
     }
 
@@ -265,7 +274,7 @@ export const useRiskAssessment = () => {
       actions.push({
         priority: 'Medium',
         action: 'Add uncorrelated assets or hedging positions',
-        reason: 'High correlation reduces diversification benefits'
+        reason: 'High correlation reduces diversification benefits',
       });
     }
 
@@ -274,7 +283,7 @@ export const useRiskAssessment = () => {
       actions.push({
         priority: 'Medium',
         action: 'Increase liquidity buffer',
-        reason: 'Liquidity risk may impact ability to exit positions'
+        reason: 'Liquidity risk may impact ability to exit positions',
       });
     }
 
@@ -283,7 +292,7 @@ export const useRiskAssessment = () => {
       actions.push({
         priority: 'Medium',
         action: 'Review risk models and position sizing',
-        reason: 'VaR calculations suggest unusual risk distribution'
+        reason: 'VaR calculations suggest unusual risk distribution',
       });
     }
 

@@ -1,0 +1,30 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/test"],
+      "env": {
+        "NODE_ENV": "test"
+      }
+    },
+    "github": {
+      "command": "github-mcp-server",
+      "args": [],
+      "env": {
+        "GITHUB_TOKEN": "your-github-token-here"
+      }
+    },
+    "exa-search": {
+      "command": "npx",
+      "args": ["-y", "exa-mcp-server"],
+      "env": {
+        "EXA_API_KEY": "your-exa-api-key-here"
+      }
+    },
+    "pieces": {
+      "command": "pieces-mcp-server",
+      "args": [],
+      "env": {}
+    }
+  }
+}

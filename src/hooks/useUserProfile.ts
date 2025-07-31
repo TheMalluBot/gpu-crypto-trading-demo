@@ -30,13 +30,13 @@ export const useUserProfile = () => {
   });
 
   const [loading, setLoading] = useState(true);
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   const loadProfile = async () => {
     setLoading(true);
     // Try to load from backend first
     const savedProfile = await safeInvoke<UserProfile>('load_user_profile');
-    
+
     if (savedProfile) {
       setProfile(savedProfile);
     } else {
@@ -49,7 +49,7 @@ export const useUserProfile = () => {
         generateMockProfile();
       }
     }
-    
+
     setLoading(false);
   };
 
@@ -63,7 +63,7 @@ export const useUserProfile = () => {
   };
 
   const validateProfile = (): boolean => {
-    const newErrors: {[key: string]: string} = {};
+    const newErrors: { [key: string]: string } = {};
 
     if (!profile.name.trim()) {
       newErrors.name = 'Name is required';
@@ -86,7 +86,7 @@ export const useUserProfile = () => {
 
     // Save profile to backend/local storage
     const result = await safeInvoke('save_user_profile', { profile });
-    
+
     if (result !== null) {
       return true;
     } else {
@@ -108,7 +108,11 @@ export const useUserProfile = () => {
     setErrors(clearedErrors);
   };
 
-  const updateProfileStats = (stats: { total_trades: number; total_volume: number; win_rate: number }) => {
+  const updateProfileStats = (stats: {
+    total_trades: number;
+    total_volume: number;
+    win_rate: number;
+  }) => {
     setProfile(prev => ({ ...prev, ...stats }));
   };
 
@@ -124,6 +128,6 @@ export const useUserProfile = () => {
     saveProfile,
     updateProfile,
     updateProfileStats,
-    validateProfile
+    validateProfile,
   };
 };

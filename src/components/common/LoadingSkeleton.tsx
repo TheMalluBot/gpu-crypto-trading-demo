@@ -12,10 +12,10 @@ export const LoadingSkeleton: React.FC<LoadingSkeletonProps> = ({
   lines = 1,
   height = 'h-4',
   className = '',
-  variant = 'text'
+  variant = 'text',
 }) => {
   const baseClasses = 'bg-white/10 animate-pulse rounded';
-  
+
   const getVariantClasses = () => {
     switch (variant) {
       case 'circular':
@@ -31,7 +31,7 @@ export const LoadingSkeleton: React.FC<LoadingSkeletonProps> = ({
 
   if (lines === 1) {
     return (
-      <div 
+      <div
         className={`${baseClasses} ${getVariantClasses()} ${className}`}
         role="status"
         aria-label="Loading content"
@@ -51,7 +51,7 @@ export const LoadingSkeleton: React.FC<LoadingSkeletonProps> = ({
           transition={{
             duration: 1.5,
             repeat: Infinity,
-            delay: index * 0.1
+            delay: index * 0.1,
           }}
         />
       ))}
@@ -68,24 +68,24 @@ interface TableSkeletonProps {
 export const TableSkeleton: React.FC<TableSkeletonProps> = ({
   rows = 5,
   columns = 6,
-  className = ''
+  className = '',
 }) => {
   return (
     <div className={`glass-morphic p-6 ${className}`} role="status" aria-label="Loading table">
-      <div 
-        className="grid gap-4 mb-4 grid-dynamic-columns" 
+      <div
+        className="grid gap-4 mb-4 grid-dynamic-columns"
         style={{ '--grid-columns': `repeat(${columns}, 1fr)` } as React.CSSProperties}
       >
         {Array.from({ length: columns }, (_, index) => (
           <LoadingSkeleton key={`header-${index}`} height="h-3" />
         ))}
       </div>
-      
+
       <div className="space-y-3">
         {Array.from({ length: rows }, (_, rowIndex) => (
-          <div 
-            key={`row-${rowIndex}`} 
-            className="grid gap-4 grid-dynamic-columns" 
+          <div
+            key={`row-${rowIndex}`}
+            className="grid gap-4 grid-dynamic-columns"
             style={{ '--grid-columns': `repeat(${columns}, 1fr)` } as React.CSSProperties}
           >
             {Array.from({ length: columns }, (_, colIndex) => (
@@ -105,7 +105,7 @@ interface CardSkeletonProps {
 
 export const CardSkeleton: React.FC<CardSkeletonProps> = ({
   className = '',
-  showAvatar = false
+  showAvatar = false,
 }) => {
   return (
     <div className={`glass-morphic p-6 ${className}`} role="status" aria-label="Loading card">

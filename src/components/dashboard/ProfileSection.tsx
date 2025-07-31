@@ -26,11 +26,8 @@ export const ProfileSection: React.FC = () => {
   return (
     <>
       {/* Profile Header */}
-      <ProfileHeader 
-        profile={profile} 
-        onEditClick={() => setShowProfileEdit(true)} 
-      />
-      
+      <ProfileHeader profile={profile} onEditClick={() => setShowProfileEdit(true)} />
+
       {/* Profile Stats */}
       <ProfileStats profile={profile} />
 

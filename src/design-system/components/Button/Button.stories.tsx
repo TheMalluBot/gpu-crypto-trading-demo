@@ -1,7 +1,7 @@
 // Phase 2 Week 6 Design System Agent - Button Component Stories
-import type { Meta, StoryObj } from '@storybook/react'
-import { TrendingUp, TrendingDown, Plus, Settings, Download } from 'lucide-react'
-import { Button, ButtonGroup, IconButton, BuyButton, SellButton } from './Button'
+import type { Meta, StoryObj } from '@storybook/react';
+import { TrendingUp, TrendingDown, Plus, Settings, Download } from 'lucide-react';
+import { Button, ButtonGroup, IconButton, BuyButton, SellButton } from './Button';
 
 const meta: Meta<typeof Button> = {
   title: 'Design System/Components/Button',
@@ -10,89 +10,100 @@ const meta: Meta<typeof Button> = {
     layout: 'centered',
     docs: {
       description: {
-        component: 'A comprehensive button component with multiple variants, sizes, and states. Supports loading states, icons, and accessibility features.'
-      }
-    }
+        component:
+          'A comprehensive button component with multiple variants, sizes, and states. Supports loading states, icons, and accessibility features.',
+      },
+    },
   },
   argTypes: {
     variant: {
       control: { type: 'select' },
-      options: ['primary', 'secondary', 'success', 'danger', 'warning', 'ghost', 'outline', 'buy', 'sell'],
-      description: 'Button visual style variant'
+      options: [
+        'primary',
+        'secondary',
+        'success',
+        'danger',
+        'warning',
+        'ghost',
+        'outline',
+        'buy',
+        'sell',
+      ],
+      description: 'Button visual style variant',
     },
     size: {
       control: { type: 'select' },
       options: ['sm', 'md', 'lg', 'xl'],
-      description: 'Button size'
+      description: 'Button size',
     },
     loading: {
       control: 'boolean',
-      description: 'Show loading spinner and disable interaction'
+      description: 'Show loading spinner and disable interaction',
     },
     disabled: {
       control: 'boolean',
-      description: 'Disable button interaction'
+      description: 'Disable button interaction',
     },
     fullWidth: {
       control: 'boolean',
-      description: 'Make button full width'
-    }
+      description: 'Make button full width',
+    },
   },
-  tags: ['autodocs']
-}
+  tags: ['autodocs'],
+};
 
-export default meta
-type Story = StoryObj<typeof Button>
+export default meta;
+type Story = StoryObj<typeof Button>;
 
 // Basic button variants
 export const Primary: Story = {
   args: {
     children: 'Primary Button',
-    variant: 'primary'
-  }
-}
+    variant: 'primary',
+  },
+};
 
 export const Secondary: Story = {
   args: {
     children: 'Secondary Button',
-    variant: 'secondary'
-  }
-}
+    variant: 'secondary',
+  },
+};
 
 export const Success: Story = {
   args: {
     children: 'Success Button',
-    variant: 'success'
-  }
-}
+    variant: 'success',
+  },
+};
 
 export const Danger: Story = {
   args: {
     children: 'Danger Button',
-    variant: 'danger'
-  }
-}
+    variant: 'danger',
+  },
+};
 
 export const Warning: Story = {
   args: {
     children: 'Warning Button',
-    variant: 'warning'
-  }
-}
+    variant: 'warning',
+  },
+};
 
 export const Ghost: Story = {
   args: {
     children: 'Ghost Button',
-    variant: 'ghost'
-  }
-}
+    variant: 'ghost',
+  },
+};
 
 export const Outline: Story = {
   args: {
     children: 'Outline Button',
-    variant: 'outline'
-  }
-}
+    variant: 'outline',
+  },
+};
 
 // Size variations
 export const Sizes: Story = {
@@ -107,49 +118,62 @@ export const Sizes: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Buttons come in four sizes: sm, md (default), lg, and xl.'
-      }
-    }
-  }
-}
+        story: 'Buttons come in four sizes: sm, md (default), lg, and xl.',
+      },
+    },
+  },
+};
 
 // Loading states
 export const Loading: Story = {
   render: () => (
     <div className="flex items-center gap-4">
       <Button loading>Loading...</Button>
-      <Button loading variant="secondary">Processing</Button>
-      <Button loading variant="success">Saving</Button>
-      <Button loading variant="danger">Deleting</Button>
+      <Button loading variant="secondary">
+        Processing
+      </Button>
+      <Button loading variant="success">
+        Saving
+      </Button>
+      <Button loading variant="danger">
+        Deleting
+      </Button>
     </div>
   ),
   parameters: {
     docs: {
       description: {
-        story: 'Buttons show a loading spinner when in loading state and are automatically disabled.'
-      }
-    }
-  }
-}
+        story:
+          'Buttons show a loading spinner when in loading state and are automatically disabled.',
+      },
+    },
+  },
+};
 
 // Disabled states
 export const Disabled: Story = {
   render: () => (
     <div className="flex items-center gap-4">
       <Button disabled>Disabled Primary</Button>
-      <Button disabled variant="secondary">Disabled Secondary</Button>
-      <Button disabled variant="success">Disabled Success</Button>
-      <Button disabled variant="danger">Disabled Danger</Button>
+      <Button disabled variant="secondary">
+        Disabled Secondary
+      </Button>
+      <Button disabled variant="success">
+        Disabled Success
+      </Button>
+      <Button disabled variant="danger">
+        Disabled Danger
+      </Button>
     </div>
   ),
   parameters: {
     docs: {
       description: {
-        story: 'Disabled buttons are visually dimmed and cannot be interacted with.'
-      }
-    }
-  }
-}
+        story: 'Disabled buttons are visually dimmed and cannot be interacted with.',
+      },
+    },
+  },
+};
 
 // Icons
 export const WithIcons: Story = {
@@ -172,11 +196,12 @@ export const WithIcons: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Buttons can include icons on the left, right, or both. Icon-only buttons use the IconButton component.'
-      }
-    }
-  }
-}
+        story:
+          'Buttons can include icons on the left, right, or both. Icon-only buttons use the IconButton component.',
+      },
+    },
+  },
+};
 
 // Full width
 export const FullWidth: Story = {
@@ -188,11 +213,11 @@ export const FullWidth: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Buttons can span the full width of their container.'
-      }
-    }
-  }
-}
+        story: 'Buttons can span the full width of their container.',
+      },
+    },
+  },
+};
 
 // Button groups
 export const ButtonGroups: Story = {
@@ -206,7 +231,7 @@ export const ButtonGroups: Story = {
           <Button variant="outline">Third</Button>
         </ButtonGroup>
       </div>
-      
+
       <div>
         <h3 className="text-sm font-medium text-gray-700 mb-2">Vertical Group</h3>
         <ButtonGroup orientation="vertical">
@@ -215,7 +240,7 @@ export const ButtonGroups: Story = {
           <Button variant="ghost">Option C</Button>
         </ButtonGroup>
       </div>
-      
+
       <div>
         <h3 className="text-sm font-medium text-gray-700 mb-2">Action Group</h3>
         <ButtonGroup spacing="lg">
@@ -228,11 +253,11 @@ export const ButtonGroups: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Button groups organize related actions with consistent spacing.'
-      }
-    }
-  }
-}
+        story: 'Button groups organize related actions with consistent spacing.',
+      },
+    },
+  },
+};
 
 // Trading-specific buttons
 export const TradingButtons: Story = {
@@ -241,15 +266,11 @@ export const TradingButtons: Story = {
       <div>
         <h3 className="text-sm font-medium text-gray-700 mb-2">Trading Actions</h3>
         <div className="flex gap-4">
-          <BuyButton leftIcon={<TrendingUp size={16} />}>
-            Buy BTCUSDT
-          </BuyButton>
-          <SellButton leftIcon={<TrendingDown size={16} />}>
-            Sell BTCUSDT
-          </SellButton>
+          <BuyButton leftIcon={<TrendingUp size={16} />}>Buy BTCUSDT</BuyButton>
+          <SellButton leftIcon={<TrendingDown size={16} />}>Sell BTCUSDT</SellButton>
         </div>
       </div>
-      
+
       <div>
         <h3 className="text-sm font-medium text-gray-700 mb-2">Loading States</h3>
         <div className="flex gap-4">
@@ -257,7 +278,7 @@ export const TradingButtons: Story = {
           <SellButton loading>Placing Sell Order...</SellButton>
         </div>
       </div>
-      
+
       <div>
         <h3 className="text-sm font-medium text-gray-700 mb-2">Different Sizes</h3>
         <div className="flex items-center gap-4">
@@ -274,11 +295,12 @@ export const TradingButtons: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Specialized trading buttons with hover animations and semantic colors for buy/sell actions.'
-      }
-    }
-  }
-}
+        story:
+          'Specialized trading buttons with hover animations and semantic colors for buy/sell actions.',
+      },
+    },
+  },
+};
 
 // All variants showcase
 export const AllVariants: Story = {
@@ -298,11 +320,11 @@ export const AllVariants: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'All available button variants in a grid layout.'
-      }
-    }
-  }
-}
+        story: 'All available button variants in a grid layout.',
+      },
+    },
+  },
+};
 
 // Interactive playground
 export const Playground: Story = {
@@ -312,16 +334,16 @@ export const Playground: Story = {
     size: 'md',
     loading: false,
     disabled: false,
-    fullWidth: false
+    fullWidth: false,
   },
   parameters: {
     docs: {
       description: {
-        story: 'Interactive playground to test different button configurations.'
-      }
-    }
-  }
-}
+        story: 'Interactive playground to test different button configurations.',
+      },
+    },
+  },
+};
 
 // Accessibility demonstration
 export const Accessibility: Story = {
@@ -338,7 +360,7 @@ export const Accessibility: Story = {
           <Button variant="outline">Focusable Button 3</Button>
         </div>
       </div>
-      
+
       <div>
         <h3 className="text-sm font-medium text-gray-700 mb-2">Minimum Touch Targets</h3>
         <p className="text-sm text-gray-600 mb-4">
@@ -349,7 +371,7 @@ export const Accessibility: Story = {
           <IconButton icon={<Plus size={16} />} aria-label="Add item" size="sm" />
         </div>
       </div>
-      
+
       <div>
         <h3 className="text-sm font-medium text-gray-700 mb-2">Screen Reader Support</h3>
         <p className="text-sm text-gray-600 mb-4">
@@ -362,8 +384,8 @@ export const Accessibility: Story = {
           <p id="loading-help" className="sr-only">
             Please wait while we process your request
           </p>
-          <IconButton 
-            icon={<Settings size={16} />} 
+          <IconButton
+            icon={<Settings size={16} />}
             aria-label="Open settings menu"
             aria-describedby="settings-help"
           />
@@ -377,8 +399,9 @@ export const Accessibility: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Demonstration of accessibility features including focus management, touch targets, and screen reader support.'
-      }
-    }
-  }
-}
+        story:
+          'Demonstration of accessibility features including focus management, touch targets, and screen reader support.',
+      },
+    },
+  },
+};

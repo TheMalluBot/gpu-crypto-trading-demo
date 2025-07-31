@@ -13,7 +13,7 @@ interface MarketOverviewProps {
 export const MarketOverview: React.FC<MarketOverviewProps> = ({
   onSymbolSelect,
   className = '',
-  limit = 20
+  limit = 20,
 }) => {
   const [symbols, setSymbols] = useState<SymbolInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,12 +25,12 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
   useEffect(() => {
     loadMarketData();
     loadFavorites();
-    
+
     // Auto-refresh every 30 seconds
     const interval = setInterval(() => {
       loadMarketData();
     }, 30000);
-    
+
     return () => clearInterval(interval);
   }, []);
 
@@ -55,17 +55,121 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
     } catch (err) {
       console.error('Error loading market data:', err);
       setError('Failed to load market data');
-      
+
       // Fallback to mock data
       setSymbols([
-        { symbol: 'BTCUSDT', base_asset: 'BTC', quote_asset: 'USDT', status: 'TRADING', price: 43250.00, price_change_percent: 2.45, volume: 1200000000, high: 44000, low: 42000, is_spot_trading_allowed: true, is_margin_trading_allowed: true, filters: [] },
-        { symbol: 'ETHUSDT', base_asset: 'ETH', quote_asset: 'USDT', status: 'TRADING', price: 2645.30, price_change_percent: 3.21, volume: 850000000, high: 2700, low: 2500, is_spot_trading_allowed: true, is_margin_trading_allowed: true, filters: [] },
-        { symbol: 'SOLUSDT', base_asset: 'SOL', quote_asset: 'USDT', status: 'TRADING', price: 102.45, price_change_percent: -1.23, volume: 520000000, high: 108, low: 98, is_spot_trading_allowed: true, is_margin_trading_allowed: true, filters: [] },
-        { symbol: 'ADAUSDT', base_asset: 'ADA', quote_asset: 'USDT', status: 'TRADING', price: 0.4567, price_change_percent: 1.89, volume: 340000000, high: 0.48, low: 0.44, is_spot_trading_allowed: true, is_margin_trading_allowed: true, filters: [] },
-        { symbol: 'DOTUSDT', base_asset: 'DOT', quote_asset: 'USDT', status: 'TRADING', price: 6.789, price_change_percent: 0.56, volume: 180000000, high: 7.2, low: 6.5, is_spot_trading_allowed: true, is_margin_trading_allowed: true, filters: [] },
-        { symbol: 'LINKUSDT', base_asset: 'LINK', quote_asset: 'USDT', status: 'TRADING', price: 14.25, price_change_percent: -0.89, volume: 120000000, high: 14.8, low: 13.9, is_spot_trading_allowed: true, is_margin_trading_allowed: true, filters: [] },
-        { symbol: 'MATICUSDT', base_asset: 'MATIC', quote_asset: 'USDT', status: 'TRADING', price: 0.8934, price_change_percent: 4.12, volume: 95000000, high: 0.92, low: 0.85, is_spot_trading_allowed: true, is_margin_trading_allowed: true, filters: [] },
-        { symbol: 'AVAXUSDT', base_asset: 'AVAX', quote_asset: 'USDT', status: 'TRADING', price: 36.78, price_change_percent: -2.34, volume: 85000000, high: 38.5, low: 35.2, is_spot_trading_allowed: true, is_margin_trading_allowed: true, filters: [] },
+        {
+          symbol: 'BTCUSDT',
+          base_asset: 'BTC',
+          quote_asset: 'USDT',
+          status: 'TRADING',
+          price: 43250.0,
+          price_change_percent: 2.45,
+          volume: 1200000000,
+          high: 44000,
+          low: 42000,
+          is_spot_trading_allowed: true,
+          is_margin_trading_allowed: true,
+          filters: [],
+        },
+        {
+          symbol: 'ETHUSDT',
+          base_asset: 'ETH',
+          quote_asset: 'USDT',
+          status: 'TRADING',
+          price: 2645.3,
+          price_change_percent: 3.21,
+          volume: 850000000,
+          high: 2700,
+          low: 2500,
+          is_spot_trading_allowed: true,
+          is_margin_trading_allowed: true,
+          filters: [],
+        },
+        {
+          symbol: 'SOLUSDT',
+          base_asset: 'SOL',
+          quote_asset: 'USDT',
+          status: 'TRADING',
+          price: 102.45,
+          price_change_percent: -1.23,
+          volume: 520000000,
+          high: 108,
+          low: 98,
+          is_spot_trading_allowed: true,
+          is_margin_trading_allowed: true,
+          filters: [],
+        },
+        {
+          symbol: 'ADAUSDT',
+          base_asset: 'ADA',
+          quote_asset: 'USDT',
+          status: 'TRADING',
+          price: 0.4567,
+          price_change_percent: 1.89,
+          volume: 340000000,
+          high: 0.48,
+          low: 0.44,
+          is_spot_trading_allowed: true,
+          is_margin_trading_allowed: true,
+          filters: [],
+        },
+        {
+          symbol: 'DOTUSDT',
+          base_asset: 'DOT',
+          quote_asset: 'USDT',
+          status: 'TRADING',
+          price: 6.789,
+          price_change_percent: 0.56,
+          volume: 180000000,
+          high: 7.2,
+          low: 6.5,
+          is_spot_trading_allowed: true,
+          is_margin_trading_allowed: true,
+          filters: [],
+        },
+        {
+          symbol: 'LINKUSDT',
+          base_asset: 'LINK',
+          quote_asset: 'USDT',
+          status: 'TRADING',
+          price: 14.25,
+          price_change_percent: -0.89,
+          volume: 120000000,
+          high: 14.8,
+          low: 13.9,
+          is_spot_trading_allowed: true,
+          is_margin_trading_allowed: true,
+          filters: [],
+        },
+        {
+          symbol: 'MATICUSDT',
+          base_asset: 'MATIC',
+          quote_asset: 'USDT',
+          status: 'TRADING',
+          price: 0.8934,
+          price_change_percent: 4.12,
+          volume: 95000000,
+          high: 0.92,
+          low: 0.85,
+          is_spot_trading_allowed: true,
+          is_margin_trading_allowed: true,
+          filters: [],
+        },
+        {
+          symbol: 'AVAXUSDT',
+          base_asset: 'AVAX',
+          quote_asset: 'USDT',
+          status: 'TRADING',
+          price: 36.78,
+          price_change_percent: -2.34,
+          volume: 85000000,
+          high: 38.5,
+          low: 35.2,
+          is_spot_trading_allowed: true,
+          is_margin_trading_allowed: true,
+          filters: [],
+        },
       ]);
     } finally {
       setLoading(false);
@@ -84,7 +188,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
     return [...symbols].sort((a, b) => {
       let aValue: number;
       let bValue: number;
-      
+
       switch (sortBy) {
         case 'volume':
           aValue = a.volume || 0;
@@ -101,7 +205,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
         default:
           return 0;
       }
-      
+
       const comparison = aValue - bValue;
       return sortOrder === 'asc' ? comparison : -comparison;
     });
@@ -137,7 +241,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
             <Activity className="w-5 h-5 text-blue-400" />
             <h3 className="text-lg font-bold text-white">Market Overview</h3>
           </div>
-          
+
           <div className="flex items-center space-x-2">
             <button
               onClick={loadMarketData}
@@ -148,15 +252,15 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
             </button>
           </div>
         </div>
-        
+
         {/* Sort Controls */}
         <div className="flex items-center space-x-4 mt-3">
           <span className="text-white/60 text-sm">Sort by:</span>
           <button
             onClick={() => handleSort('volume')}
             className={`px-3 py-1 rounded-lg text-sm transition-colors ${
-              sortBy === 'volume' 
-                ? 'bg-blue-500/20 text-blue-400' 
+              sortBy === 'volume'
+                ? 'bg-blue-500/20 text-blue-400'
                 : 'text-white/60 hover:text-white hover:bg-white/10'
             }`}
           >
@@ -165,8 +269,8 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
           <button
             onClick={() => handleSort('price_change')}
             className={`px-3 py-1 rounded-lg text-sm transition-colors ${
-              sortBy === 'price_change' 
-                ? 'bg-blue-500/20 text-blue-400' 
+              sortBy === 'price_change'
+                ? 'bg-blue-500/20 text-blue-400'
                 : 'text-white/60 hover:text-white hover:bg-white/10'
             }`}
           >
@@ -175,8 +279,8 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
           <button
             onClick={() => handleSort('price')}
             className={`px-3 py-1 rounded-lg text-sm transition-colors ${
-              sortBy === 'price' 
-                ? 'bg-blue-500/20 text-blue-400' 
+              sortBy === 'price'
+                ? 'bg-blue-500/20 text-blue-400'
                 : 'text-white/60 hover:text-white hover:bg-white/10'
             }`}
           >
@@ -218,12 +322,12 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
                       {symbol.base_asset.slice(0, 2)}
                     </span>
                   </div>
-                  
+
                   <div>
                     <div className="flex items-center space-x-2">
                       <span className="text-white font-medium">{symbol.symbol}</span>
                       <button
-                        onClick={(e) => {
+                        onClick={e => {
                           e.stopPropagation();
                           toggleFavorite(symbol.symbol);
                         }}
@@ -241,20 +345,20 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center space-x-4">
                   <div className="text-right">
-                    <div className="text-white font-medium">
-                      ${formatPrice(symbol.price || 0)}
-                    </div>
+                    <div className="text-white font-medium">${formatPrice(symbol.price || 0)}</div>
                     <div className="text-white/60 text-sm">
                       Vol: {formatVolume(symbol.volume || 0)}
                     </div>
                   </div>
-                  
-                  <div className={`flex items-center space-x-1 ${
-                    (symbol.price_change_percent || 0) >= 0 ? 'text-green-400' : 'text-red-400'
-                  }`}>
+
+                  <div
+                    className={`flex items-center space-x-1 ${
+                      (symbol.price_change_percent || 0) >= 0 ? 'text-green-400' : 'text-red-400'
+                    }`}
+                  >
                     {(symbol.price_change_percent || 0) >= 0 ? (
                       <TrendingUp className="w-4 h-4" />
                     ) : (
@@ -267,11 +371,9 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
                 </div>
               </motion.div>
             ))}
-            
+
             {symbols.length === 0 && (
-              <div className="text-center py-8 text-white/60">
-                No market data available
-              </div>
+              <div className="text-center py-8 text-white/60">No market data available</div>
             )}
           </div>
         )}

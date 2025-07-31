@@ -20,7 +20,7 @@ export const TradeTable: React.FC<TradeTableProps> = ({
   currentPage,
   totalPages,
   tradesPerPage,
-  onPageChange
+  onPageChange,
 }) => {
   const indexOfLastTrade = currentPage * tradesPerPage;
   const indexOfFirstTrade = indexOfLastTrade - tradesPerPage;
@@ -30,68 +30,68 @@ export const TradeTable: React.FC<TradeTableProps> = ({
     {
       key: 'timestamp',
       header: 'Date',
-      render: (value) => formatDate(value),
-      sortable: true
+      render: value => formatDate(value),
+      sortable: true,
     },
     {
       key: 'symbol',
       header: 'Symbol',
       className: 'font-medium',
-      sortable: true
+      sortable: true,
     },
     {
       key: 'side',
       header: 'Side',
-      render: (value) => <StatusBadge status={value} variant="trade-side" />
+      render: value => <StatusBadge status={value} variant="trade-side" />,
     },
     {
       key: 'type',
       header: 'Type',
       className: 'text-white/80 text-sm',
-      mobileHidden: true
+      mobileHidden: true,
     },
     {
       key: 'entry_price',
       header: 'Entry',
-      render: (value) => `$${formatPrice(value)}`,
-      sortable: true
+      render: value => `$${formatPrice(value)}`,
+      sortable: true,
     },
     {
       key: 'exit_price',
       header: 'Exit',
-      render: (value) => value ? `$${formatPrice(value)}` : '-',
-      mobileHidden: true
+      render: value => (value ? `$${formatPrice(value)}` : '-'),
+      mobileHidden: true,
     },
     {
       key: 'quantity',
       header: 'Quantity',
       render: (value, record) => formatQuantity(value, record.symbol),
-      mobileHidden: true
+      mobileHidden: true,
     },
     {
       key: 'pnl',
       header: 'P/L',
-      render: (value) => <PnLDisplay value={value} />,
-      sortable: true
+      render: value => <PnLDisplay value={value} />,
+      sortable: true,
     },
     {
       key: 'pnl_percentage',
       header: 'P/L %',
-      render: (value) => <PnLDisplay value={value} showPercentage={true} />,
-      mobileHidden: true
+      render: value => <PnLDisplay value={value} showPercentage={true} />,
+      mobileHidden: true,
     },
     {
       key: 'duration',
       header: 'Duration',
-      render: (value) => value || '-',
+      render: value => value || '-',
       className: 'text-white/60 text-sm',
-      mobileHidden: true
+      mobileHidden: true,
     },
     {
       key: 'status',
       header: 'Status',
-      render: (value) => <StatusBadge status={value} variant="trade-status" />
-    }
+      render: value => <StatusBadge status={value} variant="trade-status" />,
+    },
   ];
 
   return (
@@ -112,9 +112,10 @@ export const TradeTable: React.FC<TradeTableProps> = ({
         <div className="glass-morphic p-4 mt-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-white/60 text-sm text-center sm:text-left">
-              Showing {indexOfFirstTrade + 1} to {Math.min(indexOfLastTrade, trades.length)} of {trades.length} trades
+              Showing {indexOfFirstTrade + 1} to {Math.min(indexOfLastTrade, trades.length)} of{' '}
+              {trades.length} trades
             </div>
-            
+
             <nav className="flex items-center space-x-2" aria-label="Table pagination">
               <Button
                 variant="secondary"
@@ -125,7 +126,7 @@ export const TradeTable: React.FC<TradeTableProps> = ({
               >
                 Previous
               </Button>
-              
+
               {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
                 const page = i + Math.max(1, currentPage - 2);
                 return page <= totalPages ? (
@@ -141,7 +142,7 @@ export const TradeTable: React.FC<TradeTableProps> = ({
                   </Button>
                 ) : null;
               })}
-              
+
               <Button
                 variant="secondary"
                 onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}

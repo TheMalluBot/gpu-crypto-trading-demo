@@ -28,7 +28,7 @@ export function ResponsiveTable<T extends Record<string, any>>({
   onRowClick,
   loading = false,
   emptyMessage = 'No data available',
-  rowKey
+  rowKey,
 }: ResponsiveTableProps<T>) {
   const [expandedRows, setExpandedRows] = useState<Set<string | number>>(new Set());
   const [sortConfig, setSortConfig] = useState<{
@@ -49,7 +49,7 @@ export function ResponsiveTable<T extends Record<string, any>>({
   const handleSort = (key: keyof T) => {
     setSortConfig(prev => ({
       key,
-      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
     }));
   };
 
@@ -100,9 +100,9 @@ export function ResponsiveTable<T extends Record<string, any>>({
         <table className="w-full" role="table">
           <thead>
             <tr className="text-white/60 text-sm border-b border-white/10">
-              {columns.map((column) => (
-                <th 
-                  key={String(column.key)} 
+              {columns.map(column => (
+                <th
+                  key={String(column.key)}
                   className={`text-left py-3 px-4 ${column.className || ''}`}
                   scope="col"
                 >
@@ -114,9 +114,7 @@ export function ResponsiveTable<T extends Record<string, any>>({
                     >
                       <span>{column.header}</span>
                       {sortConfig.key === column.key && (
-                        <span aria-hidden="true">
-                          {sortConfig.direction === 'asc' ? '↑' : '↓'}
-                        </span>
+                        <span aria-hidden="true">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
                       )}
                     </button>
                   ) : (
@@ -127,8 +125,8 @@ export function ResponsiveTable<T extends Record<string, any>>({
             </tr>
           </thead>
           <tbody>
-            {sortedData.map((item) => (
-              <tr 
+            {sortedData.map(item => (
+              <tr
                 key={String(item[rowKey])}
                 className={`border-b border-white/5 hover:bg-white/5 transition-colors ${
                   onRowClick ? 'cursor-pointer' : ''
@@ -136,19 +134,22 @@ export function ResponsiveTable<T extends Record<string, any>>({
                 onClick={() => onRowClick?.(item)}
                 role={onRowClick ? 'button' : undefined}
                 tabIndex={onRowClick ? 0 : undefined}
-                onKeyDown={onRowClick ? (e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    onRowClick(item);
-                  }
-                } : undefined}
+                onKeyDown={
+                  onRowClick
+                    ? e => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          onRowClick(item);
+                        }
+                      }
+                    : undefined
+                }
               >
-                {columns.map((column) => (
+                {columns.map(column => (
                   <td key={String(column.key)} className={`py-3 px-4 ${column.className || ''}`}>
-                    {column.render 
+                    {column.render
                       ? column.render(item[column.key], item)
-                      : String(item[column.key] ?? '-')
-                    }
+                      : String(item[column.key] ?? '-')}
                   </td>
                 ))}
               </tr>
@@ -159,9 +160,9 @@ export function ResponsiveTable<T extends Record<string, any>>({
 
       {/* Mobile Cards */}
       <div className="md:hidden space-y-2 p-4">
-        {sortedData.map((item) => {
+        {sortedData.map(item => {
           const isExpanded = expandedRows.has(item[rowKey]);
-          
+
           return (
             <motion.div
               key={String(item[rowKey])}
@@ -173,22 +174,21 @@ export function ResponsiveTable<T extends Record<string, any>>({
               {/* Main visible info */}
               <div className="flex items-center justify-between">
                 <div className="flex-1 space-y-1">
-                  {visibleColumns.slice(0, 2).map((column) => (
+                  {visibleColumns.slice(0, 2).map(column => (
                     <div key={String(column.key)} className="flex justify-between items-center">
                       <span className="text-white/60 text-sm">{column.header}:</span>
                       <span className="text-white font-medium">
-                        {column.render 
+                        {column.render
                           ? column.render(item[column.key], item)
-                          : String(item[column.key] ?? '-')
-                        }
+                          : String(item[column.key] ?? '-')}
                       </span>
                     </div>
                   ))}
                 </div>
-                
+
                 {hiddenColumns.length > 0 && (
                   <button
-                    onClick={(e) => {
+                    onClick={e => {
                       e.stopPropagation();
                       toggleRowExpansion(item[rowKey]);
                     }}
@@ -215,14 +215,13 @@ export function ResponsiveTable<T extends Record<string, any>>({
                     transition={{ duration: 0.2 }}
                     className="mt-3 pt-3 border-t border-white/10 space-y-2"
                   >
-                    {hiddenColumns.map((column) => (
+                    {hiddenColumns.map(column => (
                       <div key={String(column.key)} className="flex justify-between items-center">
                         <span className="text-white/60 text-sm">{column.header}:</span>
                         <span className="text-white">
-                          {column.render 
+                          {column.render
                             ? column.render(item[column.key], item)
-                            : String(item[column.key] ?? '-')
-                          }
+                            : String(item[column.key] ?? '-')}
                         </span>
                       </div>
                     ))}

@@ -68,18 +68,11 @@ export class ErrorHandler {
   /**
    * Handle errors with comprehensive logging and user feedback
    */
-  static async handle(
-    error: unknown,
-    options: ErrorHandlerOptions = {}
-  ): Promise<AppError> {
-    const {
-      showNotification = true,
-      logToConsole = true,
-      reportToService = false,
-    } = options;
+  static async handle(error: unknown, options: ErrorHandlerOptions = {}): Promise<AppError> {
+    const { showNotification = true, logToConsole = true, reportToService = false } = options;
 
     const appError = this.normalizeError(error);
-    
+
     // Add to error queue
     this.addToQueue(appError);
 
@@ -115,7 +108,7 @@ export class ErrorHandler {
           error.message
         );
       }
-      
+
       if (error.message.includes('Unauthorized') || error.message.includes('401')) {
         return this.createError(
           ErrorType.AUTHENTICATION,
@@ -134,20 +127,11 @@ export class ErrorHandler {
         );
       }
 
-      return this.createError(
-        ErrorType.UNKNOWN,
-        ErrorSeverity.MEDIUM,
-        error.message,
-        error.stack
-      );
+      return this.createError(ErrorType.UNKNOWN, ErrorSeverity.MEDIUM, error.message, error.stack);
     }
 
     if (typeof error === 'string') {
-      return this.createError(
-        ErrorType.UNKNOWN,
-        ErrorSeverity.LOW,
-        error
-      );
+      return this.createError(ErrorType.UNKNOWN, ErrorSeverity.LOW, error);
     }
 
     return this.createError(
@@ -163,7 +147,7 @@ export class ErrorHandler {
    */
   private static addToQueue(error: AppError): void {
     this.errorQueue.push(error);
-    
+
     // Keep queue size manageable
     if (this.errorQueue.length > this.maxQueueSize) {
       this.errorQueue = this.errorQueue.slice(-this.maxQueueSize);
@@ -175,7 +159,7 @@ export class ErrorHandler {
    */
   private static logError(error: AppError): void {
     const logMessage = `[${error.type}] ${error.message}`;
-    
+
     switch (error.severity) {
       case ErrorSeverity.CRITICAL:
       case ErrorSeverity.HIGH:
@@ -196,9 +180,9 @@ export class ErrorHandler {
   private static async showErrorNotification(error: AppError): Promise<void> {
     // Import notification manager dynamically to avoid circular dependencies
     const { default: NotificationManager } = await import('./notifications');
-    
+
     const userMessage = this.getUserFriendlyMessage(error);
-    
+
     switch (error.severity) {
       case ErrorSeverity.CRITICAL:
       case ErrorSeverity.HIGH:
@@ -267,12 +251,12 @@ export class ErrorHandler {
    */
   static getErrorStats(): Record<string, number> {
     const stats: Record<string, number> = {};
-    
+
     this.errorQueue.forEach(error => {
       const key = `${error.type}_${error.severity}`;
       stats[key] = (stats[key] || 0) + 1;
     });
-    
+
     return stats;
   }
 }
@@ -331,10 +315,7 @@ export const createValidationError = (
 /**
  * Network error helper
  */
-export const createNetworkError = (
-  operation: string,
-  details?: string
-): AppError => {
+export const createNetworkError = (operation: string, details?: string): AppError => {
   return ErrorHandler.createError(
     ErrorType.NETWORK,
     ErrorSeverity.HIGH,
@@ -346,13 +327,9 @@ export const createNetworkError = (
 /**
  * API error helper
  */
-export const createApiError = (
-  endpoint: string,
-  status: number,
-  message: string
-): AppError => {
+export const createApiError = (endpoint: string, status: number, message: string): AppError => {
   const severity = status >= 500 ? ErrorSeverity.HIGH : ErrorSeverity.MEDIUM;
-  
+
   return ErrorHandler.createError(
     ErrorType.API,
     severity,

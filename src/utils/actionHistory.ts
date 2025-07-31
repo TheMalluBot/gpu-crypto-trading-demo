@@ -19,7 +19,7 @@ class ActionHistoryManager {
     };
 
     this.history.unshift(newAction);
-    
+
     // Keep only the last maxHistorySize actions
     if (this.history.length > this.maxHistorySize) {
       this.history = this.history.slice(0, this.maxHistorySize);

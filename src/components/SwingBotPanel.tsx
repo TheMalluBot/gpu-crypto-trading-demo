@@ -49,22 +49,22 @@ const SwingBotPanel: React.FC = React.memo(() => {
     const dismissedToday = localStorage.getItem('bot-onboarding-dismissed-today');
     const remindLater = localStorage.getItem('bot-onboarding-remind-later');
     const today = new Date().toDateString();
-    
+
     // Don't show if already completed
     if (hasSeenOnboarding) return;
-    
+
     // Don't show if dismissed today
     if (dismissedToday === today) return;
-    
+
     // Don't show if remind later is set and time hasn't passed
     if (remindLater && new Date(remindLater) > new Date()) return;
-    
+
     // Only show after a delay to avoid immediate popup
     if (botStatus) {
       const timer = setTimeout(() => {
         setShowOnboarding(true);
       }, 3000); // 3 second delay
-      
+
       return () => clearTimeout(timer);
     }
   }, [botStatus]);
@@ -167,10 +167,7 @@ const SwingBotPanel: React.FC = React.memo(() => {
         />
 
         {/* Automated Asset Manager Status */}
-        <AutomatedAssetManagerStatus 
-          assetManager={assetManager}
-          className="mb-4"
-        />
+        <AutomatedAssetManagerStatus assetManager={assetManager} className="mb-4" />
 
         {/* Configuration Panel */}
         {showConfig && (
@@ -202,15 +199,9 @@ const SwingBotPanel: React.FC = React.memo(() => {
 
         {/* Position Status and Performance */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <PositionStatus
-            botStatus={botStatus}
-            config={config}
-          />
-          
-          <PerformanceMetrics
-            botStatus={botStatus}
-            performanceData={performanceData}
-          />
+          <PositionStatus botStatus={botStatus} config={config} />
+
+          <PerformanceMetrics botStatus={botStatus} performanceData={performanceData} />
         </div>
 
         {/* Recent Signals */}

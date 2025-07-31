@@ -14,7 +14,7 @@ export const TradeBookHeader: React.FC<TradeBookHeaderProps> = ({
   filteredTradesCount,
   onToggleFilters,
   onImportTrades,
-  onExportTrades
+  onExportTrades,
 }) => {
   return (
     <motion.div

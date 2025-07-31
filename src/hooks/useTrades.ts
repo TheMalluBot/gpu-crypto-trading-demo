@@ -39,13 +39,13 @@ export const useTrades = () => {
   const loadTrades = async () => {
     setLoading(true);
     setError(null);
-    
+
     // Load paper trades from the trading system
     const paperTrades = await safeInvoke<any[]>('get_paper_trades');
-    
+
     // Load bot trades if available
     await safeInvoke<{ is_running: boolean }>('get_bot_status');
-    
+
     // Combine and format trades
     const formattedTrades: TradeRecord[] = [
       ...(paperTrades ? paperTrades.map(formatPaperTrade) : []),
@@ -57,12 +57,14 @@ export const useTrades = () => {
   };
 
   const formatPaperTrade = (trade: PaperTrade): TradeRecord => {
-    const closeTime = trade.status === 'Closed' && trade.exit_price 
-      ? trade.timestamp // Using timestamp as approximate close time for closed trades
-      : new Date().toISOString();
-    const duration = trade.status === 'Closed' 
-      ? calculateDuration(trade.timestamp, closeTime)
-      : calculateDuration(trade.timestamp, new Date().toISOString());
+    const closeTime =
+      trade.status === 'Closed' && trade.exit_price
+        ? trade.timestamp // Using timestamp as approximate close time for closed trades
+        : new Date().toISOString();
+    const duration =
+      trade.status === 'Closed'
+        ? calculateDuration(trade.timestamp, closeTime)
+        : calculateDuration(trade.timestamp, new Date().toISOString());
 
     return {
       id: trade.id || 'unknown',
@@ -74,9 +76,10 @@ export const useTrades = () => {
       exit_price: trade.exit_price,
       quantity: trade.quantity || 0,
       pnl: trade.pnl,
-      pnl_percentage: trade.pnl && trade.entry_price && trade.quantity
-        ? (trade.pnl / (trade.entry_price * trade.quantity)) * 100 
-        : undefined,
+      pnl_percentage:
+        trade.pnl && trade.entry_price && trade.quantity
+          ? (trade.pnl / (trade.entry_price * trade.quantity)) * 100
+          : undefined,
       status: trade.status || 'Open',
       strategy: 'Manual',
       duration,
@@ -94,14 +97,14 @@ export const useTrades = () => {
       const symbol = symbols[Math.floor(Math.random() * symbols.length)];
       const side = Math.random() > 0.5 ? 'Long' : 'Short';
       const entryPrice = 50000 + Math.random() * 20000;
-      const priceChange = isWinning 
+      const priceChange = isWinning
         ? (side === 'Long' ? 1 : -1) * (0.01 + Math.random() * 0.05)
         : (side === 'Long' ? -1 : 1) * (0.01 + Math.random() * 0.03);
-      
+
       const exitPrice = entryPrice * (1 + priceChange);
       const quantity = 50 + Math.random() * 200;
       const pnl = (exitPrice - entryPrice) * quantity * (side === 'Long' ? 1 : -1);
-      
+
       const daysAgo = Math.floor(Math.random() * 90);
       const timestamp = new Date();
       timestamp.setDate(timestamp.getDate() - daysAgo);
@@ -125,7 +128,9 @@ export const useTrades = () => {
       });
     }
 
-    return mockTrades.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    return mockTrades.sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
   };
 
   const calculateDuration = (start: string, end: string): string => {
@@ -142,10 +147,11 @@ export const useTrades = () => {
 
     // Apply search term
     if (searchTerm) {
-      filtered = filtered.filter(trade =>
-        trade.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        trade.strategy?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        trade.notes?.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        trade =>
+          trade.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          trade.strategy?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          trade.notes?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -179,7 +185,7 @@ export const useTrades = () => {
     if (timeframe !== 'all') {
       const now = new Date();
       const filterDate = new Date();
-      
+
       switch (timeframe) {
         case '1d':
           filterDate.setDate(now.getDate() - 1);
@@ -194,7 +200,7 @@ export const useTrades = () => {
           filterDate.setDate(now.getDate() - 90);
           break;
       }
-      
+
       filtered = filtered.filter(trade => new Date(trade.timestamp) >= filterDate);
     }
 
@@ -204,7 +210,7 @@ export const useTrades = () => {
   const tradeStats = useMemo(() => {
     const closedTrades = trades.filter(t => t.status === 'Closed');
     const winningTrades = closedTrades.filter(t => (t.pnl || 0) > 0);
-    const totalVolume = closedTrades.reduce((sum, t) => sum + (t.entry_price * t.quantity), 0);
+    const totalVolume = closedTrades.reduce((sum, t) => sum + t.entry_price * t.quantity, 0);
     const totalPnL = closedTrades.reduce((sum, t) => sum + (t.pnl || 0), 0);
     const totalFees = closedTrades.reduce((sum, t) => sum + t.fees, 0);
 
@@ -215,7 +221,7 @@ export const useTrades = () => {
       totalPnL,
       totalFees,
       avgPnL: closedTrades.length > 0 ? totalPnL / closedTrades.length : 0,
-      winningTrades: winningTrades.length
+      winningTrades: winningTrades.length,
     };
   }, [trades]);
 
@@ -229,6 +235,6 @@ export const useTrades = () => {
     error,
     tradeStats,
     loadTrades,
-    filterTrades
+    filterTrades,
   };
 };

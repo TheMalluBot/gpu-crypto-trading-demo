@@ -32,11 +32,7 @@ const HelpButton: React.FC<HelpButtonProps> = ({ helpContent, className = '' }) 
         <HelpCircle className="w-5 h-5" />
       </motion.button>
 
-      <Modal
-        isOpen={isHelpOpen}
-        onClose={() => setIsHelpOpen(false)}
-        maxWidth="2xl"
-      >
+      <Modal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} maxWidth="2xl">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-white">{helpContent.title}</h2>
@@ -78,7 +74,8 @@ const HelpButton: React.FC<HelpButtonProps> = ({ helpContent, className = '' }) 
               <div className="flex-1">
                 <h4 className="font-medium text-white/90 mb-2">Need More Help?</h4>
                 <p className="text-sm text-white/70">
-                  Check the documentation or contact support for advanced features and troubleshooting.
+                  Check the documentation or contact support for advanced features and
+                  troubleshooting.
                 </p>
               </div>
             </div>

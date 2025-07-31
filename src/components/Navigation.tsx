@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Settings, TrendingUp, BarChart3, Bot, User, GraduationCap } from 'lucide-react';
 
-
 const Navigation: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -17,17 +16,21 @@ const Navigation: React.FC = () => {
   ];
 
   return (
-    <nav className="fixed bottom-6 md:bottom-8 left-1/2 transform -translate-x-1/2 z-navigation" role="navigation" aria-label="Main navigation">
+    <nav
+      className="fixed bottom-6 md:bottom-8 left-1/2 transform -translate-x-1/2 z-navigation"
+      role="navigation"
+      aria-label="Main navigation"
+    >
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="glass-morphic rounded-full p-2"
       >
         <ul className="flex items-center space-x-2" role="list">
-          {routes.map((route) => {
+          {routes.map(route => {
             const Icon = route.icon;
             const isActive = location.pathname === route.path;
-            
+
             return (
               <li key={route.path} role="listitem">
                 <motion.button
@@ -37,7 +40,7 @@ const Navigation: React.FC = () => {
                   aria-label={`Navigate to ${route.label}`}
                   aria-current={isActive ? 'page' : undefined}
                   tabIndex={0}
-                  onKeyDown={(e) => {
+                  onKeyDown={e => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
                       navigate(route.path);
@@ -49,11 +52,13 @@ const Navigation: React.FC = () => {
                       : 'hover:bg-theme-surface-hover text-theme-secondary hover:text-theme-primary'
                   }`}
                 >
-                <div className="flex items-center space-x-1 sm:space-x-2">
-                  <Icon className="w-4 h-4 flex-shrink-0" />
-                  <span className="text-xs sm:text-sm font-medium hidden xs:inline">{route.label}</span>
-                </div>
-              </motion.button>
+                  <div className="flex items-center space-x-1 sm:space-x-2">
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm font-medium hidden xs:inline">
+                      {route.label}
+                    </span>
+                  </div>
+                </motion.button>
               </li>
             );
           })}

@@ -64,55 +64,56 @@ const TradePanel: React.FC = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingOrder, setPendingOrder] = useState<OrderRequest | null>(null);
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
-  const [canUndo, setCanUndo] = useState(false);  const formValidation = useFormValidation<TradeFormData>(
+  const [canUndo, setCanUndo] = useState(false);
+  const formValidation = useFormValidation<TradeFormData>(
     {
       quantity: 100,
       entryPrice: 0,
       takeProfitPercent: 2,
-      stopLossPercent: 1
+      stopLossPercent: 1,
     },
     {
       quantity: {
         required: true,
         min: 1,
         max: 100000,
-        custom: (value) => {
+        custom: value => {
           const numValue = value as number;
           if (numValue <= 0) return 'Quantity must be greater than 0';
           return null;
-        }
+        },
       },
       entryPrice: {
         required: orderType === 'Limit',
         min: 0.01,
-        custom: (value) => {
+        custom: value => {
           const numValue = value as number;
           if (orderType === 'Limit' && numValue <= 0) {
             return 'Entry price must be greater than 0 for limit orders';
           }
           return null;
-        }
+        },
       },
       takeProfitPercent: {
         min: 0,
         max: 100,
-        custom: (value) => {
+        custom: value => {
           const numValue = value as number;
           if (numValue < 0) return 'Take profit cannot be negative';
           if (numValue > 100) return 'Take profit cannot exceed 100%';
           return null;
-        }
+        },
       },
       stopLossPercent: {
         min: 0,
         max: 100,
-        custom: (value) => {
+        custom: value => {
           const numValue = value as number;
           if (numValue < 0) return 'Stop loss cannot be negative';
           if (numValue > 100) return 'Stop loss cannot exceed 100%';
           return null;
-        }
-      }
+        },
+      },
     }
   );
 
@@ -121,7 +122,7 @@ const TradePanel: React.FC = () => {
   useEffect(() => {
     if (isTauriApp()) {
       // Listen for ticker updates
-      const unlisten = listen('ticker-update', (event) => {
+      const unlisten = listen('ticker-update', event => {
         const ticker = event.payload as TickerData;
         if (ticker.symbol === selectedSymbol) {
           setCurrentPrice(ticker.price);
@@ -169,17 +170,17 @@ const TradePanel: React.FC = () => {
       take_profit_percent: formData.takeProfitPercent > 0 ? formData.takeProfitPercent : undefined,
       stop_loss_percent: formData.stopLossPercent > 0 ? formData.stopLossPercent : undefined,
     };
-    
+
     setPendingOrder(order);
     setShowConfirmModal(true);
   };
 
   const confirmPlaceOrder = async () => {
     if (!pendingOrder) return;
-    
+
     try {
       const settings = await safeInvoke('load_settings');
-      
+
       const result = await safeInvoke('place_order', {
         settings,
         order: pendingOrder,
@@ -191,7 +192,7 @@ const TradePanel: React.FC = () => {
           'Order Placed',
           `Successfully placed ${pendingOrder.side} order for ${pendingOrder.symbol}`
         );
-        
+
         // Add to action history for undo functionality
         const { actionHistory } = await import('../utils/actionHistory');
         actionHistory.addAction({
@@ -202,9 +203,9 @@ const TradePanel: React.FC = () => {
             // In a real app, this would cancel the order
             NotificationManager.info('Undo', 'Trade placement undone');
             loadPaperTrades();
-          }
+          },
         });
-        
+
         loadPaperTrades();
         formValidation.resetForm();
       } else {
@@ -214,10 +215,7 @@ const TradePanel: React.FC = () => {
         );
       }
     } catch (error) {
-      NotificationManager.error(
-        'Order Error',
-        'An error occurred while placing the order.'
-      );
+      NotificationManager.error('Order Error', 'An error occurred while placing the order.');
     } finally {
       setShowConfirmModal(false);
       setPendingOrder(null);
@@ -225,11 +223,10 @@ const TradePanel: React.FC = () => {
   };
   const calculatePnL = (trade: Trade) => {
     if (!currentPrice || trade.status === 'Closed') return trade.pnl || 0;
-    
-    const priceDiff = trade.side === 'Long' 
-      ? currentPrice - trade.entry_price
-      : trade.entry_price - currentPrice;
-    
+
+    const priceDiff =
+      trade.side === 'Long' ? currentPrice - trade.entry_price : trade.entry_price - currentPrice;
+
     return (priceDiff / trade.entry_price) * trade.quantity;
   };
 
@@ -267,13 +264,19 @@ const TradePanel: React.FC = () => {
               <div className="text-xl sm:text-2xl font-bold text-white">
                 ${currentPrice.toFixed(2)}
               </div>
-              <div className={`flex items-center space-x-1 ${priceChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {priceChange >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+              <div
+                className={`flex items-center space-x-1 ${priceChange >= 0 ? 'text-green-400' : 'text-red-400'}`}
+              >
+                {priceChange >= 0 ? (
+                  <TrendingUp className="w-4 h-4" />
+                ) : (
+                  <TrendingDown className="w-4 h-4" />
+                )}
                 <span>{priceChange.toFixed(2)}%</span>
               </div>
             </div>
           </div>
-          
+
           {/* Paper Trading Toggle */}
           <div className="flex items-center space-x-3">
             <span className="text-white/80 text-sm sm:text-base">Paper Trading</span>
@@ -302,7 +305,7 @@ const TradePanel: React.FC = () => {
           className="glass-morphic responsive-padding relative z-content"
         >
           <h3 className="text-hierarchy-secondary mb-4">Place Order</h3>
-          
+
           <div className="space-y-4">
             {/* Side Selection */}
             <div>
@@ -312,9 +315,7 @@ const TradePanel: React.FC = () => {
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setSelectedSide('Long')}
                   className={`flex-1 py-3 px-4 rounded-lg transition-all duration-200 ${
-                    selectedSide === 'Long' 
-                      ? 'bg-green-500 text-white shadow-lg' 
-                      : 'btn-secondary'
+                    selectedSide === 'Long' ? 'bg-green-500 text-white shadow-lg' : 'btn-secondary'
                   }`}
                 >
                   <TrendingUp className="w-4 h-4 inline mr-2" />
@@ -324,9 +325,7 @@ const TradePanel: React.FC = () => {
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setSelectedSide('Short')}
                   className={`flex-1 py-3 px-4 rounded-lg transition-all duration-200 ${
-                    selectedSide === 'Short' 
-                      ? 'bg-red-500 text-white shadow-lg' 
-                      : 'btn-secondary'
+                    selectedSide === 'Short' ? 'bg-red-500 text-white shadow-lg' : 'btn-secondary'
                   }`}
                 >
                   <TrendingDown className="w-4 h-4 inline mr-2" />
@@ -334,27 +333,29 @@ const TradePanel: React.FC = () => {
                 </motion.button>
               </div>
             </div>
-
             {/* Order Type */}
             <div>
               <label className="block text-hierarchy-body mb-2">Order Type</label>
               <select
                 value={orderType}
-                onChange={(e) => setOrderType(e.target.value as 'Market' | 'Limit')}
+                onChange={e => setOrderType(e.target.value as 'Market' | 'Limit')}
                 className="form-select"
               >
-                <option value="Market" className="bg-slate-800">Market</option>
-                <option value="Limit" className="bg-slate-800">Limit</option>
+                <option value="Market" className="bg-slate-800">
+                  Market
+                </option>
+                <option value="Limit" className="bg-slate-800">
+                  Limit
+                </option>
               </select>
             </div>
-
             {/* Quantity */}
             <div>
               <Input
                 label="Quantity (USDT)"
                 type="number"
                 value={formValidation.values.quantity}
-                onChange={(e) => formValidation.handleChange('quantity', Number(e.target.value))}
+                onChange={e => formValidation.handleChange('quantity', Number(e.target.value))}
                 onBlur={() => formValidation.handleBlur('quantity')}
                 error={formValidation.touched.quantity ? formValidation.errors.quantity : undefined}
                 min={1}
@@ -368,7 +369,6 @@ const TradePanel: React.FC = () => {
                 Minimum: $1, Maximum: $100,000
               </p>
             </div>
-
             {/* Entry Price (for Limit orders) */}
             {orderType === 'Limit' && (
               <div>
@@ -376,9 +376,11 @@ const TradePanel: React.FC = () => {
                   label="Entry Price"
                   type="number"
                   value={formValidation.values.entryPrice}
-                  onChange={(e) => formValidation.handleChange('entryPrice', Number(e.target.value))}
+                  onChange={e => formValidation.handleChange('entryPrice', Number(e.target.value))}
                   onBlur={() => formValidation.handleBlur('entryPrice')}
-                  error={formValidation.touched.entryPrice ? formValidation.errors.entryPrice : undefined}
+                  error={
+                    formValidation.touched.entryPrice ? formValidation.errors.entryPrice : undefined
+                  }
                   step={0.01}
                   placeholder="Enter entry price"
                   required
@@ -386,7 +388,6 @@ const TradePanel: React.FC = () => {
                 />
               </div>
             )}
-
             {/* Advanced Options Toggle */}
             <div>
               <button
@@ -403,15 +404,22 @@ const TradePanel: React.FC = () => {
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
                 </motion.svg>
               </button>
             </div>
-
             {/* Advanced Options - Collapsible */}
             <motion.div
               initial={false}
-              animate={{ height: showAdvancedOptions ? 'auto' : 0, opacity: showAdvancedOptions ? 1 : 0 }}
+              animate={{
+                height: showAdvancedOptions ? 'auto' : 0,
+                opacity: showAdvancedOptions ? 1 : 0,
+              }}
               transition={{ duration: 0.3 }}
               className="overflow-hidden"
             >
@@ -422,9 +430,15 @@ const TradePanel: React.FC = () => {
                     label="Take Profit (%)"
                     type="number"
                     value={formValidation.values.takeProfitPercent}
-                    onChange={(e) => formValidation.handleChange('takeProfitPercent', Number(e.target.value))}
+                    onChange={e =>
+                      formValidation.handleChange('takeProfitPercent', Number(e.target.value))
+                    }
                     onBlur={() => formValidation.handleBlur('takeProfitPercent')}
-                    error={formValidation.touched.takeProfitPercent ? formValidation.errors.takeProfitPercent : undefined}
+                    error={
+                      formValidation.touched.takeProfitPercent
+                        ? formValidation.errors.takeProfitPercent
+                        : undefined
+                    }
                     min={0}
                     max={100}
                     step={0.1}
@@ -443,9 +457,15 @@ const TradePanel: React.FC = () => {
                     label="Stop Loss (%)"
                     type="number"
                     value={formValidation.values.stopLossPercent}
-                    onChange={(e) => formValidation.handleChange('stopLossPercent', Number(e.target.value))}
+                    onChange={e =>
+                      formValidation.handleChange('stopLossPercent', Number(e.target.value))
+                    }
                     onBlur={() => formValidation.handleBlur('stopLossPercent')}
-                    error={formValidation.touched.stopLossPercent ? formValidation.errors.stopLossPercent : undefined}
+                    error={
+                      formValidation.touched.stopLossPercent
+                        ? formValidation.errors.stopLossPercent
+                        : undefined
+                    }
                     min={0}
                     max={100}
                     step={0.1}
@@ -480,7 +500,8 @@ const TradePanel: React.FC = () => {
               >
                 <RotateCcw className="w-4 h-4" />
               </Button>
-            </div>          </div>
+            </div>{' '}
+          </div>
         </motion.div>
 
         {/* P/L Card */}
@@ -490,12 +511,14 @@ const TradePanel: React.FC = () => {
           className="glass-morphic responsive-padding relative z-content"
         >
           <h3 className="text-hierarchy-secondary mb-4">Portfolio</h3>
-          
+
           <div className="space-y-4">
             <div className="glass-card p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-hierarchy-body">Total P/L</span>
-                <span className={`text-hierarchy-primary ${totalPnL >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                <span
+                  className={`text-hierarchy-primary ${totalPnL >= 0 ? 'text-green-400' : 'text-red-400'}`}
+                >
                   ${totalPnL.toFixed(2)}
                 </span>
               </div>
@@ -505,11 +528,13 @@ const TradePanel: React.FC = () => {
             </div>
 
             <div className="space-y-2 max-h-48 md:max-h-60 overflow-y-auto scrollbar-hide">
-              {openTrades.map((trade) => (
+              {openTrades.map(trade => (
                 <div key={trade.id} className="glass-card p-3">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-hierarchy-tertiary">{trade.symbol}</span>
-                    <span className={`text-sm font-medium px-2 py-1 rounded-full ${trade.side === 'Long' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                    <span
+                      className={`text-sm font-medium px-2 py-1 rounded-full ${trade.side === 'Long' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}
+                    >
                       {trade.side}
                     </span>
                   </div>
@@ -519,7 +544,9 @@ const TradePanel: React.FC = () => {
                   </div>
                   <div className="flex items-center justify-between border-t border-white/10 pt-2">
                     <span className="text-hierarchy-caption">P/L:</span>
-                    <span className={`font-semibold ${calculatePnL(trade) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    <span
+                      className={`font-semibold ${calculatePnL(trade) >= 0 ? 'text-green-400' : 'text-red-400'}`}
+                    >
                       ${calculatePnL(trade).toFixed(2)}
                     </span>
                   </div>

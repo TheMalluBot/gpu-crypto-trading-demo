@@ -3,9 +3,17 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  TrendingUp, TrendingDown, Activity, Shield, BarChart3, 
-  Target, AlertTriangle, Settings, PieChart, LineChart 
+import {
+  TrendingUp,
+  TrendingDown,
+  Activity,
+  Shield,
+  BarChart3,
+  Target,
+  AlertTriangle,
+  Settings,
+  PieChart,
+  LineChart,
 } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -69,23 +77,12 @@ export const AdvancedTradingPanel: React.FC<AdvancedTradingPanelProps> = ({
     error,
   } = useAdvancedTrading();
 
-  const {
-    technicalAnalysis,
-    multiTimeframeAnalysis,
-    refreshAnalysis,
-  } = useTechnicalAnalysis(selectedSymbol);
+  const { technicalAnalysis, multiTimeframeAnalysis, refreshAnalysis } =
+    useTechnicalAnalysis(selectedSymbol);
 
-  const {
-    portfolioMetrics,
-    performanceReport,
-    refreshMetrics,
-  } = usePortfolioMetrics();
+  const { portfolioMetrics, performanceReport, refreshMetrics } = usePortfolioMetrics();
 
-  const {
-    riskAssessment,
-    assessRisk,
-    riskAlerts,
-  } = useRiskAssessment();
+  const { riskAssessment, assessRisk, riskAlerts } = useRiskAssessment();
 
   // Initialize advanced trading engine on mount
   useEffect(() => {
@@ -157,27 +154,41 @@ export const AdvancedTradingPanel: React.FC<AdvancedTradingPanelProps> = ({
               <Activity className="w-5 h-5 text-blue-400" />
               <h1 className="text-xl font-bold text-white">Advanced Trading</h1>
             </div>
-            <Badge variant={riskLevel === 'high' ? 'destructive' : riskLevel === 'medium' ? 'warning' : 'success'}>
+            <Badge
+              variant={
+                riskLevel === 'high'
+                  ? 'destructive'
+                  : riskLevel === 'medium'
+                    ? 'warning'
+                    : 'success'
+              }
+            >
               Risk: {riskLevel.toUpperCase()}
             </Badge>
           </div>
-          
+
           <div className="flex flex-wrap items-center gap-6 text-sm">
             {portfolioMetrics && (
               <>
                 <div className="text-center">
                   <div className="text-neutral-400">Portfolio Value</div>
-                  <div className="font-bold text-white">${portfolioMetrics.totalValue.toLocaleString()}</div>
+                  <div className="font-bold text-white">
+                    ${portfolioMetrics.totalValue.toLocaleString()}
+                  </div>
                 </div>
                 <div className="text-center">
                   <div className="text-neutral-400">P&L</div>
-                  <div className={`font-bold ${portfolioMetrics.unrealizedPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  <div
+                    className={`font-bold ${portfolioMetrics.unrealizedPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}
+                  >
                     ${portfolioMetrics.unrealizedPnl.toFixed(2)}
                   </div>
                 </div>
                 <div className="text-center">
                   <div className="text-neutral-400">Sharpe Ratio</div>
-                  <div className="font-bold text-white">{portfolioMetrics.sharpeRatio?.toFixed(2) || 'N/A'}</div>
+                  <div className="font-bold text-white">
+                    {portfolioMetrics.sharpeRatio?.toFixed(2) || 'N/A'}
+                  </div>
                 </div>
               </>
             )}
@@ -222,20 +233,20 @@ export const AdvancedTradingPanel: React.FC<AdvancedTradingPanelProps> = ({
             {/* Order Form */}
             <Card className="p-6">
               <h3 className="text-lg font-semibold text-white mb-4">Advanced Order Entry</h3>
-              
+
               <div className="space-y-4">
                 {/* Symbol and Side */}
                 <div className="grid grid-cols-2 gap-4">
                   <Input
                     label="Symbol"
                     value={orderForm.symbol}
-                    onChange={(e) => setOrderForm(prev => ({ ...prev, symbol: e.target.value }))}
+                    onChange={e => setOrderForm(prev => ({ ...prev, symbol: e.target.value }))}
                     placeholder="BTCUSDT"
                   />
                   <Select
                     label="Side"
                     value={orderForm.side}
-                    onValueChange={(value) => setOrderForm(prev => ({ ...prev, side: value as any }))}
+                    onValueChange={value => setOrderForm(prev => ({ ...prev, side: value as any }))}
                     options={[
                       { value: 'Buy', label: 'Buy' },
                       { value: 'Sell', label: 'Sell' },
@@ -249,10 +260,12 @@ export const AdvancedTradingPanel: React.FC<AdvancedTradingPanelProps> = ({
                 <Select
                   label="Order Type"
                   value={orderForm.orderType.type}
-                  onValueChange={(value) => setOrderForm(prev => ({ 
-                    ...prev, 
-                    orderType: { ...prev.orderType, type: value as any }
-                  }))}
+                  onValueChange={value =>
+                    setOrderForm(prev => ({
+                      ...prev,
+                      orderType: { ...prev.orderType, type: value as any },
+                    }))
+                  }
                   options={[
                     { value: 'Market', label: 'Market' },
                     { value: 'Limit', label: 'Limit' },
@@ -270,15 +283,22 @@ export const AdvancedTradingPanel: React.FC<AdvancedTradingPanelProps> = ({
                     label="Quantity (USDT)"
                     type="number"
                     value={orderForm.quantity}
-                    onChange={(e) => setOrderForm(prev => ({ ...prev, quantity: Number(e.target.value) }))}
+                    onChange={e =>
+                      setOrderForm(prev => ({ ...prev, quantity: Number(e.target.value) }))
+                    }
                     min={1}
                   />
-                  {(orderForm.orderType.type === 'Limit') && (
+                  {orderForm.orderType.type === 'Limit' && (
                     <Input
                       label="Price"
                       type="number"
                       value={orderForm.price || ''}
-                      onChange={(e) => setOrderForm(prev => ({ ...prev, price: Number(e.target.value) || undefined }))}
+                      onChange={e =>
+                        setOrderForm(prev => ({
+                          ...prev,
+                          price: Number(e.target.value) || undefined,
+                        }))
+                      }
                       step={0.01}
                     />
                   )}
@@ -291,20 +311,30 @@ export const AdvancedTradingPanel: React.FC<AdvancedTradingPanelProps> = ({
                       label="Stop Price"
                       type="number"
                       value={orderForm.orderType.stopPrice || ''}
-                      onChange={(e) => setOrderForm(prev => ({ 
-                        ...prev, 
-                        orderType: { ...prev.orderType, stopPrice: Number(e.target.value) || undefined }
-                      }))}
+                      onChange={e =>
+                        setOrderForm(prev => ({
+                          ...prev,
+                          orderType: {
+                            ...prev.orderType,
+                            stopPrice: Number(e.target.value) || undefined,
+                          },
+                        }))
+                      }
                       step={0.01}
                     />
                     <Input
                       label="Limit Price (Optional)"
                       type="number"
                       value={orderForm.orderType.limitPrice || ''}
-                      onChange={(e) => setOrderForm(prev => ({ 
-                        ...prev, 
-                        orderType: { ...prev.orderType, limitPrice: Number(e.target.value) || undefined }
-                      }))}
+                      onChange={e =>
+                        setOrderForm(prev => ({
+                          ...prev,
+                          orderType: {
+                            ...prev.orderType,
+                            limitPrice: Number(e.target.value) || undefined,
+                          },
+                        }))
+                      }
                       step={0.01}
                     />
                   </div>
@@ -316,20 +346,30 @@ export const AdvancedTradingPanel: React.FC<AdvancedTradingPanelProps> = ({
                       label="Trail Amount"
                       type="number"
                       value={orderForm.orderType.trailAmount || ''}
-                      onChange={(e) => setOrderForm(prev => ({ 
-                        ...prev, 
-                        orderType: { ...prev.orderType, trailAmount: Number(e.target.value) || undefined }
-                      }))}
+                      onChange={e =>
+                        setOrderForm(prev => ({
+                          ...prev,
+                          orderType: {
+                            ...prev.orderType,
+                            trailAmount: Number(e.target.value) || undefined,
+                          },
+                        }))
+                      }
                       step={0.01}
                     />
                     <Input
                       label="Trail Percent (%)"
                       type="number"
                       value={orderForm.orderType.trailPercent || ''}
-                      onChange={(e) => setOrderForm(prev => ({ 
-                        ...prev, 
-                        orderType: { ...prev.orderType, trailPercent: Number(e.target.value) || undefined }
-                      }))}
+                      onChange={e =>
+                        setOrderForm(prev => ({
+                          ...prev,
+                          orderType: {
+                            ...prev.orderType,
+                            trailPercent: Number(e.target.value) || undefined,
+                          },
+                        }))
+                      }
                       step={0.1}
                     />
                   </div>
@@ -341,20 +381,30 @@ export const AdvancedTradingPanel: React.FC<AdvancedTradingPanelProps> = ({
                       label="Take Profit"
                       type="number"
                       value={orderForm.orderType.takeProfit || ''}
-                      onChange={(e) => setOrderForm(prev => ({ 
-                        ...prev, 
-                        orderType: { ...prev.orderType, takeProfit: Number(e.target.value) || undefined }
-                      }))}
+                      onChange={e =>
+                        setOrderForm(prev => ({
+                          ...prev,
+                          orderType: {
+                            ...prev.orderType,
+                            takeProfit: Number(e.target.value) || undefined,
+                          },
+                        }))
+                      }
                       step={0.01}
                     />
                     <Input
                       label="Stop Loss"
                       type="number"
                       value={orderForm.orderType.stopLoss || ''}
-                      onChange={(e) => setOrderForm(prev => ({ 
-                        ...prev, 
-                        orderType: { ...prev.orderType, stopLoss: Number(e.target.value) || undefined }
-                      }))}
+                      onChange={e =>
+                        setOrderForm(prev => ({
+                          ...prev,
+                          orderType: {
+                            ...prev.orderType,
+                            stopLoss: Number(e.target.value) || undefined,
+                          },
+                        }))
+                      }
                       step={0.01}
                     />
                   </div>
@@ -365,7 +415,11 @@ export const AdvancedTradingPanel: React.FC<AdvancedTradingPanelProps> = ({
                   onClick={handlePlaceOrder}
                   disabled={isLoading}
                   className="w-full"
-                  variant={orderForm.side === 'Buy' || orderForm.side === 'Long' ? 'success' : 'destructive'}
+                  variant={
+                    orderForm.side === 'Buy' || orderForm.side === 'Long'
+                      ? 'success'
+                      : 'destructive'
+                  }
                 >
                   {isLoading ? 'Placing Order...' : `Place ${orderForm.side} Order`}
                 </Button>
@@ -375,14 +429,16 @@ export const AdvancedTradingPanel: React.FC<AdvancedTradingPanelProps> = ({
             {/* Market Data and Quick Actions */}
             <Card className="p-6">
               <h3 className="text-lg font-semibold text-white mb-4">Market Overview</h3>
-              
+
               {technicalAnalysis && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-neutral-400">Current Price</span>
-                    <span className="font-bold text-white">${technicalAnalysis.currentPrice.toFixed(2)}</span>
+                    <span className="font-bold text-white">
+                      ${technicalAnalysis.currentPrice.toFixed(2)}
+                    </span>
                   </div>
-                  
+
                   <div className="flex items-center justify-between">
                     <span className="text-neutral-400">Trend</span>
                     <div className="flex items-center space-x-2">
@@ -394,20 +450,27 @@ export const AdvancedTradingPanel: React.FC<AdvancedTradingPanelProps> = ({
                       <span className={sentimentColor}>{technicalAnalysis.trendDirection}</span>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center justify-between">
                     <span className="text-neutral-400">RSI</span>
-                    <span className={`font-bold ${
-                      technicalAnalysis.rsi > 70 ? 'text-red-400' : 
-                      technicalAnalysis.rsi < 30 ? 'text-green-400' : 'text-neutral-400'
-                    }`}>
+                    <span
+                      className={`font-bold ${
+                        technicalAnalysis.rsi > 70
+                          ? 'text-red-400'
+                          : technicalAnalysis.rsi < 30
+                            ? 'text-green-400'
+                            : 'text-neutral-400'
+                      }`}
+                    >
                       {technicalAnalysis.rsi.toFixed(1)}
                     </span>
                   </div>
-                  
+
                   <div className="flex items-center justify-between">
                     <span className="text-neutral-400">Confidence</span>
-                    <span className="font-bold text-white">{technicalAnalysis.confidenceScore.toFixed(1)}%</span>
+                    <span className="font-bold text-white">
+                      {technicalAnalysis.confidenceScore.toFixed(1)}%
+                    </span>
                   </div>
 
                   {/* Support/Resistance Levels */}
@@ -417,13 +480,17 @@ export const AdvancedTradingPanel: React.FC<AdvancedTradingPanelProps> = ({
                       <div>
                         <div className="text-red-400 mb-1">Resistance</div>
                         {technicalAnalysis.resistanceLevels.map((level, index) => (
-                          <div key={index} className="text-neutral-400">${level.toFixed(2)}</div>
+                          <div key={index} className="text-neutral-400">
+                            ${level.toFixed(2)}
+                          </div>
                         ))}
                       </div>
                       <div>
                         <div className="text-green-400 mb-1">Support</div>
                         {technicalAnalysis.supportLevels.map((level, index) => (
-                          <div key={index} className="text-neutral-400">${level.toFixed(2)}</div>
+                          <div key={index} className="text-neutral-400">
+                            ${level.toFixed(2)}
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -440,9 +507,9 @@ export const AdvancedTradingPanel: React.FC<AdvancedTradingPanelProps> = ({
             {/* Active Orders */}
             <Card className="p-6">
               <h3 className="text-lg font-semibold text-white mb-4">Active Orders</h3>
-              
+
               <div className="space-y-3">
-                {activeOrders.map((order) => (
+                {activeOrders.map(order => (
                   <motion.div
                     key={order.id}
                     initial={{ opacity: 0 }}
@@ -451,30 +518,31 @@ export const AdvancedTradingPanel: React.FC<AdvancedTradingPanelProps> = ({
                   >
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-1">
-                        <Badge variant={order.side === 'Buy' || order.side === 'Long' ? 'success' : 'destructive'}>
+                        <Badge
+                          variant={
+                            order.side === 'Buy' || order.side === 'Long'
+                              ? 'success'
+                              : 'destructive'
+                          }
+                        >
                           {order.side}
                         </Badge>
                         <span className="font-medium text-white">{order.symbol}</span>
                       </div>
                       <div className="text-sm text-neutral-400">
-                        {order.orderType} • {order.quantity} @ {order.price ? `$${order.price}` : 'Market'}
+                        {order.orderType} • {order.quantity} @{' '}
+                        {order.price ? `$${order.price}` : 'Market'}
                       </div>
                     </div>
-                    
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => cancelOrder(order.id)}
-                    >
+
+                    <Button size="sm" variant="outline" onClick={() => cancelOrder(order.id)}>
                       Cancel
                     </Button>
                   </motion.div>
                 ))}
-                
+
                 {activeOrders.length === 0 && (
-                  <div className="text-center text-neutral-400 py-8">
-                    No active orders
-                  </div>
+                  <div className="text-center text-neutral-400 py-8">No active orders</div>
                 )}
               </div>
             </Card>
@@ -482,34 +550,44 @@ export const AdvancedTradingPanel: React.FC<AdvancedTradingPanelProps> = ({
             {/* Portfolio Summary */}
             <Card className="p-6">
               <h3 className="text-lg font-semibold text-white mb-4">Portfolio Summary</h3>
-              
+
               {portfolioMetrics && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center p-3 bg-white/5 rounded-lg">
-                      <div className="text-2xl font-bold text-white">{portfolioMetrics.positionsCount}</div>
+                      <div className="text-2xl font-bold text-white">
+                        {portfolioMetrics.positionsCount}
+                      </div>
                       <div className="text-sm text-neutral-400">Positions</div>
                     </div>
                     <div className="text-center p-3 bg-white/5 rounded-lg">
-                      <div className="text-2xl font-bold text-white">{portfolioMetrics.winRate.toFixed(1)}%</div>
+                      <div className="text-2xl font-bold text-white">
+                        {portfolioMetrics.winRate.toFixed(1)}%
+                      </div>
                       <div className="text-sm text-neutral-400">Win Rate</div>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-neutral-400">Total Return</span>
-                      <span className={`font-bold ${portfolioMetrics.totalReturn >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      <span
+                        className={`font-bold ${portfolioMetrics.totalReturn >= 0 ? 'text-green-400' : 'text-red-400'}`}
+                      >
                         {portfolioMetrics.totalReturn.toFixed(2)}%
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-neutral-400">Max Drawdown</span>
-                      <span className="text-red-400">{portfolioMetrics.maxDrawdown.toFixed(2)}%</span>
+                      <span className="text-red-400">
+                        {portfolioMetrics.maxDrawdown.toFixed(2)}%
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-neutral-400">Risk Exposure</span>
-                      <span className="text-white">{portfolioMetrics.riskExposure.toFixed(2)}%</span>
+                      <span className="text-white">
+                        {portfolioMetrics.riskExposure.toFixed(2)}%
+                      </span>
                     </div>
                   </div>
                 </div>

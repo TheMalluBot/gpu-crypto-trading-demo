@@ -1,7 +1,17 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { BarChart3 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  ReferenceLine,
+} from 'recharts';
 import { ChartDataPoint, LROConfig } from '../../types/bot';
 
 interface SignalChartProps {
@@ -15,7 +25,7 @@ export const SignalChart: React.FC<SignalChartProps> = ({
   chartData,
   config,
   showChart,
-  setShowChart
+  setShowChart,
 }) => {
   return (
     <motion.div
@@ -30,8 +40,8 @@ export const SignalChart: React.FC<SignalChartProps> = ({
         <button
           onClick={() => setShowChart(!showChart)}
           className="p-2 glass-card hover:bg-white/10 rounded-lg transition-colors focus-enhanced"
-          aria-label={showChart ? "Hide chart" : "Show chart"}
-          title={showChart ? "Hide chart" : "Show chart"}
+          aria-label={showChart ? 'Hide chart' : 'Show chart'}
+          title={showChart ? 'Hide chart' : 'Show chart'}
         >
           <BarChart3 className="w-5 h-5 text-white/70" />
         </button>
@@ -42,44 +52,48 @@ export const SignalChart: React.FC<SignalChartProps> = ({
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(var(--color-text-primary), 0.1)" />
-              <XAxis 
-                dataKey="time" 
-                stroke="rgba(var(--color-text-secondary), 0.8)"
-                fontSize={12}
-              />
-              <YAxis 
+              <XAxis dataKey="time" stroke="rgba(var(--color-text-secondary), 0.8)" fontSize={12} />
+              <YAxis
                 domain={[-1.2, 1.2]}
                 stroke="rgba(var(--color-text-secondary), 0.8)"
                 fontSize={12}
               />
-              <Tooltip 
+              <Tooltip
                 contentStyle={{
                   backgroundColor: 'rgba(var(--bg-secondary), 0.95)',
                   border: '1px solid rgba(var(--color-border-primary), 0.2)',
                   borderRadius: '8px',
-                  color: 'rgb(var(--color-text-primary))'
+                  color: 'rgb(var(--color-text-primary))',
                 }}
               />
               <Legend />
-              
+
               {/* Reference lines for overbought/oversold */}
-              <ReferenceLine y={config.overbought} stroke="rgb(var(--color-secondary-500))" strokeDasharray="2 2" />
-              <ReferenceLine y={config.oversold} stroke="rgb(var(--color-secondary-500))" strokeDasharray="2 2" />
+              <ReferenceLine
+                y={config.overbought}
+                stroke="rgb(var(--color-secondary-500))"
+                strokeDasharray="2 2"
+              />
+              <ReferenceLine
+                y={config.oversold}
+                stroke="rgb(var(--color-secondary-500))"
+                strokeDasharray="2 2"
+              />
               <ReferenceLine y={0} stroke="rgba(var(--color-text-primary), 0.3)" />
-              
+
               {/* LRO and Signal lines */}
-              <Line 
-                type="monotone" 
-                dataKey="lro_value" 
-                stroke="rgb(var(--color-primary-500))" 
+              <Line
+                type="monotone"
+                dataKey="lro_value"
+                stroke="rgb(var(--color-primary-500))"
                 strokeWidth={2}
                 name="LRO Value"
                 dot={false}
               />
-              <Line 
-                type="monotone" 
-                dataKey="signal_line" 
-                stroke="rgb(var(--color-accent-500))" 
+              <Line
+                type="monotone"
+                dataKey="signal_line"
+                stroke="rgb(var(--color-accent-500))"
                 strokeWidth={2}
                 name="Signal Line"
                 dot={false}

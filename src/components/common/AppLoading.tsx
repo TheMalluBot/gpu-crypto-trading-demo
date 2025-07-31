@@ -13,7 +13,7 @@ export const AppLoading: React.FC = () => {
         <div className="relative">
           <motion.div
             animate={{ rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
             className="w-16 h-16 border-4 border-purple-500/30 rounded-full border-t-purple-500 mx-auto mb-4"
           />
           <motion.div
@@ -22,8 +22,8 @@ export const AppLoading: React.FC = () => {
             className="absolute inset-0 w-16 h-16 bg-purple-500/20 rounded-full blur-xl mx-auto"
           />
         </div>
-        
-        <motion.h1 
+
+        <motion.h1
           className="text-2xl font-bold text-white mb-2"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -31,8 +31,8 @@ export const AppLoading: React.FC = () => {
         >
           GPU Crypto Trading Demo
         </motion.h1>
-        
-        <motion.p 
+
+        <motion.p
           className="text-white/60"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -40,14 +40,14 @@ export const AppLoading: React.FC = () => {
         >
           Initializing trading platform...
         </motion.p>
-        
-        <motion.div 
+
+        <motion.div
           className="mt-4 flex justify-center space-x-1"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
         >
-          {[0, 1, 2].map((i) => (
+          {[0, 1, 2].map(i => (
             <motion.div
               key={i}
               className="w-2 h-2 bg-purple-500 rounded-full"

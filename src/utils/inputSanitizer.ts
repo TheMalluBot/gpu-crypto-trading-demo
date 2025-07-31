@@ -116,10 +116,10 @@ export class InputSanitizer {
    */
   sanitizeEmail(email: string): string {
     const sanitized = this.sanitizeText(email);
-    
+
     // Basic email validation and sanitization
     const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    
+
     if (!emailPattern.test(sanitized)) {
       throw new Error('Invalid email format');
     }
@@ -131,12 +131,12 @@ export class InputSanitizer {
    * Sanitize URLs
    */
   sanitizeURL(url: string): string {
-    let sanitized = this.sanitizeText(url);
+    const sanitized = this.sanitizeText(url);
 
     // Remove dangerous protocols
     const dangerousProtocols = ['javascript:', 'data:', 'vbscript:', 'about:'];
     const lowerURL = sanitized.toLowerCase();
-    
+
     for (const protocol of dangerousProtocols) {
       if (lowerURL.startsWith(protocol)) {
         throw new Error(`Dangerous protocol detected: ${protocol}`);
@@ -181,12 +181,15 @@ export class InputSanitizer {
   /**
    * Sanitize numeric input
    */
-  sanitizeNumber(input: string | number, options: {
-    min?: number;
-    max?: number;
-    decimals?: number;
-    allowNegative?: boolean;
-  } = {}): number {
+  sanitizeNumber(
+    input: string | number,
+    options: {
+      min?: number;
+      max?: number;
+      decimals?: number;
+      allowNegative?: boolean;
+    } = {}
+  ): number {
     let value = typeof input === 'string' ? parseFloat(input) : input;
 
     if (isNaN(value) || !isFinite(value)) {
@@ -221,10 +224,10 @@ export class InputSanitizer {
     try {
       // First sanitize the string
       const sanitized = this.sanitizeText(input);
-      
+
       // Parse JSON
       const parsed = JSON.parse(sanitized);
-      
+
       // Recursively sanitize object values
       return this.sanitizeObjectValues(parsed);
     } catch (error) {
@@ -263,14 +266,14 @@ export class InputSanitizer {
   private removeScripts(input: string): string {
     // Remove script tags
     let sanitized = input.replace(/<script[^>]*>.*?<\/script>/gi, '');
-    
+
     // Remove JavaScript event handlers
     sanitized = sanitized.replace(/on\w+\s*=\s*["'][^"']*["']/gi, '');
-    
+
     // Remove javascript: and data: URLs
     sanitized = sanitized.replace(/javascript:/gi, '');
     sanitized = sanitized.replace(/data:/gi, '');
-    
+
     return sanitized;
   }
 
@@ -279,16 +282,28 @@ export class InputSanitizer {
    */
   private removeDangerousTags(input: string): string {
     const dangerousTags = [
-      'script', 'object', 'embed', 'applet', 'link', 'style', 'meta',
-      'iframe', 'frame', 'frameset', 'form', 'input', 'button', 'textarea'
+      'script',
+      'object',
+      'embed',
+      'applet',
+      'link',
+      'style',
+      'meta',
+      'iframe',
+      'frame',
+      'frameset',
+      'form',
+      'input',
+      'button',
+      'textarea',
     ];
 
     let sanitized = input;
-    
+
     for (const tag of dangerousTags) {
       const regex = new RegExp(`<${tag}[^>]*>.*?<\/${tag}>`, 'gi');
       sanitized = sanitized.replace(regex, '');
-      
+
       // Also remove self-closing tags
       const selfClosingRegex = new RegExp(`<${tag}[^>]*\/?>`, 'gi');
       sanitized = sanitized.replace(selfClosingRegex, '');
@@ -302,13 +317,23 @@ export class InputSanitizer {
    */
   private removeDangerousAttributes(input: string): string {
     const dangerousAttributes = [
-      'onclick', 'onload', 'onerror', 'onmouseover', 'onmouseout',
-      'onfocus', 'onblur', 'onchange', 'onsubmit', 'onreset',
-      'style', 'background', 'expression'
+      'onclick',
+      'onload',
+      'onerror',
+      'onmouseover',
+      'onmouseout',
+      'onfocus',
+      'onblur',
+      'onchange',
+      'onsubmit',
+      'onreset',
+      'style',
+      'background',
+      'expression',
     ];
 
     let sanitized = input;
-    
+
     for (const attr of dangerousAttributes) {
       const regex = new RegExp(`${attr}\\s*=\\s*["'][^"']*["']`, 'gi');
       sanitized = sanitized.replace(regex, '');
@@ -363,7 +388,8 @@ export const sanitize = {
   email: (input: string) => defaultSanitizer.sanitizeEmail(input),
   url: (input: string) => defaultSanitizer.sanitizeURL(input),
   filePath: (input: string) => defaultSanitizer.sanitizeFilePath(input),
-  number: (input: string | number, options?: any) => defaultSanitizer.sanitizeNumber(input, options),
+  number: (input: string | number, options?: any) =>
+    defaultSanitizer.sanitizeNumber(input, options),
   json: (input: string) => defaultSanitizer.sanitizeJSON(input),
 };
 
@@ -383,11 +409,11 @@ export const validators = {
    */
   tradingSymbol: (symbol: string): string => {
     const sanitized = sanitize.text(symbol).toUpperCase();
-    
+
     if (!/^[A-Z0-9]{3,20}$/.test(sanitized)) {
       throw new Error('Invalid trading symbol format');
     }
-    
+
     return sanitized;
   },
 
@@ -396,11 +422,11 @@ export const validators = {
    */
   apiKey: (key: string): string => {
     const sanitized = sanitize.text(key);
-    
+
     if (!/^[A-Za-z0-9]{32,}$/.test(sanitized)) {
       throw new Error('Invalid API key format');
     }
-    
+
     return sanitized;
   },
 
@@ -409,12 +435,28 @@ export const validators = {
    */
   timeframe: (timeframe: string): string => {
     const sanitized = sanitize.text(timeframe);
-    const validTimeframes = ['1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h', '1d', '3d', '1w', '1M'];
-    
+    const validTimeframes = [
+      '1m',
+      '3m',
+      '5m',
+      '15m',
+      '30m',
+      '1h',
+      '2h',
+      '4h',
+      '6h',
+      '8h',
+      '12h',
+      '1d',
+      '3d',
+      '1w',
+      '1M',
+    ];
+
     if (!validTimeframes.includes(sanitized)) {
       throw new Error('Invalid timeframe');
     }
-    
+
     return sanitized;
   },
 
@@ -423,7 +465,7 @@ export const validators = {
    */
   percentage: (value: string | number, min = 0, max = 100): number => {
     return sanitize.number(value, { min, max, decimals: 2, allowNegative: min < 0 });
-  }
+  },
 };
 
 export default InputSanitizer;

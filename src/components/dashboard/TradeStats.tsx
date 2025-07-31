@@ -13,7 +13,7 @@ export const TradeStats: React.FC<TradeStatsProps> = ({
   avgPnL,
   winRate,
   totalFees,
-  winningTrades
+  winningTrades,
 }) => {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4 mb-6">

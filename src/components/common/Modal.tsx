@@ -18,7 +18,7 @@ export const Modal: React.FC<ModalProps> = ({
   title,
   children,
   maxWidth = 'md',
-  showCloseButton = true
+  showCloseButton = true,
 }) => {
   if (!isOpen) return null;
 
@@ -32,7 +32,7 @@ export const Modal: React.FC<ModalProps> = ({
     '4xl': 'max-w-3xl sm:max-w-4xl lg:max-w-5xl',
     '5xl': 'max-w-4xl sm:max-w-5xl',
     '6xl': 'max-w-5xl sm:max-w-6xl',
-    '7xl': 'max-w-6xl sm:max-w-7xl'
+    '7xl': 'max-w-6xl sm:max-w-7xl',
   };
 
   if (!isOpen) return null;
@@ -51,7 +51,7 @@ export const Modal: React.FC<ModalProps> = ({
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
         className={`glass-morphic p-4 sm:p-6 w-full ${maxWidthClasses[maxWidth]}`}
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
       >
         {(title || showCloseButton) && (
           <div className="flex items-center justify-between mb-4 sm:mb-6">

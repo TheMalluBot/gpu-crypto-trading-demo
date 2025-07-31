@@ -24,33 +24,33 @@ export const TradeFilters: React.FC<TradeFiltersProps> = ({
   onSearchChange,
   selectedTimeframe,
   onTimeframeChange,
-  onClearFilters
+  onClearFilters,
 }) => {
   const symbolOptions = [
     { value: '', label: 'All Symbols' },
     { value: 'BTCUSDT', label: 'BTCUSDT' },
     { value: 'ETHUSDT', label: 'ETHUSDT' },
-    { value: 'ADAUSDT', label: 'ADAUSDT' }
+    { value: 'ADAUSDT', label: 'ADAUSDT' },
   ];
 
   const sideOptions = [
     { value: '', label: 'All Sides' },
     { value: 'Long', label: 'Long' },
-    { value: 'Short', label: 'Short' }
+    { value: 'Short', label: 'Short' },
   ];
 
   const statusOptions = [
     { value: '', label: 'All Status' },
     { value: 'Open', label: 'Open' },
     { value: 'Closed', label: 'Closed' },
-    { value: 'Cancelled', label: 'Cancelled' }
+    { value: 'Cancelled', label: 'Cancelled' },
   ];
 
   const strategyOptions = [
     { value: '', label: 'All Strategies' },
     { value: 'Manual', label: 'Manual' },
     { value: 'LRO Bot', label: 'LRO Bot' },
-    { value: 'Scalping', label: 'Scalping' }
+    { value: 'Scalping', label: 'Scalping' },
   ];
 
   return (
@@ -63,13 +63,13 @@ export const TradeFilters: React.FC<TradeFiltersProps> = ({
             type="text"
             placeholder="Search trades..."
             value={searchTerm}
-            onChange={(e) => onSearchChange(e.target.value)}
+            onChange={e => onSearchChange(e.target.value)}
             className="w-full pl-10 pr-4 py-2 glass-card text-white bg-transparent border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg"
           />
         </div>
 
         <div className="flex space-x-2">
-          {['all', '1d', '7d', '30d', '90d'].map((timeframe) => (
+          {['all', '1d', '7d', '30d', '90d'].map(timeframe => (
             <button
               key={timeframe}
               onClick={() => onTimeframeChange(timeframe)}
@@ -96,28 +96,28 @@ export const TradeFilters: React.FC<TradeFiltersProps> = ({
           <Select
             label="Symbol"
             value={filters.symbol}
-            onChange={(e) => onFiltersChange({ ...filters, symbol: e.target.value })}
+            onChange={e => onFiltersChange({ ...filters, symbol: e.target.value })}
             options={symbolOptions}
           />
 
           <Select
             label="Side"
             value={filters.side}
-            onChange={(e) => onFiltersChange({ ...filters, side: e.target.value })}
+            onChange={e => onFiltersChange({ ...filters, side: e.target.value })}
             options={sideOptions}
           />
 
           <Select
             label="Status"
             value={filters.status}
-            onChange={(e) => onFiltersChange({ ...filters, status: e.target.value })}
+            onChange={e => onFiltersChange({ ...filters, status: e.target.value })}
             options={statusOptions}
           />
 
           <Select
             label="Strategy"
             value={filters.strategy}
-            onChange={(e) => onFiltersChange({ ...filters, strategy: e.target.value })}
+            onChange={e => onFiltersChange({ ...filters, strategy: e.target.value })}
             options={strategyOptions}
           />
 

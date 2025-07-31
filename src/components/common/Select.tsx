@@ -26,7 +26,7 @@ export const Select: React.FC<SelectProps> = ({
   disabled = false,
   className = '',
   required = false,
-  placeholder
+  placeholder,
 }) => {
   const selectClasses = `w-full glass-card px-4 py-2 text-white bg-transparent border-0 focus:outline-none focus:ring-2 rounded-lg transition-all ${
     error ? 'focus:ring-red-500 ring-1 ring-red-500' : 'focus:ring-blue-500'
@@ -52,15 +52,13 @@ export const Select: React.FC<SelectProps> = ({
             {placeholder}
           </option>
         )}
-        {options.map((option) => (
+        {options.map(option => (
           <option key={option.value} value={option.value} className="bg-gray-800">
             {option.label}
           </option>
         ))}
       </select>
-      {error && (
-        <p className="text-red-400 text-xs">{error}</p>
-      )}
+      {error && <p className="text-red-400 text-xs">{error}</p>}
     </div>
   );
 };

@@ -42,7 +42,7 @@ const NotificationContainer: React.FC = React.memo(() => {
   return (
     <div className="fixed top-4 right-4 z-notification space-y-2 max-w-md">
       <AnimatePresence>
-        {notifications.map((notification) => (
+        {notifications.map(notification => (
           <motion.div
             key={notification.id}
             initial={{ opacity: 0, x: 300, scale: 0.9 }}
@@ -56,19 +56,13 @@ const NotificationContainer: React.FC = React.memo(() => {
             `}
           >
             <div className="flex items-start space-x-3">
-              <div className="flex-shrink-0 mt-0.5">
-                {getIcon(notification.type)}
-              </div>
-              
+              <div className="flex-shrink-0 mt-0.5">{getIcon(notification.type)}</div>
+
               <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-semibold text-white mb-1">
-                  {notification.title}
-                </h4>
-                <p className="text-sm text-white/80 break-words">
-                  {notification.message}
-                </p>
+                <h4 className="text-sm font-semibold text-white mb-1">{notification.title}</h4>
+                <p className="text-sm text-white/80 break-words">{notification.message}</p>
               </div>
-              
+
               <button
                 onClick={() => NotificationManager.remove(notification.id)}
                 className="flex-shrink-0 p-1 rounded-md hover:bg-white/10 transition-colors"
@@ -76,7 +70,7 @@ const NotificationContainer: React.FC = React.memo(() => {
                 <X className="w-4 h-4 text-white/60" />
               </button>
             </div>
-            
+
             {/* Progress bar for auto-close */}
             {notification.autoClose && notification.duration && (
               <motion.div
@@ -89,9 +83,9 @@ const NotificationContainer: React.FC = React.memo(() => {
                   className="h-full bg-white/40 rounded-full"
                   initial={{ width: '100%' }}
                   animate={{ width: '0%' }}
-                  transition={{ 
+                  transition={{
                     duration: notification.duration / 1000,
-                    ease: 'linear'
+                    ease: 'linear',
                   }}
                 />
               </motion.div>

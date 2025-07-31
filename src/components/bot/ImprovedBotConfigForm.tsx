@@ -24,7 +24,7 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
   setConfig,
   botStatus,
   marketConditions,
-  updateAccountBalance
+  updateAccountBalance,
 }) => {
   const [showPresets, setShowPresets] = useState(false);
   const [activeTab, setActiveTab] = useState<ConfigTab>('basic');
@@ -34,9 +34,9 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
     const newConfig = { ...config, [key]: value };
     setConfig(newConfig);
     setHasUnsavedChanges(true);
-    
+
     // Auto-save to backend with error handling
-    safeInvoke('update_bot_config', { config: newConfig }).catch((error) => {
+    safeInvoke('update_bot_config', { config: newConfig }).catch(error => {
       console.error('Failed to save config:', error);
       NotificationManager.error(
         'Configuration Error',
@@ -49,15 +49,15 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
     const newConfig = { ...config, ...presetConfig };
     setConfig(newConfig);
     setHasUnsavedChanges(false);
-    
-    safeInvoke('update_bot_config', { config: newConfig }).catch((error) => {
+
+    safeInvoke('update_bot_config', { config: newConfig }).catch(error => {
       console.error('Failed to apply preset:', error);
       NotificationManager.error(
         'Preset Error',
         'Failed to apply preset configuration. Please try again.'
       );
     });
-    
+
     setShowPresets(false);
     NotificationManager.success('Preset Applied', 'Configuration updated successfully');
   };
@@ -86,19 +86,9 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
   const renderActiveTab = () => {
     switch (activeTab) {
       case 'basic':
-        return (
-          <BasicConfigSection
-            config={config}
-            onConfigChange={handleConfigChange}
-          />
-        );
+        return <BasicConfigSection config={config} onConfigChange={handleConfigChange} />;
       case 'risk':
-        return (
-          <RiskManagementSection
-            config={config}
-            onConfigChange={handleConfigChange}
-          />
-        );
+        return <RiskManagementSection config={config} onConfigChange={handleConfigChange} />;
       case 'advanced':
         return (
           <AdvancedConfigSection
@@ -120,11 +110,9 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-theme-primary">Bot Configuration</h2>
-          <p className="text-theme-secondary mt-1">
-            Optimize your trading strategy parameters
-          </p>
+          <p className="text-theme-secondary mt-1">Optimize your trading strategy parameters</p>
         </div>
-        
+
         <div className="flex items-center space-x-3">
           {hasUnsavedChanges && (
             <div className="flex items-center space-x-2 text-amber-400">
@@ -132,11 +120,8 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
               <span className="text-sm">Auto-saving...</span>
             </div>
           )}
-          
-          <button
-            onClick={() => setShowPresets(true)}
-            className="btn-theme-secondary"
-          >
+
+          <button onClick={() => setShowPresets(true)} className="btn-theme-secondary">
             <Settings className="w-4 h-4" />
             Load Preset
           </button>
@@ -146,10 +131,10 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
       {/* Tab Navigation */}
       <div className="bg-theme-surface rounded-lg p-1 border border-theme-border">
         <div className="flex space-x-1">
-          {tabConfig.map((tab) => {
+          {tabConfig.map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
-            
+
             return (
               <button
                 key={tab.id}
@@ -157,9 +142,10 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
                 className={`
                   flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-md 
                   transition-all duration-200 relative
-                  ${isActive 
-                    ? 'bg-primary-500 text-white shadow-lg' 
-                    : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-background/50'
+                  ${
+                    isActive
+                      ? 'bg-primary-500 text-white shadow-lg'
+                      : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-background/50'
                   }
                 `}
               >
@@ -203,7 +189,7 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               className="bg-theme-surface rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
+              onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center justify-between p-6 border-b border-theme-border">
                 <h3 className="text-xl font-bold text-theme-primary">
@@ -216,7 +202,7 @@ const ImprovedBotConfigForm: React.FC<ImprovedBotConfigFormProps> = ({
                   <X className="w-5 h-5 text-theme-secondary" />
                 </button>
               </div>
-              
+
               <div className="p-6">
                 <PresetSelector onPresetSelect={handlePresetSelect} />
               </div>

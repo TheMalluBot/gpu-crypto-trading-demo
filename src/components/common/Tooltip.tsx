@@ -9,11 +9,11 @@ interface TooltipProps {
   showIcon?: boolean;
 }
 
-const Tooltip: React.FC<TooltipProps> = ({ 
-  content, 
-  children, 
+const Tooltip: React.FC<TooltipProps> = ({
+  content,
+  children,
   position = 'top',
-  showIcon = true 
+  showIcon = true,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -21,14 +21,16 @@ const Tooltip: React.FC<TooltipProps> = ({
     top: 'bottom-full left-1/2 transform -translate-x-1/2 mb-2',
     bottom: 'top-full left-1/2 transform -translate-x-1/2 mt-2',
     left: 'right-full top-1/2 transform -translate-y-1/2 mr-2',
-    right: 'left-full top-1/2 transform -translate-y-1/2 ml-2'
+    right: 'left-full top-1/2 transform -translate-y-1/2 ml-2',
   };
 
   const arrowClasses = {
     top: 'top-full left-1/2 transform -translate-x-1/2 border-l-transparent border-r-transparent border-b-transparent border-t-gray-800',
-    bottom: 'bottom-full left-1/2 transform -translate-x-1/2 border-l-transparent border-r-transparent border-t-transparent border-b-gray-800',
+    bottom:
+      'bottom-full left-1/2 transform -translate-x-1/2 border-l-transparent border-r-transparent border-t-transparent border-b-gray-800',
     left: 'left-full top-1/2 transform -translate-y-1/2 border-t-transparent border-b-transparent border-r-transparent border-l-gray-800',
-    right: 'right-full top-1/2 transform -translate-y-1/2 border-t-transparent border-b-transparent border-l-transparent border-r-gray-800'
+    right:
+      'right-full top-1/2 transform -translate-y-1/2 border-t-transparent border-b-transparent border-l-transparent border-r-gray-800',
   };
 
   return (
@@ -38,9 +40,12 @@ const Tooltip: React.FC<TooltipProps> = ({
         onMouseLeave={() => setIsVisible(false)}
         className="cursor-help"
       >
-        {children || (showIcon && <HelpCircle className="w-4 h-4 text-white/40 hover:text-white/60 transition-colors" />)}
+        {children ||
+          (showIcon && (
+            <HelpCircle className="w-4 h-4 text-white/40 hover:text-white/60 transition-colors" />
+          ))}
       </div>
-      
+
       <AnimatePresence>
         {isVisible && (
           <motion.div

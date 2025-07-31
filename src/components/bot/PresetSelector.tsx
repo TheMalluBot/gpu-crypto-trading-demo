@@ -11,11 +11,7 @@ interface PresetSelectorProps {
   onSelectPreset: (config: Partial<LROConfig>) => void;
 }
 
-const PresetSelector: React.FC<PresetSelectorProps> = ({
-  isOpen,
-  onClose,
-  onSelectPreset
-}) => {
+const PresetSelector: React.FC<PresetSelectorProps> = ({ isOpen, onClose, onSelectPreset }) => {
   const [selectedPreset, setSelectedPreset] = useState<BotPreset | null>(null);
   const [filterDifficulty, setFilterDifficulty] = useState<string>('All');
   const [filterRisk, setFilterRisk] = useState<string>('All');
@@ -33,19 +29,27 @@ const PresetSelector: React.FC<PresetSelectorProps> = ({
 
   const getRiskColor = (risk: string) => {
     switch (risk) {
-      case 'Low': return 'text-green-400 bg-green-500/20';
-      case 'Medium': return 'text-yellow-400 bg-yellow-500/20';
-      case 'High': return 'text-red-400 bg-red-500/20';
-      default: return 'text-white/60 bg-white/10';
+      case 'Low':
+        return 'text-green-400 bg-green-500/20';
+      case 'Medium':
+        return 'text-yellow-400 bg-yellow-500/20';
+      case 'High':
+        return 'text-red-400 bg-red-500/20';
+      default:
+        return 'text-white/60 bg-white/10';
     }
   };
 
   const getDifficultyIcon = (difficulty: string) => {
     switch (difficulty) {
-      case 'Beginner': return <Star className="w-4 h-4" />;
-      case 'Intermediate': return <TrendingUp className="w-4 h-4" />;
-      case 'Advanced': return <Settings className="w-4 h-4" />;
-      default: return <Settings className="w-4 h-4" />;
+      case 'Beginner':
+        return <Star className="w-4 h-4" />;
+      case 'Intermediate':
+        return <TrendingUp className="w-4 h-4" />;
+      case 'Advanced':
+        return <Settings className="w-4 h-4" />;
+      default:
+        return <Settings className="w-4 h-4" />;
     }
   };
 
@@ -58,7 +62,7 @@ const PresetSelector: React.FC<PresetSelectorProps> = ({
         </div>
 
         <p className="text-white/70 mb-6">
-          Select a pre-configured strategy that matches your experience level and risk tolerance. 
+          Select a pre-configured strategy that matches your experience level and risk tolerance.
           You can always customize settings later.
         </p>
 
@@ -68,7 +72,7 @@ const PresetSelector: React.FC<PresetSelectorProps> = ({
             <label className="block text-sm font-medium text-white/80 mb-2">Experience Level</label>
             <select
               value={filterDifficulty}
-              onChange={(e) => setFilterDifficulty(e.target.value)}
+              onChange={e => setFilterDifficulty(e.target.value)}
               className="bg-white/5 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="All">All Levels</option>
@@ -77,12 +81,12 @@ const PresetSelector: React.FC<PresetSelectorProps> = ({
               <option value="Advanced">Advanced</option>
             </select>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-white/80 mb-2">Risk Tolerance</label>
             <select
               value={filterRisk}
-              onChange={(e) => setFilterRisk(e.target.value)}
+              onChange={e => setFilterRisk(e.target.value)}
               className="bg-white/5 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="All">All Risk Levels</option>
@@ -115,7 +119,9 @@ const PresetSelector: React.FC<PresetSelectorProps> = ({
               <p className="text-sm text-white/70 mb-3">{preset.description}</p>
 
               <div className="flex flex-wrap gap-2 mb-3">
-                <span className={`px-2 py-1 rounded text-xs font-medium ${getRiskColor(preset.riskLevel)}`}>
+                <span
+                  className={`px-2 py-1 rounded text-xs font-medium ${getRiskColor(preset.riskLevel)}`}
+                >
                   {preset.riskLevel} Risk
                 </span>
                 <span className="px-2 py-1 rounded text-xs font-medium bg-blue-500/20 text-blue-400">
@@ -147,7 +153,7 @@ const PresetSelector: React.FC<PresetSelectorProps> = ({
               className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg"
             >
               <h4 className="font-semibold text-white mb-3">{selectedPreset.name} - Details</h4>
-              
+
               <div className="grid md:grid-cols-2 gap-4 mb-4">
                 <div>
                   <h5 className="text-sm font-medium text-green-400 mb-2">Advantages:</h5>
@@ -160,7 +166,7 @@ const PresetSelector: React.FC<PresetSelectorProps> = ({
                     ))}
                   </ul>
                 </div>
-                
+
                 <div>
                   <h5 className="text-sm font-medium text-orange-400 mb-2">Considerations:</h5>
                   <ul className="space-y-1">

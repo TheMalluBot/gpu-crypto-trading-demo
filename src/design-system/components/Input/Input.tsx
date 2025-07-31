@@ -1,8 +1,8 @@
 // Phase 2 Week 6 Design System Agent - Design System Input Component
-import React, { forwardRef, InputHTMLAttributes, useState } from 'react'
-import { cva, type VariantProps } from 'class-variance-authority'
-import { Eye, EyeOff, AlertCircle, Check } from 'lucide-react'
-import { cn } from '../../utils/cn'
+import React, { forwardRef, InputHTMLAttributes, useState } from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
+import { Eye, EyeOff, AlertCircle, Check } from 'lucide-react';
+import { cn } from '../../utils/cn';
 
 // Input variants using class-variance-authority
 const inputVariants = cva(
@@ -23,7 +23,7 @@ const inputVariants = cva(
     'disabled:opacity-50',
     'disabled:bg-gray-50',
     // Minimum touch target for accessibility
-    'min-h-[44px]'
+    'min-h-[44px]',
   ],
   {
     variants: {
@@ -33,7 +33,7 @@ const inputVariants = cva(
           'bg-white',
           'text-gray-900',
           'focus:border-blue-500',
-          'focus:ring-blue-500'
+          'focus:ring-blue-500',
         ],
         error: [
           'border-red-300',
@@ -41,72 +41,60 @@ const inputVariants = cva(
           'text-red-900',
           'focus:border-red-500',
           'focus:ring-red-500',
-          'placeholder:text-red-400'
+          'placeholder:text-red-400',
         ],
         success: [
           'border-green-300',
           'bg-green-50',
           'text-green-900',
           'focus:border-green-500',
-          'focus:ring-green-500'
+          'focus:ring-green-500',
         ],
         warning: [
           'border-yellow-300',
           'bg-yellow-50',
           'text-yellow-900',
           'focus:border-yellow-500',
-          'focus:ring-yellow-500'
-        ]
+          'focus:ring-yellow-500',
+        ],
       },
       size: {
-        sm: [
-          'h-9',
-          'px-3',
-          'text-sm'
-        ],
-        md: [
-          'h-11',
-          'px-3',
-          'text-base'
-        ],
-        lg: [
-          'h-12',
-          'px-4',
-          'text-lg'
-        ]
-      }
+        sm: ['h-9', 'px-3', 'text-sm'],
+        md: ['h-11', 'px-3', 'text-base'],
+        lg: ['h-12', 'px-4', 'text-lg'],
+      },
     },
     defaultVariants: {
       variant: 'default',
-      size: 'md'
-    }
+      size: 'md',
+    },
   }
-)
+);
 
 // Input component interface
 export interface InputProps
   extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'>,
     VariantProps<typeof inputVariants> {
   /** Input label */
-  label?: string
+  label?: string;
   /** Help text displayed below input */
-  helpText?: string
+  helpText?: string;
   /** Error message */
-  error?: string
+  error?: string;
   /** Success message */
-  success?: string
+  success?: string;
   /** Warning message */
-  warning?: string
+  warning?: string;
   /** Icon to display on the left */
-  leftIcon?: React.ReactNode
+  leftIcon?: React.ReactNode;
   /** Icon to display on the right */
-  rightIcon?: React.ReactNode
+  rightIcon?: React.ReactNode;
   /** Custom CSS classes */
-  className?: string
+  className?: string;
   /** Wrapper className */
-  wrapperClassName?: string
+  wrapperClassName?: string;
   /** Required field indicator */
-  required?: boolean
+  required?: boolean;
 }
 
 // Main Input component with forwardRef
@@ -132,21 +120,18 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     ref
   ) => {
     // Determine variant based on validation state
-    const computedVariant = error ? 'error' : success ? 'success' : warning ? 'warning' : variant
+    const computedVariant = error ? 'error' : success ? 'success' : warning ? 'warning' : variant;
 
     // Generate unique ID if not provided
-    const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`
-    const helpTextId = `${inputId}-help`
-    const errorId = `${inputId}-error`
+    const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
+    const helpTextId = `${inputId}-help`;
+    const errorId = `${inputId}-error`;
 
     return (
       <div className={cn('w-full', wrapperClassName)}>
         {/* Label */}
         {label && (
-          <label
-            htmlFor={inputId}
-            className="block text-sm font-medium text-gray-700 mb-2"
-          >
+          <label htmlFor={inputId} className="block text-sm font-medium text-gray-700 mb-2">
             {label}
             {required && (
               <span className="text-red-500 ml-1" aria-label="required">
@@ -180,10 +165,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             )}
             aria-invalid={error ? 'true' : 'false'}
             aria-describedby={
-              [
-                helpText && helpTextId,
-                error && errorId
-              ].filter(Boolean).join(' ') || undefined
+              [helpText && helpTextId, error && errorId].filter(Boolean).join(' ') || undefined
             }
             required={required}
             {...props}
@@ -201,15 +183,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           {/* Validation icons */}
           {(error || success || warning) && (
             <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-              {error && (
-                <AlertCircle className="h-5 w-5 text-red-500" aria-hidden="true" />
-              )}
-              {success && (
-                <Check className="h-5 w-5 text-green-500" aria-hidden="true" />
-              )}
-              {warning && (
-                <AlertCircle className="h-5 w-5 text-yellow-500" aria-hidden="true" />
-              )}
+              {error && <AlertCircle className="h-5 w-5 text-red-500" aria-hidden="true" />}
+              {success && <Check className="h-5 w-5 text-green-500" aria-hidden="true" />}
+              {warning && <AlertCircle className="h-5 w-5 text-yellow-500" aria-hidden="true" />}
             </div>
           )}
         </div>
@@ -222,16 +198,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                 {error}
               </p>
             )}
-            {success && !error && (
-              <p className="text-green-600">
-                {success}
-              </p>
-            )}
-            {warning && !error && !success && (
-              <p className="text-yellow-600">
-                {warning}
-              </p>
-            )}
+            {success && !error && <p className="text-green-600">{success}</p>}
+            {warning && !error && !success && <p className="text-yellow-600">{warning}</p>}
             {helpText && !error && !success && !warning && (
               <p id={helpTextId} className="text-gray-600">
                 {helpText}
@@ -240,25 +208,25 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           </div>
         )}
       </div>
-    )
+    );
   }
-)
+);
 
-Input.displayName = 'Input'
+Input.displayName = 'Input';
 
 // Password input component with toggle visibility
 export interface PasswordInputProps extends Omit<InputProps, 'type' | 'rightIcon'> {
   /** Show/hide password visibility toggle */
-  showToggle?: boolean
+  showToggle?: boolean;
 }
 
 export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
   ({ showToggle = true, ...props }, ref) => {
-    const [showPassword, setShowPassword] = useState(false)
+    const [showPassword, setShowPassword] = useState(false);
 
     const togglePasswordVisibility = () => {
-      setShowPassword(!showPassword)
-    }
+      setShowPassword(!showPassword);
+    };
 
     return (
       <Input
@@ -283,20 +251,23 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
         }
         {...props}
       />
-    )
+    );
   }
-)
+);
 
-PasswordInput.displayName = 'PasswordInput'
+PasswordInput.displayName = 'PasswordInput';
 
 // Textarea component
 export interface TextareaProps
   extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'size'>,
-    Pick<InputProps, 'label' | 'helpText' | 'error' | 'success' | 'warning' | 'required' | 'wrapperClassName'> {
+    Pick<
+      InputProps,
+      'label' | 'helpText' | 'error' | 'success' | 'warning' | 'required' | 'wrapperClassName'
+    > {
   /** Textarea size */
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'sm' | 'md' | 'lg';
   /** Custom CSS classes */
-  className?: string
+  className?: string;
 }
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
@@ -318,27 +289,24 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     ref
   ) => {
     // Determine variant based on validation state
-    const variant = error ? 'error' : success ? 'success' : warning ? 'warning' : 'default'
+    const variant = error ? 'error' : success ? 'success' : warning ? 'warning' : 'default';
 
     // Generate unique ID if not provided
-    const textareaId = id || `textarea-${Math.random().toString(36).substr(2, 9)}`
-    const helpTextId = `${textareaId}-help`
-    const errorId = `${textareaId}-error`
+    const textareaId = id || `textarea-${Math.random().toString(36).substr(2, 9)}`;
+    const helpTextId = `${textareaId}-help`;
+    const errorId = `${textareaId}-error`;
 
     const sizeClasses = {
       sm: 'text-sm px-3 py-2',
       md: 'text-base px-3 py-3',
-      lg: 'text-lg px-4 py-3'
-    }
+      lg: 'text-lg px-4 py-3',
+    };
 
     return (
       <div className={cn('w-full', wrapperClassName)}>
         {/* Label */}
         {label && (
-          <label
-            htmlFor={textareaId}
-            className="block text-sm font-medium text-gray-700 mb-2"
-          >
+          <label htmlFor={textareaId} className="block text-sm font-medium text-gray-700 mb-2">
             {label}
             {required && (
               <span className="text-red-500 ml-1" aria-label="required">
@@ -358,18 +326,19 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
             'placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2',
             'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-gray-50',
             sizeClasses[size],
-            variant === 'default' && 'border-gray-300 bg-white text-gray-900 focus:border-blue-500 focus:ring-blue-500',
-            variant === 'error' && 'border-red-300 bg-red-50 text-red-900 focus:border-red-500 focus:ring-red-500 placeholder:text-red-400',
-            variant === 'success' && 'border-green-300 bg-green-50 text-green-900 focus:border-green-500 focus:ring-green-500',
-            variant === 'warning' && 'border-yellow-300 bg-yellow-50 text-yellow-900 focus:border-yellow-500 focus:ring-yellow-500',
+            variant === 'default' &&
+              'border-gray-300 bg-white text-gray-900 focus:border-blue-500 focus:ring-blue-500',
+            variant === 'error' &&
+              'border-red-300 bg-red-50 text-red-900 focus:border-red-500 focus:ring-red-500 placeholder:text-red-400',
+            variant === 'success' &&
+              'border-green-300 bg-green-50 text-green-900 focus:border-green-500 focus:ring-green-500',
+            variant === 'warning' &&
+              'border-yellow-300 bg-yellow-50 text-yellow-900 focus:border-yellow-500 focus:ring-yellow-500',
             className
           )}
           aria-invalid={error ? 'true' : 'false'}
           aria-describedby={
-            [
-              helpText && helpTextId,
-              error && errorId
-            ].filter(Boolean).join(' ') || undefined
+            [helpText && helpTextId, error && errorId].filter(Boolean).join(' ') || undefined
           }
           required={required}
           {...props}
@@ -383,16 +352,8 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
                 {error}
               </p>
             )}
-            {success && !error && (
-              <p className="text-green-600">
-                {success}
-              </p>
-            )}
-            {warning && !error && !success && (
-              <p className="text-yellow-600">
-                {warning}
-              </p>
-            )}
+            {success && !error && <p className="text-green-600">{success}</p>}
+            {warning && !error && !success && <p className="text-yellow-600">{warning}</p>}
             {helpText && !error && !success && !warning && (
               <p id={helpTextId} className="text-gray-600">
                 {helpText}
@@ -401,36 +362,36 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           </div>
         )}
       </div>
-    )
+    );
   }
-)
+);
 
-Textarea.displayName = 'Textarea'
+Textarea.displayName = 'Textarea';
 
 // Search input component
 export interface SearchInputProps extends Omit<InputProps, 'leftIcon' | 'type'> {
   /** Search button callback */
-  onSearch?: (value: string) => void
+  onSearch?: (value: string) => void;
   /** Clear button callback */
-  onClear?: () => void
+  onClear?: () => void;
   /** Show clear button when input has value */
-  showClear?: boolean
+  showClear?: boolean;
 }
 
 export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
   ({ onSearch, onClear, showClear = true, value, ...props }, ref) => {
-    const hasValue = value && value.toString().length > 0
+    const hasValue = value && value.toString().length > 0;
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Enter' && onSearch) {
-        onSearch(e.currentTarget.value)
+        onSearch(e.currentTarget.value);
       }
-      props.onKeyDown?.(e)
-    }
+      props.onKeyDown?.(e);
+    };
 
     const handleClear = () => {
-      onClear?.()
-    }
+      onClear?.();
+    };
 
     return (
       <Input
@@ -438,7 +399,12 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
         type="search"
         leftIcon={
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
           </svg>
         }
         rightIcon={
@@ -451,7 +417,12 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
               tabIndex={-1}
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           ) : undefined
@@ -460,12 +431,12 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
         onKeyDown={handleKeyDown}
         {...props}
       />
-    )
+    );
   }
-)
+);
 
-SearchInput.displayName = 'SearchInput'
+SearchInput.displayName = 'SearchInput';
 
 // Export input variants for external usage
-export { inputVariants }
-export type { VariantProps as InputVariantProps }
+export { inputVariants };
+export type { VariantProps as InputVariantProps };

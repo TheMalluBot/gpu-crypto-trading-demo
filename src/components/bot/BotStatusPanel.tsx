@@ -23,7 +23,7 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
   onPause,
   onResume,
   onEmergencyStop,
-  loading
+  loading,
 }) => {
   const [showStartConfirm, setShowStartConfirm] = useState(false);
   const [showStopConfirm, setShowStopConfirm] = useState(false);
@@ -47,7 +47,7 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
   // Helper function to get readable pause reason text
   const getPauseReasonText = (reason: any): string => {
     if (!reason) return 'Unknown';
-    
+
     if (reason.HighVolatility) {
       return `High volatility (${(reason.HighVolatility.volatility * 100).toFixed(1)}%)`;
     }
@@ -69,7 +69,7 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
     if (reason.Manual !== undefined) {
       return 'Manual pause';
     }
-    
+
     return 'Unknown reason';
   };
 
@@ -85,7 +85,7 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
         canStart: false,
         canStop: false,
         canPause: false,
-        canResume: false
+        canResume: false,
       };
     }
 
@@ -104,14 +104,14 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
           canStart: false,
           canStop: true,
           canPause: true,
-          canResume: false
+          canResume: false,
         };
 
       case 'Paused':
         const pauseReason = pauseInfo ? getPauseReasonText(pauseInfo.reason) : 'Unknown';
         const autoResume = pauseInfo?.auto_resume_at ? new Date(pauseInfo.auto_resume_at) : null;
         const willAutoResume = autoResume && autoResume > new Date();
-        
+
         return {
           status: 'Paused',
           icon: '⏸️',
@@ -121,7 +121,7 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
           canStart: false,
           canStop: true,
           canPause: false,
-          canResume: true
+          canResume: true,
         };
 
       case 'Stopped':
@@ -136,10 +136,10 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
             canStart: false,
             canStop: false,
             canPause: false,
-            canResume: false
+            canResume: false,
           };
         }
-        
+
         return {
           status: 'Stopped',
           icon: '🔴',
@@ -149,7 +149,7 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
           canStart: true,
           canStop: false,
           canPause: false,
-          canResume: false
+          canResume: false,
         };
     }
   };
@@ -165,7 +165,9 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
             <span className="text-2xl">{statusInfo.icon}</span>
             <div>
               <h2 className="text-lg sm:text-xl font-bold text-white">Trading Bot</h2>
-              <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${statusInfo.bgColor} ${statusInfo.color}`}>
+              <div
+                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${statusInfo.bgColor} ${statusInfo.color}`}
+              >
                 {statusInfo.status}
               </div>
             </div>
@@ -178,7 +180,7 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
                 <span className="font-medium text-blue-400">PAPER</span>
               </div>
             )}
-            
+
             <div className="flex flex-wrap gap-2">
               {statusInfo.canStart && (
                 <Button
@@ -190,7 +192,7 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
                   {loading ? 'Starting...' : 'Start Bot'}
                 </Button>
               )}
-              
+
               {(statusInfo as any).canPause && (
                 <Button
                   onClick={onPause}
@@ -201,7 +203,7 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
                   ⏸️ Pause
                 </Button>
               )}
-              
+
               {(statusInfo as any).canResume && (
                 <Button
                   onClick={onResume}
@@ -212,7 +214,7 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
                   ▶️ Resume
                 </Button>
               )}
-              
+
               {statusInfo.canStop && (
                 <Button
                   onClick={() => setShowStopConfirm(true)}
@@ -223,7 +225,7 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
                   {loading ? 'Stopping...' : 'Stop Bot'}
                 </Button>
               )}
-              
+
               <Button
                 onClick={() => setShowEmergencyConfirm(true)}
                 disabled={loading}
@@ -276,60 +278,85 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
           {/* Current Position */}
           {botStatus?.current_position ? (
             <div className="p-3 sm:p-4 glass-card mb-4">
-              <h3 className="font-semibold text-yellow-400 mb-2 text-sm sm:text-base">📈 Current Position</h3>
+              <h3 className="font-semibold text-yellow-400 mb-2 text-sm sm:text-base">
+                📈 Current Position
+              </h3>
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 text-xs sm:text-sm">
                 <div>
                   <span className="text-white/70">Symbol:</span>
-                  <span className="ml-1 font-medium text-white">{botStatus.current_position.symbol}</span>
+                  <span className="ml-1 font-medium text-white">
+                    {botStatus.current_position.symbol}
+                  </span>
                 </div>
                 <div>
                   <span className="text-white/70">Side:</span>
-                  <span className={`ml-1 font-medium ${
-                    botStatus.current_position.side === 'Long' ? 'text-green-400' : 'text-red-400'
-                  }`}>
+                  <span
+                    className={`ml-1 font-medium ${
+                      botStatus.current_position.side === 'Long' ? 'text-green-400' : 'text-red-400'
+                    }`}
+                  >
                     {botStatus.current_position.side}
                   </span>
                 </div>
                 <div>
                   <span className="text-white/70">Entry:</span>
-                  <span className="ml-1 font-medium text-white">{formatCurrency(botStatus.current_position.entry_price)}</span>
+                  <span className="ml-1 font-medium text-white">
+                    {formatCurrency(botStatus.current_position.entry_price)}
+                  </span>
                 </div>
                 <div>
                   <span className="text-white/70">Quantity:</span>
-                  <span className="ml-1 font-medium text-white">{botStatus.current_position.quantity}</span>
+                  <span className="ml-1 font-medium text-white">
+                    {botStatus.current_position.quantity}
+                  </span>
                 </div>
               </div>
             </div>
           ) : botStatus?.is_active ? (
             <div className="p-3 sm:p-4 glass-card mb-4">
-              <h3 className="font-semibold text-blue-400 text-sm sm:text-base">📊 No Active Position</h3>
-              <p className="text-white/70 text-xs sm:text-sm mt-1">Bot is monitoring markets for entry opportunities</p>
+              <h3 className="font-semibold text-blue-400 text-sm sm:text-base">
+                📊 No Active Position
+              </h3>
+              <p className="text-white/70 text-xs sm:text-sm mt-1">
+                Bot is monitoring markets for entry opportunities
+              </p>
             </div>
           ) : (
             <div className="p-3 sm:p-4 glass-card mb-4">
               <h3 className="font-semibold text-gray-400 text-sm sm:text-base">⏸️ Bot Inactive</h3>
-              <p className="text-white/70 text-xs sm:text-sm mt-1">Start the bot to begin monitoring markets</p>
+              <p className="text-white/70 text-xs sm:text-sm mt-1">
+                Start the bot to begin monitoring markets
+              </p>
             </div>
           )}
 
           {/* Latest Signal */}
           {botStatus?.latest_signal && (
             <div className="p-3 sm:p-4 glass-card">
-              <h3 className="font-semibold text-white mb-2 text-sm sm:text-base">📡 Latest Signal</h3>
+              <h3 className="font-semibold text-white mb-2 text-sm sm:text-base">
+                📡 Latest Signal
+              </h3>
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 text-xs sm:text-sm">
                 <div>
                   <span className="text-white/70">Type:</span>
                   <span className="ml-1">
-                    <StatusBadge status={botStatus.latest_signal.signal_type} variant="signal-type" />
+                    <StatusBadge
+                      status={botStatus.latest_signal.signal_type}
+                      variant="signal-type"
+                    />
                   </span>
                 </div>
                 <div>
                   <span className="text-white/70">LRO:</span>
-                  <span className="ml-1 font-medium text-white">{botStatus.latest_signal.lro_value.toFixed(3)}</span>
+                  <span className="ml-1 font-medium text-white">
+                    {botStatus.latest_signal.lro_value.toFixed(3)}
+                  </span>
                 </div>
                 <div>
                   <span className="text-white/70">Strength:</span>
-                  <span className="ml-1 font-medium text-white">{formatPercentage(botStatus.latest_signal.strength)}</span>
+                  <span className="ml-1 font-medium text-white">
+                    {formatPercentage(botStatus.latest_signal.strength)}
+                  </span>
                 </div>
                 <div>
                   <span className="text-white/70">Time:</span>
@@ -344,11 +371,15 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
           {/* Safety Status */}
           {(botStatus?.circuit_breaker_count > 0 || (botStatus?.current_daily_loss || 0) > 0) && (
             <div className="mt-4 p-3 sm:p-4 bg-orange-50 border border-orange-200 rounded-lg">
-              <h3 className="font-semibold text-orange-800 mb-2 text-sm sm:text-base">⚠️ Safety Status</h3>
+              <h3 className="font-semibold text-orange-800 mb-2 text-sm sm:text-base">
+                ⚠️ Safety Status
+              </h3>
               <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
                 <div>
                   <span className="text-gray-600">Circuit Breakers:</span>
-                  <span className="ml-1 font-medium text-orange-600">{botStatus?.circuit_breaker_count || 0}</span>
+                  <span className="ml-1 font-medium text-orange-600">
+                    {botStatus?.circuit_breaker_count || 0}
+                  </span>
                 </div>
                 <div>
                   <span className="text-gray-600">Daily Loss:</span>
@@ -373,7 +404,10 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
             <span className="text-2xl">🤖</span>
             <div className="flex-1">
               <h3 className="font-semibold text-blue-800">Ready to Start Trading</h3>
-              <p className="text-blue-700 text-sm">The bot will begin monitoring markets and executing trades according to your strategy.</p>
+              <p className="text-blue-700 text-sm">
+                The bot will begin monitoring markets and executing trades according to your
+                strategy.
+              </p>
             </div>
             {botStatus?.config.paper_trading_enabled && (
               <div className="flex items-center space-x-1 px-3 py-1 bg-green-100 border border-green-300 rounded-full">
@@ -382,11 +416,16 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
               </div>
             )}
           </div>
-          
+
           <div className="space-y-2 text-sm text-gray-600">
             <div className="flex items-center space-x-2">
               <span className="text-green-500">✓</span>
-              <span>Paper trading mode: {botStatus?.config.paper_trading_enabled ? 'Enabled (Safe)' : 'Disabled (Live trading)'}</span>
+              <span>
+                Paper trading mode:{' '}
+                {botStatus?.config.paper_trading_enabled
+                  ? 'Enabled (Safe)'
+                  : 'Disabled (Live trading)'}
+              </span>
             </div>
             <div className="flex items-center space-x-2">
               <span className="text-green-500">✓</span>
@@ -394,12 +433,18 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
             </div>
             <div className="flex items-center space-x-2">
               <span className="text-green-500">✓</span>
-              <span>Maximum daily loss: {formatCurrency(botStatus?.config.max_daily_loss || 0)}</span>
+              <span>
+                Maximum daily loss: {formatCurrency(botStatus?.config.max_daily_loss || 0)}
+              </span>
             </div>
           </div>
 
           <div className="flex space-x-3">
-            <Button onClick={() => setShowStartConfirm(false)} variant="secondary" className="flex-1">
+            <Button
+              onClick={() => setShowStartConfirm(false)}
+              variant="secondary"
+              className="flex-1"
+            >
               Cancel
             </Button>
             <Button onClick={handleStartBot} className="flex-1 bg-green-600 hover:bg-green-700">
@@ -419,20 +464,27 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
             <span className="text-2xl">⏸️</span>
             <div>
               <h3 className="font-semibold text-orange-800">Stop Trading Activity</h3>
-              <p className="text-orange-700 text-sm">The bot will stop monitoring markets and won't open new positions.</p>
+              <p className="text-orange-700 text-sm">
+                The bot will stop monitoring markets and won't open new positions.
+              </p>
             </div>
           </div>
-          
+
           {botStatus?.current_position && (
             <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-yellow-800 text-sm">
-                <strong>Note:</strong> You have an open position. Consider closing it manually or using Emergency Stop to close all positions.
+                <strong>Note:</strong> You have an open position. Consider closing it manually or
+                using Emergency Stop to close all positions.
               </p>
             </div>
           )}
 
           <div className="flex space-x-3">
-            <Button onClick={() => setShowStopConfirm(false)} variant="secondary" className="flex-1">
+            <Button
+              onClick={() => setShowStopConfirm(false)}
+              variant="secondary"
+              className="flex-1"
+            >
               Cancel
             </Button>
             <Button onClick={handleStopBot} className="flex-1 bg-orange-600 hover:bg-orange-700">
@@ -452,10 +504,12 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
             <span className="text-2xl">🚨</span>
             <div>
               <h3 className="font-semibold text-red-800">Emergency Stop</h3>
-              <p className="text-red-700 text-sm">This will immediately stop all trading activity and close any open positions.</p>
+              <p className="text-red-700 text-sm">
+                This will immediately stop all trading activity and close any open positions.
+              </p>
             </div>
           </div>
-          
+
           <div className="space-y-2 text-sm text-gray-600">
             <div className="flex items-center space-x-2">
               <span className="text-red-500">⚠️</span>
@@ -472,7 +526,11 @@ export const BotStatusPanel: React.FC<BotStatusPanelProps> = ({
           </div>
 
           <div className="flex space-x-3">
-            <Button onClick={() => setShowEmergencyConfirm(false)} variant="secondary" className="flex-1">
+            <Button
+              onClick={() => setShowEmergencyConfirm(false)}
+              variant="secondary"
+              className="flex-1"
+            >
               Cancel
             </Button>
             <Button onClick={handleEmergencyStop} className="flex-1 bg-red-600 hover:bg-red-700">

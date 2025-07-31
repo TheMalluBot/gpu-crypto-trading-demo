@@ -7,7 +7,9 @@ interface ApiStatusProps {
 }
 
 export const ApiStatus: React.FC<ApiStatusProps> = ({ showDetails = false }) => {
-  const [status, setStatus] = useState<'checking' | 'connected' | 'disconnected' | 'error'>('checking');
+  const [status, setStatus] = useState<'checking' | 'connected' | 'disconnected' | 'error'>(
+    'checking'
+  );
   const [error, setError] = useState<string>('');
   const [info, setInfo] = useState<any>(null);
   const [isManualTesting, setIsManualTesting] = useState(false);
@@ -15,10 +17,10 @@ export const ApiStatus: React.FC<ApiStatusProps> = ({ showDetails = false }) => 
   const checkConnection = async () => {
     setStatus('checking');
     setError('');
-    
+
     const result = await testApiConnection();
     setInfo(result.info);
-    
+
     if (result.success) {
       setStatus('connected');
     } else {
@@ -39,28 +41,40 @@ export const ApiStatus: React.FC<ApiStatusProps> = ({ showDetails = false }) => 
 
   const getStatusColor = () => {
     switch (status) {
-      case 'connected': return 'text-green-400';
-      case 'error': return 'text-red-400';
-      case 'checking': return 'text-yellow-400';
-      default: return 'text-gray-400';
+      case 'connected':
+        return 'text-green-400';
+      case 'error':
+        return 'text-red-400';
+      case 'checking':
+        return 'text-yellow-400';
+      default:
+        return 'text-gray-400';
     }
   };
 
   const getStatusIcon = () => {
     switch (status) {
-      case 'connected': return '✅';
-      case 'error': return '❌';
-      case 'checking': return '🔄';
-      default: return '⚪';
+      case 'connected':
+        return '✅';
+      case 'error':
+        return '❌';
+      case 'checking':
+        return '🔄';
+      default:
+        return '⚪';
     }
   };
 
   const getStatusText = () => {
     switch (status) {
-      case 'connected': return 'API Connected';
-      case 'error': return 'API Error';
-      case 'checking': return 'Checking...';
-      default: return 'Unknown';
+      case 'connected':
+        return 'API Connected';
+      case 'error':
+        return 'API Error';
+      case 'checking':
+        return 'Checking...';
+      default:
+        return 'Unknown';
     }
   };
 
@@ -69,9 +83,7 @@ export const ApiStatus: React.FC<ApiStatusProps> = ({ showDetails = false }) => 
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center space-x-2">
           <span className="text-lg">{getStatusIcon()}</span>
-          <span className={`font-medium ${getStatusColor()}`}>
-            {getStatusText()}
-          </span>
+          <span className={`font-medium ${getStatusColor()}`}>{getStatusText()}</span>
         </div>
         <button
           onClick={manualTest}
@@ -95,13 +107,25 @@ export const ApiStatus: React.FC<ApiStatusProps> = ({ showDetails = false }) => 
           </summary>
           <div className="mt-2 p-3 bg-gray-900/50 rounded text-xs">
             <div className="space-y-1">
-              <div><strong>Environment:</strong> {info.environment}</div>
-              <div><strong>Tauri Available:</strong> {info.available ? 'Yes' : 'No'}</div>
-              <div><strong>__TAURI_IPC__:</strong> {info.__TAURI_IPC__}</div>
-              <div><strong>__TAURI__:</strong> {info.__TAURI__}</div>
-              <div><strong>Location:</strong> {info.location}</div>
+              <div>
+                <strong>Environment:</strong> {info.environment}
+              </div>
+              <div>
+                <strong>Tauri Available:</strong> {info.available ? 'Yes' : 'No'}
+              </div>
+              <div>
+                <strong>__TAURI_IPC__:</strong> {info.__TAURI_IPC__}
+              </div>
+              <div>
+                <strong>__TAURI__:</strong> {info.__TAURI__}
+              </div>
+              <div>
+                <strong>Location:</strong> {info.location}
+              </div>
               {info.userAgent && (
-                <div><strong>User Agent:</strong> {info.userAgent}</div>
+                <div>
+                  <strong>User Agent:</strong> {info.userAgent}
+                </div>
               )}
             </div>
           </div>
@@ -110,10 +134,7 @@ export const ApiStatus: React.FC<ApiStatusProps> = ({ showDetails = false }) => 
 
       {(status === 'error' || !isTauriApp()) && showDetails && (
         <div className="mt-4">
-          <TauriTroubleshooting 
-            error={error} 
-            onRetry={manualTest}
-          />
+          <TauriTroubleshooting error={error} onRetry={manualTest} />
         </div>
       )}
 

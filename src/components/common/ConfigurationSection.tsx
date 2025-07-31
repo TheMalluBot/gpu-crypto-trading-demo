@@ -19,13 +19,13 @@ const ConfigurationSection: React.FC<ConfigurationSectionProps> = ({
   iconColor,
   children,
   collapsible = false,
-  defaultExpanded = true
+  defaultExpanded = true,
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(defaultExpanded);
 
   return (
     <div className="mb-8">
-      <div 
+      <div
         className={`flex items-center space-x-3 mb-4 ${collapsible ? 'cursor-pointer' : ''}`}
         onClick={() => collapsible && setIsExpanded(!isExpanded)}
       >
@@ -44,7 +44,7 @@ const ConfigurationSection: React.FC<ConfigurationSectionProps> = ({
           </motion.div>
         )}
       </div>
-      
+
       <AnimatePresence>
         {isExpanded && (
           <motion.div

@@ -8,7 +8,7 @@ export default defineConfig({
   testDir: './tests/playwright',
   timeout: 30 * 1000, // 30 seconds per test
   expect: {
-    timeout: 5 * 1000 // 5 seconds for assertions
+    timeout: 5 * 1000, // 5 seconds for assertions
   },
 
   // Parallel execution
@@ -21,24 +21,24 @@ export default defineConfig({
   reporter: [
     ['html'],
     ['json', { outputFile: 'test-results/results.json' }],
-    ['junit', { outputFile: 'test-results/junit.xml' }]
+    ['junit', { outputFile: 'test-results/junit.xml' }],
   ],
 
   // Global test configuration
   use: {
     // Base URL for trading application
     baseURL: 'http://localhost:3000',
-    
+
     // Tracing for debugging
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
-    
+
     // Security headers verification
     extraHTTPHeaders: {
-      'Accept': 'application/json',
+      Accept: 'application/json',
     },
-    
+
     // Ignore HTTPS errors for development
     ignoreHTTPSErrors: true,
   },
@@ -48,23 +48,23 @@ export default defineConfig({
     // Desktop browsers
     {
       name: 'chromium-desktop',
-      use: { 
+      use: {
         ...devices['Desktop Chrome'],
-        viewport: { width: 1920, height: 1080 }
+        viewport: { width: 1920, height: 1080 },
       },
     },
     {
       name: 'firefox-desktop',
-      use: { 
+      use: {
         ...devices['Desktop Firefox'],
-        viewport: { width: 1920, height: 1080 }
+        viewport: { width: 1920, height: 1080 },
       },
     },
     {
       name: 'webkit-desktop',
-      use: { 
+      use: {
         ...devices['Desktop Safari'],
-        viewport: { width: 1920, height: 1080 }
+        viewport: { width: 1920, height: 1080 },
       },
     },
 
@@ -74,10 +74,10 @@ export default defineConfig({
       use: { ...devices['iPad Pro'] },
     },
     {
-      name: 'tablet-firefox', 
-      use: { 
+      name: 'tablet-firefox',
+      use: {
         ...devices['iPad Pro'],
-        browserName: 'firefox'
+        browserName: 'firefox',
       },
     },
 
@@ -116,9 +116,9 @@ export default defineConfig({
             '--enable-gpu-service-logging',
             '--disable-background-timer-throttling',
             '--disable-renderer-backgrounding',
-            '--disable-backgrounding-occluded-windows'
-          ]
-        }
+            '--disable-backgrounding-occluded-windows',
+          ],
+        },
       },
     },
 
@@ -141,7 +141,7 @@ export default defineConfig({
           'X-Real-IP': '127.0.0.1',
         },
       },
-    }
+    },
   ],
 
   // Development server configuration
@@ -154,7 +154,7 @@ export default defineConfig({
 
   // Test output directories
   outputDir: 'test-results/',
-  
+
   // Global setup and teardown
   globalSetup: require.resolve('./tests/playwright/global-setup.ts'),
   globalTeardown: require.resolve('./tests/playwright/global-teardown.ts'),

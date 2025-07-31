@@ -32,7 +32,7 @@ function App() {
   const [stats, setStats] = useState<SystemStats>({
     fps: 0,
     cpu_load: 0,
-    gpu_frame_time: 0
+    gpu_frame_time: 0,
   });
 
   const [settings, setSettings] = useState<AppSettings>({ disable_animations: false });
@@ -48,7 +48,7 @@ function App() {
   }, []);
   useEffect(() => {
     if (isTauriApp()) {
-      const unlisten = listen('stats-update', (event) => {
+      const unlisten = listen('stats-update', event => {
         setStats(event.payload as SystemStats);
       });
 
@@ -67,7 +67,6 @@ function App() {
     }
   };
 
-
   if (isLoading) {
     return <AppLoading />;
   }
@@ -75,123 +74,147 @@ function App() {
   return (
     <ThemeProvider>
       <Router>
-        <div className="min-h-safe-screen w-full gradient-bg overflow-hidden relative">        {/* Skip to main content link for accessibility */}
-        <a href="#main-content" className="skip-link focus-enhanced">
-          Skip to main content
-        </a>
-        {/* Particle Canvas Background - conditionally rendered */}
-        {!settings.disable_animations && (
-          <div className="absolute inset-0 z-background">
-            <ParticleCanvas />
+        <div className="min-h-safe-screen w-full gradient-bg overflow-hidden relative">
+          {' '}
+          {/* Skip to main content link for accessibility */}
+          <a href="#main-content" className="skip-link focus-enhanced">
+            Skip to main content
+          </a>
+          {/* Particle Canvas Background - conditionally rendered */}
+          {!settings.disable_animations && (
+            <div className="absolute inset-0 z-background">
+              <ParticleCanvas />
+            </div>
+          )}
+          {/* Custom Title Bar */}
+          <div className="relative z-titlebar">
+            <TitleBar />
           </div>
-        )}
-
-        {/* Custom Title Bar */}
-        <div className="relative z-titlebar">
-          <TitleBar />
-        </div>
-
-        {/* Main Content */}
-        <main id="main-content" className="relative z-content min-h-screen pt-8 pb-32 md:pb-28 overflow-y-auto safe-area-bottom" role="main">
-          <Suspense fallback={<AppLoading />}>
-            <Routes>
-              <Route path="/" element={<Navigate to="/trade" replace />} />
-              <Route path="/trade" element={
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="min-h-full"
-                >
-                  <TradePanel />
-                </motion.div>
-              } />
-              <Route path="/bot" element={
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="min-h-full"
-                >
-                  <SwingBotPanel />
-                </motion.div>
-              } />
-              <Route path="/tutorial" element={
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="min-h-full"
-                >
-                  <TutorialPanel />
-                </motion.div>
-              } />
-              <Route path="/dashboard" element={
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="min-h-full"
-                >
-                  <Dashboard />
-                </motion.div>
-              } />
-              <Route path="/analytics" element={
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="min-h-full"
-                >
-                  <PnLChart />
-                </motion.div>
-              } />
-              <Route path="/settings" element={
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="min-h-full"
-                >
-                  <SettingsPanel />
-                </motion.div>
-              } />
-            </Routes>
-          </Suspense>
-        </main>
-
-        {/* Navigation */}
-        <div className="relative z-navigation">
-          <Navigation />
-        </div>
-
-        {/* System Stats (for background animation) */}
-        {!settings.disable_animations && (
-          <div className="fixed top-20 right-4 z-header hidden md:block">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-3"
-            >
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" aria-hidden="true"></div>
-                <span className="text-white/70 text-sm font-medium" aria-label={`Current FPS: ${stats.fps.toFixed(1)}`}>
-                  {stats.fps.toFixed(1)} FPS
-                </span>
-              </div>
-            </motion.div>
+          {/* Main Content */}
+          <main
+            id="main-content"
+            className="relative z-content min-h-screen pt-8 pb-32 md:pb-28 overflow-y-auto safe-area-bottom"
+            role="main"
+          >
+            <Suspense fallback={<AppLoading />}>
+              <Routes>
+                <Route path="/" element={<Navigate to="/trade" replace />} />
+                <Route
+                  path="/trade"
+                  element={
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3 }}
+                      className="min-h-full"
+                    >
+                      <TradePanel />
+                    </motion.div>
+                  }
+                />
+                <Route
+                  path="/bot"
+                  element={
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3 }}
+                      className="min-h-full"
+                    >
+                      <SwingBotPanel />
+                    </motion.div>
+                  }
+                />
+                <Route
+                  path="/tutorial"
+                  element={
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3 }}
+                      className="min-h-full"
+                    >
+                      <TutorialPanel />
+                    </motion.div>
+                  }
+                />
+                <Route
+                  path="/dashboard"
+                  element={
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3 }}
+                      className="min-h-full"
+                    >
+                      <Dashboard />
+                    </motion.div>
+                  }
+                />
+                <Route
+                  path="/analytics"
+                  element={
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3 }}
+                      className="min-h-full"
+                    >
+                      <PnLChart />
+                    </motion.div>
+                  }
+                />
+                <Route
+                  path="/settings"
+                  element={
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3 }}
+                      className="min-h-full"
+                    >
+                      <SettingsPanel />
+                    </motion.div>
+                  }
+                />
+              </Routes>
+            </Suspense>
+          </main>
+          {/* Navigation */}
+          <div className="relative z-navigation">
+            <Navigation />
           </div>
-        )}
-
-        {/* Notification Container */}
-        <NotificationContainer />
-        
+          {/* System Stats (for background animation) */}
+          {!settings.disable_animations && (
+            <div className="fixed top-20 right-4 z-header hidden md:block">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-3"
+              >
+                <div className="flex items-center space-x-3">
+                  <div
+                    className="w-2 h-2 bg-green-400 rounded-full animate-pulse"
+                    aria-hidden="true"
+                  ></div>
+                  <span
+                    className="text-white/70 text-sm font-medium"
+                    aria-label={`Current FPS: ${stats.fps.toFixed(1)}`}
+                  >
+                    {stats.fps.toFixed(1)} FPS
+                  </span>
+                </div>
+              </motion.div>
+            </div>
+          )}
+          {/* Notification Container */}
+          <NotificationContainer />
           {/* Floating Help Button */}
           <FloatingHelpButton />
         </div>

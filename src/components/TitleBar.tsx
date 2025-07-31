@@ -30,7 +30,7 @@ const TitleBar: React.FC = () => {
   };
 
   return (
-    <div 
+    <div
       className="fixed top-0 left-0 right-0 h-8 bg-black/20 backdrop-blur-sm z-titlebar flex items-center justify-between px-4"
       data-tauri-drag-region
     >
@@ -51,7 +51,7 @@ const TitleBar: React.FC = () => {
         >
           <Minus className="w-3 h-3 text-yellow-900" />
         </motion.button>
-        
+
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
@@ -61,7 +61,7 @@ const TitleBar: React.FC = () => {
         >
           <Square className="w-3 h-3 text-green-900" />
         </motion.button>
-        
+
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}

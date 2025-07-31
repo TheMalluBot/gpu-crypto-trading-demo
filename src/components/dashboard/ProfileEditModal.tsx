@@ -11,7 +11,7 @@ interface ProfileEditModalProps {
   profile: UserProfile;
   onProfileChange: (updates: Partial<UserProfile>) => void;
   onSave: (profile: UserProfile) => Promise<boolean>;
-  errors: {[key: string]: string};
+  errors: { [key: string]: string };
 }
 
 export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
@@ -20,7 +20,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   profile,
   onProfileChange,
   onSave,
-  errors
+  errors,
 }) => {
   const handleSave = async () => {
     const success = await onSave(profile);
@@ -34,27 +34,27 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
     { value: 'America/New_York', label: 'EST' },
     { value: 'America/Los_Angeles', label: 'PST' },
     { value: 'Europe/London', label: 'GMT' },
-    { value: 'Asia/Tokyo', label: 'JST' }
+    { value: 'Asia/Tokyo', label: 'JST' },
   ];
 
   const currencyOptions = [
     { value: 'USD', label: 'USD' },
     { value: 'EUR', label: 'EUR' },
     { value: 'GBP', label: 'GBP' },
-    { value: 'BTC', label: 'BTC' }
+    { value: 'BTC', label: 'BTC' },
   ];
 
   const riskToleranceOptions = [
     { value: 'Conservative', label: 'Conservative' },
     { value: 'Moderate', label: 'Moderate' },
-    { value: 'Aggressive', label: 'Aggressive' }
+    { value: 'Aggressive', label: 'Aggressive' },
   ];
 
   const experienceLevelOptions = [
     { value: 'Beginner', label: 'Beginner' },
     { value: 'Intermediate', label: 'Intermediate' },
     { value: 'Advanced', label: 'Advanced' },
-    { value: 'Expert', label: 'Expert' }
+    { value: 'Expert', label: 'Expert' },
   ];
 
   return (
@@ -63,7 +63,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
         <Input
           label="Name"
           value={profile.name}
-          onChange={(e) => onProfileChange({ name: e.target.value })}
+          onChange={e => onProfileChange({ name: e.target.value })}
           error={errors.name}
           required
         />
@@ -72,7 +72,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
           label="Email"
           type="email"
           value={profile.email}
-          onChange={(e) => onProfileChange({ email: e.target.value })}
+          onChange={e => onProfileChange({ email: e.target.value })}
           error={errors.email}
           required
         />
@@ -80,28 +80,40 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
         <Select
           label="Timezone"
           value={profile.timezone}
-          onChange={(e) => onProfileChange({ timezone: e.target.value })}
+          onChange={e => onProfileChange({ timezone: e.target.value })}
           options={timezoneOptions}
         />
 
         <Select
           label="Preferred Currency"
           value={profile.preferred_currency}
-          onChange={(e) => onProfileChange({ preferred_currency: e.target.value })}
+          onChange={e => onProfileChange({ preferred_currency: e.target.value })}
           options={currencyOptions}
         />
 
         <Select
           label="Risk Tolerance"
           value={profile.risk_tolerance}
-          onChange={(e) => onProfileChange({ risk_tolerance: e.target.value as 'Conservative' | 'Moderate' | 'Aggressive' })}
+          onChange={e =>
+            onProfileChange({
+              risk_tolerance: e.target.value as 'Conservative' | 'Moderate' | 'Aggressive',
+            })
+          }
           options={riskToleranceOptions}
         />
 
         <Select
           label="Experience Level"
           value={profile.experience_level}
-          onChange={(e) => onProfileChange({ experience_level: e.target.value as 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert' })}
+          onChange={e =>
+            onProfileChange({
+              experience_level: e.target.value as
+                | 'Beginner'
+                | 'Intermediate'
+                | 'Advanced'
+                | 'Expert',
+            })
+          }
           options={experienceLevelOptions}
         />
       </div>
@@ -110,9 +122,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
         <Button variant="secondary" onClick={onClose}>
           Cancel
         </Button>
-        <Button onClick={handleSave}>
-          Save Changes
-        </Button>
+        <Button onClick={handleSave}>Save Changes</Button>
       </div>
     </Modal>
   );

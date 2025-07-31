@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 import { invoke } from '@tauri-apps/api/core';
 import { TrendingUp, DollarSign, Target, Shield } from 'lucide-react';
 import { StatusBadge } from './common/StatusBadge';
@@ -58,12 +66,12 @@ const PnLChart: React.FC = () => {
   const calculateStats = (trades: Trade[]) => {
     const closedTrades = trades.filter(t => t.status === 'Closed');
     const openTrades = trades.filter(t => t.status === 'Open');
-    
+
     const realizedPnL = closedTrades.reduce((sum, trade) => sum + (trade.pnl || 0), 0);
     const unrealizedPnL = openTrades.reduce((sum, trade) => {
-      return sum + (trade.entry_price * 0.01 * (trade.side === 'Long' ? 1 : -1));
+      return sum + trade.entry_price * 0.01 * (trade.side === 'Long' ? 1 : -1);
     }, 0);
-    
+
     const winningTrades = closedTrades.filter(t => (t.pnl || 0) > 0).length;
     const winRate = closedTrades.length > 0 ? (winningTrades / closedTrades.length) * 100 : 0;
 
@@ -78,22 +86,21 @@ const PnLChart: React.FC = () => {
   };
 
   const generatePnLData = (trades: Trade[]) => {
-    const sortedTrades = [...trades].sort((a, b) => 
-      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    const sortedTrades = [...trades].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     );
 
     let cumulativePnL = 0;
     const data: PnLDataPoint[] = [];
 
-    sortedTrades.forEach((trade) => {
+    sortedTrades.forEach(trade => {
       if (trade.status === 'Closed' && trade.pnl !== undefined) {
         cumulativePnL += trade.pnl;
       }
-      
+
       // Mock unrealized PnL for open trades
-      const unrealizedPnL = trade.status === 'Open' 
-        ? trade.entry_price * 0.01 * (trade.side === 'Long' ? 1 : -1)
-        : 0;
+      const unrealizedPnL =
+        trade.status === 'Open' ? trade.entry_price * 0.01 * (trade.side === 'Long' ? 1 : -1) : 0;
 
       data.push({
         timestamp: new Date(trade.created_at).toLocaleDateString(),
@@ -106,21 +113,19 @@ const PnLChart: React.FC = () => {
     setPnlData(data);
   };
 
-  const StatCard: React.FC<{ 
-    title: string; 
-    value: string; 
-    change?: string; 
-    icon: React.ReactNode; 
-    positive?: boolean 
+  const StatCard: React.FC<{
+    title: string;
+    value: string;
+    change?: string;
+    icon: React.ReactNode;
+    positive?: boolean;
   }> = ({ title, value, change, icon, positive }) => (
     <motion.div
       whileHover={{ scale: 1.02 }}
       className="bg-white/5 rounded-2xl p-4 border border-white/10"
     >
       <div className="flex items-center justify-between mb-2">
-        <div className="p-2 bg-white/10 rounded-lg">
-          {icon}
-        </div>
+        <div className="p-2 bg-white/10 rounded-lg">{icon}</div>
         {change && (
           <span className={`text-sm font-medium ${positive ? 'text-green-400' : 'text-red-400'}`}>
             {change}
@@ -142,7 +147,7 @@ const PnLChart: React.FC = () => {
         className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 p-6"
       >
         <h2 className="text-2xl font-bold text-white mb-6">Portfolio Analytics</h2>
-        
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <StatCard
@@ -152,14 +157,14 @@ const PnLChart: React.FC = () => {
             icon={<DollarSign className="w-5 h-5 text-blue-400" />}
             positive={stats.totalPnL >= 0}
           />
-          
+
           <StatCard
             title="Realized P/L"
             value={`$${stats.realizedPnL.toFixed(2)}`}
             icon={<Target className="w-5 h-5 text-green-400" />}
             positive={stats.realizedPnL >= 0}
           />
-          
+
           <StatCard
             title="Win Rate"
             value={`${stats.winRate.toFixed(1)}%`}
@@ -167,7 +172,7 @@ const PnLChart: React.FC = () => {
             icon={<TrendingUp className="w-5 h-5 text-purple-400" />}
             positive={stats.winRate >= 50}
           />
-          
+
           <StatCard
             title="Total Trades"
             value={stats.totalTrades.toString()}
@@ -182,36 +187,32 @@ const PnLChart: React.FC = () => {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={pnlData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                <XAxis 
-                  dataKey="timestamp" 
-                  stroke="rgba(255,255,255,0.6)" 
+                <XAxis dataKey="timestamp" stroke="rgba(255,255,255,0.6)" fontSize={12} />
+                <YAxis
+                  stroke="rgba(255,255,255,0.6)"
                   fontSize={12}
+                  tickFormatter={value => `$${value.toFixed(0)}`}
                 />
-                <YAxis 
-                  stroke="rgba(255,255,255,0.6)" 
-                  fontSize={12}
-                  tickFormatter={(value) => `$${value.toFixed(0)}`}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'rgba(0,0,0,0.8)', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'rgba(0,0,0,0.8)',
                     border: '1px solid rgba(255,255,255,0.2)',
-                    borderRadius: '8px'
+                    borderRadius: '8px',
                   }}
                   labelStyle={{ color: 'white' }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="pnl" 
-                  stroke="#3b82f6" 
+                <Line
+                  type="monotone"
+                  dataKey="pnl"
+                  stroke="#3b82f6"
                   strokeWidth={2}
                   dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
                   activeDot={{ r: 6, fill: '#3b82f6' }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="realizedPnl" 
-                  stroke="#10b981" 
+                <Line
+                  type="monotone"
+                  dataKey="realizedPnl"
+                  stroke="#10b981"
                   strokeWidth={1}
                   strokeDasharray="5 5"
                   dot={false}
@@ -230,7 +231,7 @@ const PnLChart: React.FC = () => {
         className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 p-6"
       >
         <h3 className="text-xl font-bold text-white mb-4">Recent Trades</h3>
-        
+
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -245,7 +246,7 @@ const PnLChart: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {trades.slice(0, 10).map((trade) => (
+              {trades.slice(0, 10).map(trade => (
                 <tr key={trade.id} className="border-t border-white/10">
                   <td className="py-3 text-white font-medium">{trade.symbol}</td>
                   <td className="py-3">

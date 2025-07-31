@@ -47,7 +47,7 @@ export class SecureSessionManager {
   createSession(userId?: string, permissions: string[] = []): string {
     const sessionId = this.generateSecureSessionId();
     const now = Date.now();
-    
+
     const sessionData: SessionData = {
       sessionId,
       userId,
@@ -60,12 +60,12 @@ export class SecureSessionManager {
 
     // Enforce max concurrent sessions
     this.enforceSessionLimits(userId);
-    
+
     this.sessions.set(sessionId, sessionData);
-    
+
     // Log session creation
     console.info(`Session created: ${sessionId}${userId ? ` for user ${userId}` : ''}`);
-    
+
     return sessionId;
   }
 
@@ -74,7 +74,7 @@ export class SecureSessionManager {
    */
   validateSession(sessionId: string): boolean {
     const session = this.sessions.get(sessionId);
-    
+
     if (!session || !session.isActive) {
       return false;
     }
@@ -95,7 +95,7 @@ export class SecureSessionManager {
 
     // Update last activity
     session.lastActivity = now;
-    
+
     // Auto-refresh if close to expiration
     if (session.expiresAt - now < this.config.autoRefreshThreshold) {
       this.refreshSession(sessionId);
@@ -109,7 +109,7 @@ export class SecureSessionManager {
    */
   refreshSession(sessionId: string): boolean {
     const session = this.sessions.get(sessionId);
-    
+
     if (!session || !session.isActive) {
       return false;
     }
@@ -117,7 +117,7 @@ export class SecureSessionManager {
     const now = Date.now();
     session.expiresAt = now + this.config.credentialExpiration;
     session.lastActivity = now;
-    
+
     console.info(`Session refreshed: ${sessionId}`);
     return true;
   }
@@ -127,10 +127,10 @@ export class SecureSessionManager {
    */
   recordActivity(sessionId: string): void {
     const session = this.sessions.get(sessionId);
-    
+
     if (session && session.isActive) {
       session.lastActivity = Date.now();
-      
+
       // Notify activity listeners
       this.activityListeners.forEach(listener => {
         try {
@@ -147,7 +147,7 @@ export class SecureSessionManager {
    */
   getSession(sessionId: string): SessionData | null {
     const session = this.sessions.get(sessionId);
-    
+
     if (!session || !this.validateSession(sessionId)) {
       return null;
     }
@@ -160,7 +160,7 @@ export class SecureSessionManager {
    */
   getTimeUntilExpiry(sessionId: string): number {
     const session = this.sessions.get(sessionId);
-    
+
     if (!session || !session.isActive) {
       return 0;
     }
@@ -181,12 +181,12 @@ export class SecureSessionManager {
    */
   expireSession(sessionId: string, reason: string = 'Manual expiration'): void {
     const session = this.sessions.get(sessionId);
-    
+
     if (session) {
       session.isActive = false;
-      
+
       console.info(`Session expired: ${sessionId} - ${reason}`);
-      
+
       // Notify expiration callbacks
       this.expirationCallbacks.forEach(callback => {
         try {
@@ -195,7 +195,7 @@ export class SecureSessionManager {
           ErrorHandler.handle(error, { showNotification: false });
         }
       });
-      
+
       // Remove session after delay to allow for cleanup
       setTimeout(() => {
         this.sessions.delete(sessionId);
@@ -219,13 +219,17 @@ export class SecureSessionManager {
    */
   getUserSessions(userId: string): SessionData[] {
     const userSessions: SessionData[] = [];
-    
+
     for (const session of this.sessions.values()) {
-      if (session.userId === userId && session.isActive && this.validateSession(session.sessionId)) {
+      if (
+        session.userId === userId &&
+        session.isActive &&
+        this.validateSession(session.sessionId)
+      ) {
         userSessions.push({ ...session });
       }
     }
-    
+
     return userSessions;
   }
 
@@ -296,10 +300,11 @@ export class SecureSessionManager {
 
     for (const [sessionId, session] of this.sessions.entries()) {
       // Remove sessions that have been inactive for too long or expired
-      if (!session.isActive || 
-          now > session.expiresAt || 
-          now - session.lastActivity > this.config.sessionTimeout) {
-        
+      if (
+        !session.isActive ||
+        now > session.expiresAt ||
+        now - session.lastActivity > this.config.sessionTimeout
+      ) {
         if (session.isActive) {
           this.expireSession(sessionId, 'Cleanup: Session expired');
         } else {
@@ -322,9 +327,12 @@ export class SecureSessionManager {
    * Start automatic cleanup timer
    */
   private startCleanupTimer(): void {
-    this.cleanupInterval = setInterval(() => {
-      this.cleanup();
-    }, 5 * 60 * 1000); // Clean up every 5 minutes
+    this.cleanupInterval = setInterval(
+      () => {
+        this.cleanup();
+      },
+      5 * 60 * 1000
+    ); // Clean up every 5 minutes
   }
 
   /**
@@ -333,7 +341,7 @@ export class SecureSessionManager {
   private setupActivityTracking(): void {
     // Track common user interactions
     const events = ['mousedown', 'mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
-    
+
     const activityHandler = () => {
       // Get current session from localStorage or context
       const currentSessionId = this.getCurrentSessionId();
@@ -355,7 +363,7 @@ export class SecureSessionManager {
    */
   private generateSecureSessionId(): string {
     const array = new Uint8Array(32);
-    
+
     if (typeof window !== 'undefined' && window.crypto) {
       window.crypto.getRandomValues(array);
     } else {
@@ -364,7 +372,7 @@ export class SecureSessionManager {
         array[i] = Math.floor(Math.random() * 256);
       }
     }
-    
+
     return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
   }
 
@@ -375,7 +383,7 @@ export class SecureSessionManager {
     if (!userId) return;
 
     const userSessions = this.getUserSessions(userId);
-    
+
     if (userSessions.length >= this.config.maxConcurrentSessions) {
       // Remove oldest session
       const oldestSession = userSessions.sort((a, b) => a.loginTime - b.loginTime)[0];
@@ -401,7 +409,7 @@ export class SecureSessionManager {
       clearInterval(this.cleanupInterval);
       this.cleanupInterval = null;
     }
-    
+
     this.sessions.clear();
     this.activityListeners.clear();
     this.expirationCallbacks.clear();
@@ -428,9 +436,9 @@ export function initializeSessionManagement(config?: Partial<SessionConfig>): Se
   if (globalSessionManager) {
     globalSessionManager.destroy();
   }
-  
+
   globalSessionManager = new SecureSessionManager(config);
-  
+
   // Setup expiration notifications
   globalSessionManager.onExpiration((_sessionId, reason) => {
     // Import notification manager dynamically to avoid circular dependencies
@@ -441,7 +449,7 @@ export function initializeSessionManagement(config?: Partial<SessionConfig>): Se
       );
     });
   });
-  
+
   return globalSessionManager;
 }
 
@@ -451,13 +459,14 @@ export function initializeSessionManagement(config?: Partial<SessionConfig>): Se
 export function useSession() {
   const sessionManager = getSessionManager();
   const currentSessionId = sessionManager.getCurrentSessionId();
-  
+
   return {
     sessionId: currentSessionId,
     isValid: currentSessionId ? sessionManager.validateSession(currentSessionId) : false,
     timeUntilExpiry: currentSessionId ? sessionManager.getTimeUntilExpiry(currentSessionId) : 0,
     isNearExpiry: currentSessionId ? sessionManager.isNearExpiry(currentSessionId) : false,
-    refresh: () => currentSessionId ? sessionManager.refreshSession(currentSessionId) : false,
-    expire: (reason?: string) => currentSessionId ? sessionManager.expireSession(currentSessionId, reason) : void 0,
+    refresh: () => (currentSessionId ? sessionManager.refreshSession(currentSessionId) : false),
+    expire: (reason?: string) =>
+      currentSessionId ? sessionManager.expireSession(currentSessionId, reason) : void 0,
   };
 }

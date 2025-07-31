@@ -35,7 +35,7 @@ class NotificationManager {
       message,
       timestamp: Date.now(),
       autoClose: options.autoClose ?? true,
-      duration: options.duration ?? (type === 'error' ? 8000 : 5000)
+      duration: options.duration ?? (type === 'error' ? 8000 : 5000),
     };
 
     this.notifications.unshift(notification);
@@ -79,7 +79,7 @@ class NotificationManager {
    */
   static subscribe(listener: (notifications: Notification[]) => void): () => void {
     this.listeners.push(listener);
-    
+
     // Return unsubscribe function
     return () => {
       this.listeners = this.listeners.filter(l => l !== listener);
@@ -98,19 +98,35 @@ class NotificationManager {
   /**
    * Convenience methods for different notification types
    */
-  static success(title: string, message: string, options?: { autoClose?: boolean; duration?: number }): string {
+  static success(
+    title: string,
+    message: string,
+    options?: { autoClose?: boolean; duration?: number }
+  ): string {
     return this.add('success', title, message, options);
   }
 
-  static error(title: string, message: string, options?: { autoClose?: boolean; duration?: number }): string {
+  static error(
+    title: string,
+    message: string,
+    options?: { autoClose?: boolean; duration?: number }
+  ): string {
     return this.add('error', title, message, options);
   }
 
-  static warning(title: string, message: string, options?: { autoClose?: boolean; duration?: number }): string {
+  static warning(
+    title: string,
+    message: string,
+    options?: { autoClose?: boolean; duration?: number }
+  ): string {
     return this.add('warning', title, message, options);
   }
 
-  static info(title: string, message: string, options?: { autoClose?: boolean; duration?: number }): string {
+  static info(
+    title: string,
+    message: string,
+    options?: { autoClose?: boolean; duration?: number }
+  ): string {
     return this.add('info', title, message, options);
   }
 }

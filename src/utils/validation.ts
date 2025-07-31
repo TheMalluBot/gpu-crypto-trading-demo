@@ -22,7 +22,21 @@ export interface FieldValidationRule {
 
 export class InputValidator {
   private static readonly VALID_INTERVALS = [
-    '1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h', '1d', '3d', '1w', '1M'
+    '1m',
+    '3m',
+    '5m',
+    '15m',
+    '30m',
+    '1h',
+    '2h',
+    '4h',
+    '6h',
+    '8h',
+    '12h',
+    '1d',
+    '3d',
+    '1w',
+    '1M',
   ];
 
   private static readonly API_KEY_PATTERN = /^[A-Za-z0-9]{32,}$/;
@@ -81,7 +95,7 @@ export class InputValidator {
     return {
       isValid: errors.length === 0,
       errors,
-      warnings
+      warnings,
     };
   }
 
@@ -128,7 +142,7 @@ export class InputValidator {
     return {
       isValid: errors.length === 0,
       errors,
-      warnings
+      warnings,
     };
   }
 
@@ -153,7 +167,7 @@ export class InputValidator {
     return {
       isValid: errors.length === 0,
       errors,
-      warnings
+      warnings,
     };
   }
 
@@ -173,7 +187,7 @@ export class InputValidator {
     return {
       isValid: errors.length === 0,
       errors,
-      warnings
+      warnings,
     };
   }
 
@@ -242,7 +256,7 @@ export class InputValidator {
     return {
       isValid: errors.length === 0,
       errors,
-      warnings
+      warnings,
     };
   }
 
@@ -301,14 +315,17 @@ export class InputValidator {
     return {
       isValid: errors.length === 0,
       errors,
-      warnings
+      warnings,
     };
   }
 
   /**
    * Validate form data with multiple fields
    */
-  static validateForm(data: Record<string, unknown>, rules: Record<string, FieldValidationRule>): Record<string, ValidationResult> {
+  static validateForm(
+    data: Record<string, unknown>,
+    rules: Record<string, FieldValidationRule>
+  ): Record<string, ValidationResult> {
     const results: Record<string, ValidationResult> = {};
 
     try {
@@ -321,13 +338,13 @@ export class InputValidator {
         showNotification: false,
         logToConsole: true,
       });
-      
+
       // Return error state for all fields
       for (const field of Object.keys(rules)) {
         results[field] = {
           isValid: false,
           errors: ['Validation system error'],
-          warnings: []
+          warnings: [],
         };
       }
     }
@@ -345,7 +362,7 @@ export class InputValidator {
   ): Promise<ValidationResult> {
     try {
       const result = validator(value);
-      
+
       // Log validation failures for debugging
       if (!result.isValid) {
         ErrorHandler.createError(
@@ -356,18 +373,18 @@ export class InputValidator {
           { value, context }
         );
       }
-      
+
       return result;
     } catch (error) {
       await ErrorHandler.handle(error, {
         showNotification: false,
         logToConsole: true,
       });
-      
+
       return {
         isValid: false,
         errors: ['Validation system error'],
-        warnings: []
+        warnings: [],
       };
     }
   }

@@ -90,12 +90,12 @@ export const usePortfolioMetrics = () => {
   }, []);
 
   // Refresh all metrics
-  const refreshMetrics = useCallback(async (reportPeriodDays: number = 30) => {
-    await Promise.all([
-      getPortfolioMetrics(),
-      getPerformanceReport(reportPeriodDays),
-    ]);
-  }, [getPortfolioMetrics, getPerformanceReport]);
+  const refreshMetrics = useCallback(
+    async (reportPeriodDays: number = 30) => {
+      await Promise.all([getPortfolioMetrics(), getPerformanceReport(reportPeriodDays)]);
+    },
+    [getPortfolioMetrics, getPerformanceReport]
+  );
 
   // Auto-refresh metrics every 30 seconds
   useEffect(() => {
@@ -163,7 +163,7 @@ export const usePortfolioMetrics = () => {
         factors.push({
           factor: 'Low Sharpe Ratio',
           impact: 20,
-          description: 'Returns not compensating for risk taken'
+          description: 'Returns not compensating for risk taken',
         });
       }
     }
@@ -175,7 +175,7 @@ export const usePortfolioMetrics = () => {
       factors.push({
         factor: 'High Drawdown',
         impact,
-        description: `Maximum drawdown of ${portfolioMetrics.maxDrawdown.toFixed(1)}%`
+        description: `Maximum drawdown of ${portfolioMetrics.maxDrawdown.toFixed(1)}%`,
       });
     }
 
@@ -186,7 +186,7 @@ export const usePortfolioMetrics = () => {
       factors.push({
         factor: 'High Concentration',
         impact,
-        description: `${portfolioMetrics.riskExposure.toFixed(1)}% risk exposure`
+        description: `${portfolioMetrics.riskExposure.toFixed(1)}% risk exposure`,
       });
     }
 
@@ -197,7 +197,7 @@ export const usePortfolioMetrics = () => {
       factors.push({
         factor: 'Low Win Rate',
         impact,
-        description: `Only ${portfolioMetrics.winRate.toFixed(1)}% winning trades`
+        description: `Only ${portfolioMetrics.winRate.toFixed(1)}% winning trades`,
       });
     }
 
@@ -209,7 +209,7 @@ export const usePortfolioMetrics = () => {
       factors.push({
         factor: 'High Value at Risk',
         impact,
-        description: `${varPercentage.toFixed(1)}% of portfolio at risk`
+        description: `${varPercentage.toFixed(1)}% of portfolio at risk`,
       });
     }
 
@@ -246,9 +246,13 @@ export const usePortfolioMetrics = () => {
     if (!portfolioMetrics || !performanceReport) return null;
 
     const avgTradeSize = portfolioMetrics.totalValue / Math.max(1, performanceReport.totalTrades);
-    const profitPerTrade = portfolioMetrics.realizedPnl / Math.max(1, performanceReport.totalTrades);
-    const lossPerTrade = portfolioMetrics.realizedPnl < 0 ? 
-      Math.abs(portfolioMetrics.realizedPnl) / Math.max(1, performanceReport.totalTrades - performanceReport.profitableTrades) : 0;
+    const profitPerTrade =
+      portfolioMetrics.realizedPnl / Math.max(1, performanceReport.totalTrades);
+    const lossPerTrade =
+      portfolioMetrics.realizedPnl < 0
+        ? Math.abs(portfolioMetrics.realizedPnl) /
+          Math.max(1, performanceReport.totalTrades - performanceReport.profitableTrades)
+        : 0;
 
     return {
       totalTrades: performanceReport.totalTrades,
@@ -258,8 +262,9 @@ export const usePortfolioMetrics = () => {
       averageProfit: profitPerTrade,
       averageLoss: lossPerTrade,
       profitLossRatio: lossPerTrade > 0 ? profitPerTrade / lossPerTrade : 0,
-      expectancy: (portfolioMetrics.winRate / 100) * profitPerTrade - 
-                  ((100 - portfolioMetrics.winRate) / 100) * lossPerTrade,
+      expectancy:
+        (portfolioMetrics.winRate / 100) * profitPerTrade -
+        ((100 - portfolioMetrics.winRate) / 100) * lossPerTrade,
     };
   }, [portfolioMetrics, performanceReport]);
 

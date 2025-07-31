@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { GraduationCap, TrendingUp, Shield, Brain, Target, Trophy, CheckCircle } from 'lucide-react';
+import {
+  GraduationCap,
+  TrendingUp,
+  Shield,
+  Brain,
+  Target,
+  Trophy,
+  CheckCircle,
+} from 'lucide-react';
 import { useBotData } from '../hooks/useBotData';
 import { Button } from './common/Button';
 import { Modal } from './common/Modal';
@@ -21,7 +29,7 @@ interface LessonProps {
 const TutorialPanel: React.FC = () => {
   const [currentLesson, setCurrentLesson] = useState<string | null>(null);
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
-  
+
   const {
     botStatus,
     chartData,
@@ -60,8 +68,12 @@ const TutorialPanel: React.FC = () => {
           <div className="glass-card p-6">
             <h3 className="text-xl font-bold text-white mb-4">What is a Trading Bot?</h3>
             <div className="space-y-4 text-white/80">
-              <p>A trading bot is an automated program that executes trades based on predefined rules and market analysis. Think of it as your digital trading assistant that never sleeps!</p>
-              
+              <p>
+                A trading bot is an automated program that executes trades based on predefined rules
+                and market analysis. Think of it as your digital trading assistant that never
+                sleeps!
+              </p>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                 <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
                   <h4 className="font-semibold text-blue-400 mb-2">Advantages</h4>
@@ -85,7 +97,7 @@ const TutorialPanel: React.FC = () => {
             </div>
           </div>
         </div>
-      )
+      ),
     },
     {
       id: 'paper-trading',
@@ -100,8 +112,11 @@ const TutorialPanel: React.FC = () => {
           <div className="glass-card p-6">
             <h3 className="text-xl font-bold text-white mb-4">Paper Trading: Your Safety Net</h3>
             <div className="space-y-4 text-white/80">
-              <p>Paper trading allows you to practice trading strategies without risking real money. It's the perfect way to learn and test your bot's performance.</p>
-              
+              <p>
+                Paper trading allows you to practice trading strategies without risking real money.
+                It's the perfect way to learn and test your bot's performance.
+              </p>
+
               <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4 mt-4">
                 <h4 className="font-semibold text-green-400 mb-2">Why Start with Paper Trading?</h4>
                 <ul className="text-sm space-y-2">
@@ -119,7 +134,9 @@ const TutorialPanel: React.FC = () => {
                   <div className="bg-blue-500/10 rounded-lg p-4">
                     <div className="grid grid-cols-2 gap-4 text-center">
                       <div>
-                        <div className="text-2xl font-bold text-blue-400">${config.virtual_balance.toFixed(0)}</div>
+                        <div className="text-2xl font-bold text-blue-400">
+                          ${config.virtual_balance.toFixed(0)}
+                        </div>
                         <div className="text-sm text-white/60">Starting Balance</div>
                       </div>
                       <div>
@@ -135,7 +152,7 @@ const TutorialPanel: React.FC = () => {
             </div>
           </div>
         </div>
-      )
+      ),
     },
     {
       id: 'lro-strategy',
@@ -148,10 +165,15 @@ const TutorialPanel: React.FC = () => {
       content: (
         <div className="space-y-6">
           <div className="glass-card p-6">
-            <h3 className="text-xl font-bold text-white mb-4">Linear Regression Oscillator (LRO)</h3>
+            <h3 className="text-xl font-bold text-white mb-4">
+              Linear Regression Oscillator (LRO)
+            </h3>
             <div className="space-y-4 text-white/80">
-              <p>The LRO strategy uses mathematical analysis to identify overbought and oversold market conditions, helping determine optimal entry and exit points.</p>
-              
+              <p>
+                The LRO strategy uses mathematical analysis to identify overbought and oversold
+                market conditions, helping determine optimal entry and exit points.
+              </p>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                 <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
                   <h4 className="font-semibold text-green-400 mb-3">Buy Signals</h4>
@@ -162,7 +184,7 @@ const TutorialPanel: React.FC = () => {
                     <li>• Risk management rules are met</li>
                   </ul>
                 </div>
-                
+
                 <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
                   <h4 className="font-semibold text-red-400 mb-3">Sell Signals</h4>
                   <ul className="text-sm space-y-2">
@@ -198,7 +220,7 @@ const TutorialPanel: React.FC = () => {
             </div>
           </div>
         </div>
-      )
+      ),
     },
     {
       id: 'risk-management',
@@ -213,21 +235,24 @@ const TutorialPanel: React.FC = () => {
           <div className="glass-card p-6">
             <h3 className="text-xl font-bold text-white mb-4">Protecting Your Capital</h3>
             <div className="space-y-4 text-white/80">
-              <p>Risk management is the most important aspect of trading. It's not about being right all the time—it's about managing losses when you're wrong.</p>
-              
+              <p>
+                Risk management is the most important aspect of trading. It's not about being right
+                all the time—it's about managing losses when you're wrong.
+              </p>
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
                 <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
                   <h4 className="font-semibold text-red-400 mb-3">Stop Loss</h4>
                   <p className="text-sm mb-2">Current: {config.stop_loss_percent}%</p>
                   <p className="text-xs">Automatically closes losing positions to limit losses.</p>
                 </div>
-                
+
                 <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
                   <h4 className="font-semibold text-green-400 mb-3">Take Profit</h4>
                   <p className="text-sm mb-2">Current: {config.take_profit_percent}%</p>
                   <p className="text-xs">Secures profits when targets are reached.</p>
                 </div>
-                
+
                 <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
                   <h4 className="font-semibold text-blue-400 mb-3">Position Size</h4>
                   <p className="text-sm mb-2">Max: {config.max_position_size}%</p>
@@ -247,7 +272,7 @@ const TutorialPanel: React.FC = () => {
             </div>
           </div>
         </div>
-      )
+      ),
     },
     {
       id: 'practice-mode',
@@ -262,8 +287,11 @@ const TutorialPanel: React.FC = () => {
           <div className="glass-card p-6">
             <h3 className="text-xl font-bold text-white mb-4">Live Practice Session</h3>
             <div className="space-y-4 text-white/80">
-              <p>Now it's time to put your knowledge into practice! Start a paper trading session and observe how the bot behaves.</p>
-              
+              <p>
+                Now it's time to put your knowledge into practice! Start a paper trading session and
+                observe how the bot behaves.
+              </p>
+
               <div className="flex flex-col space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -275,7 +303,11 @@ const TutorialPanel: React.FC = () => {
                   <Button
                     onClick={toggleBot}
                     disabled={loading}
-                    className={botStatus?.is_active ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}
+                    className={
+                      botStatus?.is_active
+                        ? 'bg-red-500 hover:bg-red-600'
+                        : 'bg-green-500 hover:bg-green-600'
+                    }
                   >
                     {loading ? 'Loading...' : botStatus?.is_active ? 'Stop Bot' : 'Start Practice'}
                   </Button>
@@ -314,16 +346,20 @@ const TutorialPanel: React.FC = () => {
             </div>
           )}
         </div>
-      )
-    }
+      ),
+    },
   ];
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'Beginner': return 'text-green-400 bg-green-500/10';
-      case 'Intermediate': return 'text-yellow-400 bg-yellow-500/10';
-      case 'Advanced': return 'text-red-400 bg-red-500/10';
-      default: return 'text-gray-400 bg-gray-500/10';
+      case 'Beginner':
+        return 'text-green-400 bg-green-500/10';
+      case 'Intermediate':
+        return 'text-yellow-400 bg-yellow-500/10';
+      case 'Advanced':
+        return 'text-red-400 bg-red-500/10';
+      default:
+        return 'text-gray-400 bg-gray-500/10';
     }
   };
 
@@ -342,8 +378,10 @@ const TutorialPanel: React.FC = () => {
           <GraduationCap className="w-8 h-8 text-blue-400" />
           <h1 className="text-hierarchy-primary">Trading Bot Tutorial</h1>
         </motion.div>
-        <p className="text-white/60 mb-6">Learn to master automated trading with hands-on lessons and paper trading practice</p>
-        
+        <p className="text-white/60 mb-6">
+          Learn to master automated trading with hands-on lessons and paper trading practice
+        </p>
+
         {/* Progress Bar */}
         <div className="glass-card p-4 max-w-md mx-auto">
           <div className="flex items-center justify-between mb-2">
@@ -351,7 +389,7 @@ const TutorialPanel: React.FC = () => {
             <span className="text-sm font-semibold text-white">{Math.round(completionRate)}%</span>
           </div>
           <div className="w-full bg-white/10 rounded-full h-2">
-            <div 
+            <div
               className="bg-blue-500 h-2 rounded-full transition-all duration-300"
               style={{ width: `${completionRate}%` }}
             ></div>
@@ -364,7 +402,7 @@ const TutorialPanel: React.FC = () => {
 
       {/* Lesson Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {lessons.map((lesson) => (
+        {lessons.map(lesson => (
           <motion.div
             key={lesson.id}
             initial={{ opacity: 0, y: 20 }}
@@ -375,28 +413,22 @@ const TutorialPanel: React.FC = () => {
           >
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-3">
-                <div className="p-3 bg-blue-500/20 rounded-lg text-blue-400">
-                  {lesson.icon}
-                </div>
-                {lesson.completed && (
-                  <CheckCircle className="w-5 h-5 text-green-400" />
-                )}
+                <div className="p-3 bg-blue-500/20 rounded-lg text-blue-400">{lesson.icon}</div>
+                {lesson.completed && <CheckCircle className="w-5 h-5 text-green-400" />}
               </div>
-              <span className={`px-2 py-1 rounded-full text-xs ${getDifficultyColor(lesson.difficulty)}`}>
+              <span
+                className={`px-2 py-1 rounded-full text-xs ${getDifficultyColor(lesson.difficulty)}`}
+              >
                 {lesson.difficulty}
               </span>
             </div>
-            
+
             <h3 className="text-lg font-semibold text-white mb-2">{lesson.title}</h3>
             <p className="text-white/60 text-sm mb-4">{lesson.description}</p>
-            
+
             <div className="flex items-center justify-between">
               <span className="text-xs text-white/50">{lesson.duration}</span>
-              <Button
-                onClick={() => setCurrentLesson(lesson.id)}
-                size="sm"
-                variant="secondary"
-              >
+              <Button onClick={() => setCurrentLesson(lesson.id)} size="sm" variant="secondary">
                 {lesson.completed ? 'Review' : 'Start'}
               </Button>
             </div>
@@ -415,7 +447,9 @@ const TutorialPanel: React.FC = () => {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <span className={`px-3 py-1 rounded-full text-sm ${getDifficultyColor(currentLessonData.difficulty)}`}>
+                <span
+                  className={`px-3 py-1 rounded-full text-sm ${getDifficultyColor(currentLessonData.difficulty)}`}
+                >
                   {currentLessonData.difficulty}
                 </span>
                 <span className="text-sm text-white/60">{currentLessonData.duration}</span>
@@ -427,17 +461,15 @@ const TutorialPanel: React.FC = () => {
                 </span>
               )}
             </div>
-            
-            <div className="min-h-[400px]">
-              {currentLessonData.content}
-            </div>
-            
+
+            <div className="min-h-[400px]">{currentLessonData.content}</div>
+
             <div className="flex justify-between">
               <Button onClick={() => setCurrentLesson(null)} variant="secondary">
                 Close
               </Button>
               {!currentLessonData.completed && (
-                <Button 
+                <Button
                   onClick={() => {
                     markLessonComplete(currentLessonData.id);
                     setCurrentLesson(null);

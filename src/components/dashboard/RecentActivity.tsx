@@ -15,7 +15,10 @@ export const RecentActivity: React.FC = () => {
       <h3 className="text-lg font-bold text-white mb-3">Recent Activity</h3>
       <div className="space-y-2">
         {trades.slice(0, 3).map(trade => (
-          <div key={trade.id} className="flex items-center justify-between p-2 glass-card rounded-lg">
+          <div
+            key={trade.id}
+            className="flex items-center justify-between p-2 glass-card rounded-lg"
+          >
             <div>
               <div className="text-white text-sm font-medium">{trade.symbol}</div>
               <div className="text-white/60 text-xs">{trade.side}</div>

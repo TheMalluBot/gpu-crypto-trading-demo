@@ -66,18 +66,15 @@ export const useAdvancedTrading = () => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       await safeInvoke('initialize_advanced_trading');
       setIsInitialized(true);
-      
+
       // Load initial data
-      await Promise.all([
-        loadActiveOrders(),
-        loadOrderHistory(),
-      ]);
-      
+      await Promise.all([loadActiveOrders(), loadOrderHistory()]);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to initialize advanced trading engine';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to initialize advanced trading engine';
       setError(errorMessage);
       console.error('Advanced trading initialization error:', err);
     } finally {
@@ -110,104 +107,108 @@ export const useAdvancedTrading = () => {
   }, []);
 
   // Place an advanced order
-  const placeOrder = useCallback(async (orderRequest: AdvancedOrderRequest) => {
-    try {
-      setIsLoading(true);
-      setError(null);
+  const placeOrder = useCallback(
+    async (orderRequest: AdvancedOrderRequest) => {
+      try {
+        setIsLoading(true);
+        setError(null);
 
-      // Convert order type to the expected format
-      const formattedOrderType = (() => {
-        switch (orderRequest.orderType.type) {
-          case 'Market':
-            return { type: 'Market' };
-          case 'Limit':
-            return { type: 'Limit' };
-          case 'StopLoss':
-            return {
-              type: 'StopLoss',
-              stopPrice: orderRequest.orderType.stopPrice,
-              limitPrice: orderRequest.orderType.limitPrice,
-            };
-          case 'TakeProfit':
-            return {
-              type: 'TakeProfit',
-              takeProfitPrice: orderRequest.orderType.takeProfitPrice,
-            };
-          case 'TrailingStop':
-            return {
-              type: 'TrailingStop',
-              trailAmount: orderRequest.orderType.trailAmount,
-              trailPercent: orderRequest.orderType.trailPercent,
-            };
-          case 'OCO':
-            return {
-              type: 'OCO',
-              stopPrice: orderRequest.orderType.stopPrice,
-              limitPrice: orderRequest.orderType.limitPrice,
-            };
-          case 'Bracket':
-            return {
-              type: 'Bracket',
-              takeProfit: orderRequest.orderType.takeProfit,
-              stopLoss: orderRequest.orderType.stopLoss,
-            };
-          default:
-            return { type: 'Market' };
+        // Convert order type to the expected format
+        const formattedOrderType = (() => {
+          switch (orderRequest.orderType.type) {
+            case 'Market':
+              return { type: 'Market' };
+            case 'Limit':
+              return { type: 'Limit' };
+            case 'StopLoss':
+              return {
+                type: 'StopLoss',
+                stopPrice: orderRequest.orderType.stopPrice,
+                limitPrice: orderRequest.orderType.limitPrice,
+              };
+            case 'TakeProfit':
+              return {
+                type: 'TakeProfit',
+                takeProfitPrice: orderRequest.orderType.takeProfitPrice,
+              };
+            case 'TrailingStop':
+              return {
+                type: 'TrailingStop',
+                trailAmount: orderRequest.orderType.trailAmount,
+                trailPercent: orderRequest.orderType.trailPercent,
+              };
+            case 'OCO':
+              return {
+                type: 'OCO',
+                stopPrice: orderRequest.orderType.stopPrice,
+                limitPrice: orderRequest.orderType.limitPrice,
+              };
+            case 'Bracket':
+              return {
+                type: 'Bracket',
+                takeProfit: orderRequest.orderType.takeProfit,
+                stopLoss: orderRequest.orderType.stopLoss,
+              };
+            default:
+              return { type: 'Market' };
+          }
+        })();
+
+        const orderDto = {
+          symbol: orderRequest.symbol,
+          side: orderRequest.side,
+          orderType: formattedOrderType,
+          quantity: orderRequest.quantity,
+          price: orderRequest.price,
+          reduceOnly: orderRequest.reduceOnly,
+          postOnly: orderRequest.postOnly,
+          clientOrderId: orderRequest.clientOrderId,
+          riskLimits: orderRequest.riskLimits,
+        };
+
+        const orderId = await safeInvoke<string>('place_advanced_order', {
+          orderRequest: orderDto,
+        });
+
+        if (orderId) {
+          // Refresh active orders after successful placement
+          await loadActiveOrders();
+          return orderId;
+        } else {
+          throw new Error('Failed to place order - no order ID returned');
         }
-      })();
-
-      const orderDto = {
-        symbol: orderRequest.symbol,
-        side: orderRequest.side,
-        orderType: formattedOrderType,
-        quantity: orderRequest.quantity,
-        price: orderRequest.price,
-        reduceOnly: orderRequest.reduceOnly,
-        postOnly: orderRequest.postOnly,
-        clientOrderId: orderRequest.clientOrderId,
-        riskLimits: orderRequest.riskLimits,
-      };
-
-      const orderId = await safeInvoke<string>('place_advanced_order', { orderRequest: orderDto });
-      
-      if (orderId) {
-        // Refresh active orders after successful placement
-        await loadActiveOrders();
-        return orderId;
-      } else {
-        throw new Error('Failed to place order - no order ID returned');
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to place advanced order';
+        setError(errorMessage);
+        throw err;
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to place advanced order';
-      setError(errorMessage);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [loadActiveOrders]);
+    },
+    [loadActiveOrders]
+  );
 
   // Cancel an order
-  const cancelOrder = useCallback(async (orderId: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
+  const cancelOrder = useCallback(
+    async (orderId: string) => {
+      try {
+        setIsLoading(true);
+        setError(null);
 
-      await safeInvoke('cancel_advanced_order', { orderId });
-      
-      // Refresh orders after cancellation
-      await Promise.all([
-        loadActiveOrders(),
-        loadOrderHistory(),
-      ]);
-      
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to cancel order';
-      setError(errorMessage);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [loadActiveOrders, loadOrderHistory]);
+        await safeInvoke('cancel_advanced_order', { orderId });
+
+        // Refresh orders after cancellation
+        await Promise.all([loadActiveOrders(), loadOrderHistory()]);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to cancel order';
+        setError(errorMessage);
+        throw err;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [loadActiveOrders, loadOrderHistory]
+  );
 
   // Emergency stop all trading
   const emergencyStop = useCallback(async () => {
@@ -216,13 +217,9 @@ export const useAdvancedTrading = () => {
       setError(null);
 
       await safeInvoke('emergency_stop_advanced_trading');
-      
+
       // Refresh data after emergency stop
-      await Promise.all([
-        loadActiveOrders(),
-        loadOrderHistory(),
-      ]);
-      
+      await Promise.all([loadActiveOrders(), loadOrderHistory()]);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to execute emergency stop';
       setError(errorMessage);
@@ -235,12 +232,9 @@ export const useAdvancedTrading = () => {
   // Refresh all data
   const refreshData = useCallback(async () => {
     if (!isInitialized) return;
-    
+
     try {
-      await Promise.all([
-        loadActiveOrders(),
-        loadOrderHistory(),
-      ]);
+      await Promise.all([loadActiveOrders(), loadOrderHistory()]);
     } catch (err) {
       console.error('Failed to refresh advanced trading data:', err);
     }

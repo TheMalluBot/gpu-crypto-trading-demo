@@ -38,46 +38,46 @@ const ConfigInput: React.FC<ConfigInputProps> = ({
   placeholder,
   disabled = false,
   validation,
-  recommendation
+  recommendation,
 }) => {
   const [error, setError] = useState<string | null>(null);
   const [isFocused, setIsFocused] = useState(false);
-  
+
   const validateValue = (val: number | string): string | null => {
     if (validation) {
       if (validation.required && (val === '' || val === null || val === undefined)) {
         return 'This field is required';
       }
-      
+
       if (type === 'number') {
         const numVal = Number(val);
         if (isNaN(numVal)) {
           return 'Must be a valid number';
         }
-        
+
         if (validation.min !== undefined && numVal < validation.min) {
           return `Must be at least ${validation.min}`;
         }
-        
+
         if (validation.max !== undefined && numVal > validation.max) {
           return `Must be at most ${validation.max}`;
         }
       }
-      
+
       if (validation.custom) {
         return validation.custom(val);
       }
     }
-    
+
     return null;
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = type === 'number' ? parseFloat(e.target.value) : e.target.value;
     const validationError = validateValue(newValue);
-    
+
     setError(validationError);
-    
+
     if (!validationError) {
       onChange(newValue);
     }
@@ -101,7 +101,7 @@ const ConfigInput: React.FC<ConfigInputProps> = ({
         </label>
         {tooltip && <Tooltip content={tooltip} />}
       </div>
-      
+
       <div className="relative">
         <input
           type={type}
@@ -115,7 +115,7 @@ const ConfigInput: React.FC<ConfigInputProps> = ({
           placeholder={placeholder}
           disabled={disabled}
           className={`w-full px-4 py-3 rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 ${
-            disabled 
+            disabled
               ? 'bg-white/5 border-white/10 text-white/40 cursor-not-allowed'
               : showValidation
                 ? isValid
@@ -124,7 +124,7 @@ const ConfigInput: React.FC<ConfigInputProps> = ({
                 : 'bg-white/5 border-white/20 text-white focus:ring-blue-500/50 hover:border-white/30'
           }`}
         />
-        
+
         {showValidation && (
           <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
             {isValid ? (
@@ -135,18 +135,16 @@ const ConfigInput: React.FC<ConfigInputProps> = ({
           </div>
         )}
       </div>
-      
-      {description && (
-        <p className="text-xs text-white/50">{description}</p>
-      )}
-      
+
+      {description && <p className="text-xs text-white/50">{description}</p>}
+
       {error && (
         <div className="flex items-center space-x-2 text-red-400">
           <AlertCircle className="w-4 h-4" />
           <span className="text-xs">{error}</span>
         </div>
       )}
-      
+
       {recommendation && !error && (
         <div className="p-2 bg-blue-500/10 border border-blue-500/20 rounded text-xs text-blue-300">
           <strong>Recommendation:</strong> {recommendation}

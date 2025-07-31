@@ -12,7 +12,7 @@ import NotificationManager from '../../utils/notifications';
  */
 export const TradeBookSection: React.FC = () => {
   const { trades, filterTrades } = useTrades();
-  
+
   const [filters, setFilters] = useState<TradeFiltersType>({
     symbol: '',
     side: '',
@@ -38,8 +38,9 @@ export const TradeBookSection: React.FC = () => {
     const totalFees = filteredTrades.reduce((sum, trade) => sum + trade.fees, 0);
     const avgPnL = filteredTrades.length > 0 ? totalPnL / filteredTrades.length : 0;
     const winningTrades = filteredTrades.filter(trade => (trade.pnl || 0) > 0);
-    const currentWinRate = filteredTrades.length > 0 ? (winningTrades.length / filteredTrades.length) * 100 : 0;
-    
+    const currentWinRate =
+      filteredTrades.length > 0 ? (winningTrades.length / filteredTrades.length) * 100 : 0;
+
     return {
       total_pnl: totalPnL,
       total_fees: totalFees,
@@ -54,22 +55,24 @@ export const TradeBookSection: React.FC = () => {
   const exportTrades = () => {
     const csv = [
       'Date,Symbol,Side,Type,Entry,Exit,Quantity,P/L,P/L %,Status,Strategy,Duration,Fees,Notes',
-      ...filteredTrades.map(trade => [
-        new Date(trade.timestamp).toISOString().split('T')[0],
-        trade.symbol,
-        trade.side,
-        trade.type,
-        trade.entry_price.toFixed(2),
-        trade.exit_price?.toFixed(2) || '',
-        trade.quantity.toFixed(4),
-        trade.pnl?.toFixed(2) || '',
-        trade.pnl_percentage?.toFixed(2) || '',
-        trade.status,
-        trade.strategy || '',
-        trade.duration || '',
-        trade.fees.toFixed(4),
-        trade.notes || '',
-      ].join(','))
+      ...filteredTrades.map(trade =>
+        [
+          new Date(trade.timestamp).toISOString().split('T')[0],
+          trade.symbol,
+          trade.side,
+          trade.type,
+          trade.entry_price.toFixed(2),
+          trade.exit_price?.toFixed(2) || '',
+          trade.quantity.toFixed(4),
+          trade.pnl?.toFixed(2) || '',
+          trade.pnl_percentage?.toFixed(2) || '',
+          trade.status,
+          trade.strategy || '',
+          trade.duration || '',
+          trade.fees.toFixed(4),
+          trade.notes || '',
+        ].join(',')
+      ),
     ].join('\n');
 
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -87,17 +90,18 @@ export const TradeBookSection: React.FC = () => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.csv';
-    input.onchange = (e) => {
+    input.onchange = e => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
         const reader = new FileReader();
-        reader.onload = (event) => {
+        reader.onload = event => {
           try {
             const csv = event.target?.result as string;
             const lines = csv.split('\n');
             lines[0].split(','); // headers
-            
-            const importedTrades = lines.slice(1)
+
+            const importedTrades = lines
+              .slice(1)
               .filter(line => line.trim())
               .map((line, index) => {
                 const values = line.split(',');
@@ -121,7 +125,7 @@ export const TradeBookSection: React.FC = () => {
               });
 
             NotificationManager.success(
-              'Import Successful', 
+              'Import Successful',
               `Imported ${importedTrades.length} trades successfully.`
             );
           } catch (error) {
@@ -144,25 +148,25 @@ export const TradeBookSection: React.FC = () => {
   return (
     <>
       {/* Trade Book Header */}
-      <TradeBookHeader 
+      <TradeBookHeader
         filteredTradesCount={filteredTrades.length}
         onToggleFilters={() => setShowFilters(!showFilters)}
         onImportTrades={importTrades}
         onExportTrades={exportTrades}
       />
-      
+
       {/* Trade Stats */}
-      <TradeStats 
+      <TradeStats
         totalPnL={filteredTradeStats.total_pnl}
         avgPnL={filteredTradeStats.avg_pnl}
         winRate={filteredTradeStats.win_rate}
         totalFees={filteredTradeStats.total_fees}
         winningTrades={filteredTradeStats.winning_trades}
       />
-      
+
       {/* Trade Filters */}
       {showFilters && (
-        <TradeFilters 
+        <TradeFilters
           showFilters={showFilters}
           filters={filters}
           onFiltersChange={setFilters}
@@ -179,13 +183,13 @@ export const TradeBookSection: React.FC = () => {
               date_from: '',
               date_to: '',
               min_pnl: '',
-              max_pnl: ''
+              max_pnl: '',
             });
             setSearchTerm('');
           }}
         />
       )}
-      
+
       {/* Trade Table */}
       <TradeTable
         trades={filteredTrades}

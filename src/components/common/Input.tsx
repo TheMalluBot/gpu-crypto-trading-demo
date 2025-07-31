@@ -37,12 +37,12 @@ export const Input: React.FC<InputProps> = ({
   step,
   'aria-describedby': ariaDescribedBy,
   'aria-label': ariaLabel,
-  autoComplete
+  autoComplete,
 }) => {
   const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
   const errorId = error ? `${inputId}-error` : undefined;
   const helpTextId = ariaDescribedBy || errorId;
-  
+
   const inputClasses = `w-full glass-card px-4 py-2 text-white bg-transparent border-0 focus:outline-none focus:ring-2 rounded-lg transition-all ${
     error ? 'focus:ring-red-500 ring-1 ring-red-500' : 'focus:ring-blue-500'
   } ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`;
@@ -52,7 +52,11 @@ export const Input: React.FC<InputProps> = ({
       {label && (
         <label htmlFor={inputId} className="block text-sm font-medium text-white/80">
           {label}
-          {required && <span className="text-red-400 ml-1" aria-label="required">*</span>}
+          {required && (
+            <span className="text-red-400 ml-1" aria-label="required">
+              *
+            </span>
+          )}
         </label>
       )}
       <input
