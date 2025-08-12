@@ -140,8 +140,8 @@ pub struct ConnectionTestResult {
 // Validate API credentials format
 #[tauri::command]
 pub async fn validate_api_credentials(api_key: String, api_secret: String) -> Result<CredentialValidation, String> {
-    let mut issues = Vec::new();
-    let mut warnings = Vec::new();
+    let mut issues = Vec::with_capacity(5);
+    let mut warnings = Vec::with_capacity(5);
     
     // API Key validation
     if api_key.is_empty() {

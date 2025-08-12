@@ -37,7 +37,7 @@ impl RateLimiter {
     pub fn new(limits: RateLimit) -> Self {
         Self {
             limits,
-            requests: Arc::new(Mutex::new(Vec::new())),
+            requests: Arc::new(Mutex::new(Vec::with_capacity(100))),
             backoff_until: Arc::new(Mutex::new(None)),
         }
     }
