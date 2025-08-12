@@ -29,9 +29,9 @@ impl GpuMemoryManager {
         Self {
             device,
             config,
-            allocations: Arc::new(RwLock::new(HashMap::new())),
+            allocations: Arc::new(RwLock::new(HashMap::with_capacity(64))),
             total_allocated: Arc::new(RwLock::new(0)),
-            buffer_pool: Arc::new(RwLock::new(Vec::new())),
+            buffer_pool: Arc::new(RwLock::new(Vec::with_capacity(32))),
         }
     }
 
