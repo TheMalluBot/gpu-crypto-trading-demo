@@ -215,21 +215,106 @@ impl EnhancedRiskManager {
         Ok(assessment)
     }
 
-    // Add missing helper methods (stubs for now)
-    async fn calculate_correlation_exposure(&self, _symbol: &str) -> f64 {
-        0.0 // TODO: Implement correlation calculation
+    async fn calculate_correlation_exposure(&self, symbol: &str) -> f64 {
+        let positions = self.positions.read().await;
+        let mut total_exposure = 0.0;
+        let mut correlation_count = 0;
+        
+        for position in positions.values() {
+            if position.symbol != symbol {
+                // Simplified correlation calculation - in production, use actual price correlation
+                let correlation = match (symbol, position.symbol.as_str()) {
+                    ("BTCUSDT", "ETHUSDT") | ("ETHUSDT", "BTCUSDT") => 0.7,
+                    ("BTCUSDT", "ADAUSDT") | ("ADAUSDT", "BTCUSDT") => 0.6,
+                    ("ETHUSDT", "ADAUSDT") | ("ADAUSDT", "ETHUSDT") => 0.5,
+                    _ => 0.3, // Default low correlation
+                };
+                
+                let position_exposure = (position.size * position.current_price).to_f64().unwrap_or(0.0);
+                total_exposure += correlation.abs() * position_exposure;
+                correlation_count += 1;
+            }
+        }
+        
+        if correlation_count > 0 {
+            total_exposure / correlation_count as f64
+        } else {
+            0.0
+        }
     }
 
-    async fn calculate_volatility(&self, _symbol: &str) -> f64 {
-        0.0 // TODO: Implement volatility calculation
+    async fn calculate_volatility(&self, symbol: &str) -> f64 {
+        let price_history = self.price_history.read().await;
+        
+        if let Some(prices) = price_history.get(symbol) {
+            if prices.len() < 2 {
+                return 0.0;
+            }
+            
+            let returns: Vec<f64> = prices.windows(2)
+                .filter_map(|window| {
+                    let prev = window[0].close.to_f64()?;
+                    let curr = window[1].close.to_f64()?;
+                    if prev > 0.0 {
+                        Some((curr - prev) / prev)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            
+            if returns.len() < 2 {
+                return 0.0;
+            }
+            
+            let mean = returns.iter().sum::<f64>() / returns.len() as f64;
+            let variance = returns.iter()
+                .map(|r| (r - mean).powi(2))
+                .sum::<f64>() / (returns.len() - 1) as f64;
+            
+            variance.sqrt() * (252.0_f64).sqrt() // Annualized volatility
+        } else {
+            0.0
+        }
     }
 
-    fn calculate_risk_reward_ratio(&self, _order: &OrderRequest, _price: Decimal) -> Option<f64> {
-        None // TODO: Implement risk-reward calculation
+    fn calculate_risk_reward_ratio(&self, order: &OrderRequest, _price: Decimal) -> Option<f64> {
+        let stop_loss_percent = order.stop_loss_percent?;
+        let take_profit_percent = order.take_profit_percent?;
+        
+        if stop_loss_percent <= 0.0 || take_profit_percent <= 0.0 {
+            return None;
+        }
+        
+        let risk = stop_loss_percent / 100.0;
+        let reward = take_profit_percent / 100.0;
+        
+        Some(reward / risk)
     }
 
-    fn calculate_risk_score(&self, _assessment: &RiskAssessment) -> f64 {
-        0.0 // TODO: Implement risk score calculation
+    fn calculate_risk_score(&self, assessment: &RiskAssessment) -> f64 {
+        let mut score = 0.0;
+        
+        score += match assessment.risk_level {
+            RiskLevel::Low => 0.2,
+            RiskLevel::Medium => 0.5,
+            RiskLevel::High => 0.8,
+            RiskLevel::Critical => 1.0,
+        };
+        
+        score += assessment.violations.len() as f64 * 0.1;
+        
+        score += assessment.warnings.len() as f64 * 0.05;
+        
+        if let Some(rr_ratio) = assessment.risk_reward_ratio {
+            if rr_ratio < 1.0 {
+                score += 0.2; // Poor risk-reward ratio
+            } else if rr_ratio > 2.0 {
+                score -= 0.1; // Good risk-reward ratio
+            }
+        }
+        
+        score.max(0.0).min(1.0)
     }
 }
 

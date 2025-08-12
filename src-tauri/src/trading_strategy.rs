@@ -119,6 +119,9 @@ impl DecimalUtils {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LROConfig {
+    // Trading Configuration
+    pub trading_symbol: String,     // Trading pair symbol (e.g., "BTCUSDT", "ETHUSDT")
+    pub supported_symbols: Vec<String>, // List of supported trading pairs
     // Timeframe Configuration
     pub timeframe: String,      // Timeframe ("1m", "5m", "15m", "1h", "4h", "1d", etc.)
     // Core LRO Parameters
@@ -158,6 +161,13 @@ pub struct LROConfig {
 impl Default for LROConfig {
     fn default() -> Self {
         Self {
+            trading_symbol: "BTCUSDT".to_string(),
+            supported_symbols: vec![
+                "BTCUSDT".to_string(),
+                "ETHUSDT".to_string(),
+                "ADAUSDT".to_string(),
+                "SOLUSDT".to_string(),
+            ],
             // Timeframe Configuration
             timeframe: "1h".to_string(), // Default to 1-hour timeframe
             // Core LRO Parameters
@@ -1374,9 +1384,15 @@ impl SwingTradingBot {
             }
         }
         
-        // Store price for enhanced LRO (use reference to avoid clone)
+        // Store price for enhanced LRO with safe access
         self.price_history.push_back(price.clone());
-        let price_for_enhanced_lro = self.price_history.back().unwrap();
+        let price_for_enhanced_lro = match self.price_history.back() {
+            Some(price) => price,
+            None => {
+                log_error!(LogCategory::DataProcessing, "Price history is empty after push - this should not happen");
+                return;
+            }
+        };
         if self.price_history.len() > 200 {
             self.price_history.pop_front();
         }
@@ -1463,7 +1479,19 @@ impl SwingTradingBot {
         
         // Calculate using cached values
         if let Some((slope, intercept)) = self.lro_cache.calculate_regression() {
-            let current_price = self.price_history.back().map(|p| p.close.to_f64().unwrap_or(0.0)).unwrap_or(0.0);
+            let current_price = match self.price_history.back() {
+                Some(price) => match price.close.to_f64() {
+                    Some(p) if p > 0.0 => p,
+                    _ => {
+                        log_error!(LogCategory::DataProcessing, "Invalid current price for LRO calculation");
+                        return 0.0;
+                    }
+                },
+                None => {
+                    log_error!(LogCategory::DataProcessing, "No price data available for LRO calculation");
+                    return 0.0;
+                }
+            };
             let predicted_price = slope * (self.config.period - 1) as f64 + intercept;
             
             // Calculate LRO as normalized deviation
@@ -2151,7 +2179,7 @@ impl SwingTradingBot {
             let (stop_loss, take_profit) = self.calculate_risk_levels(entry_price, &side, &signal);
             
             let position = BotPosition {
-                symbol: "BTCUSDT".to_string(), // This should be configurable
+                symbol: self.config.trading_symbol.clone(),
                 side: side.clone(),
                 entry_price,
                 quantity,
@@ -2528,8 +2556,14 @@ impl SwingTradingBot {
     
     fn is_valid_price_data(&self, price: &PriceData) -> bool {
         // Check for valid numerical values
-        if false || false || 
-           false || false || false {
+        let open_f64 = price.open.to_f64().unwrap_or(f64::NAN);
+        let high_f64 = price.high.to_f64().unwrap_or(f64::NAN);
+        let low_f64 = price.low.to_f64().unwrap_or(f64::NAN);
+        let close_f64 = price.close.to_f64().unwrap_or(f64::NAN);
+        let volume_f64 = price.volume.to_f64().unwrap_or(f64::NAN);
+        
+        if !open_f64.is_finite() || !high_f64.is_finite() || 
+           !low_f64.is_finite() || !close_f64.is_finite() || !volume_f64.is_finite() {
             log_error!(LogCategory::DataProcessing, "Invalid price data: Non-finite values detected");
             return false;
         }
@@ -2856,6 +2890,18 @@ impl SwingTradingBot {
             volatility,
             volume_profile: 0.5, // Default neutral volume
             market_phase,
+        }
+    }
+
+    fn validate_trading_symbol(&self, symbol: &str) -> Result<(), String> {
+        if self.config.supported_symbols.contains(&symbol.to_string()) {
+            Ok(())
+        } else {
+            Err(format!(
+                "Unsupported trading symbol: {}. Supported symbols: {:?}", 
+                symbol, 
+                self.config.supported_symbols
+            ))
         }
     }
 }
