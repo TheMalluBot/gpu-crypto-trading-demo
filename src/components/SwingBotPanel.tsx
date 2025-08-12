@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { listen } from '@tauri-apps/api/event';
+import { invoke } from '@tauri-apps/api/tauri';
 import { ErrorBoundary } from './bot/ErrorBoundary';
 import { AssetManagerPanel } from './asset/AssetManagerPanel';
 import { AutomatedAssetManagerStatus } from './asset/AutomatedAssetManagerStatus';
@@ -22,6 +24,8 @@ const SwingBotPanel: React.FC = React.memo(() => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showEmergencyConfirm, setShowEmergencyConfirm] = useState(false);
   const [showAssetManager, setShowAssetManager] = useState(false);
+  const [livePrice, setLivePrice] = useState<string>('--');
+  const [priceChange, setPriceChange] = useState<number>(0);
   const {
     botStatus,
     signals,
@@ -42,6 +46,37 @@ const SwingBotPanel: React.FC = React.memo(() => {
   } = useBotData();
 
   // Performance optimizations - memoized data available for future use
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+
+    const setupWebSocket = async () => {
+      try {
+        await invoke('start_websocket_feed');
+        
+        unlisten = await listen('trade-update', (event: any) => {
+          const trade = event.payload;
+          if (trade && trade.price) {
+            const newPrice = parseFloat(trade.price);
+            const oldPrice = parseFloat(livePrice === '--' ? '0' : livePrice);
+            
+            setLivePrice(trade.price);
+            setPriceChange(newPrice - oldPrice);
+          }
+        });
+      } catch (error) {
+        console.error('Failed to setup WebSocket:', error);
+      }
+    };
+
+    setupWebSocket();
+
+    return () => {
+      if (unlisten) {
+        unlisten();
+      }
+    };
+  }, []);
 
   // Check if user has seen onboarding - with improved UX
   useEffect(() => {
@@ -112,6 +147,23 @@ const SwingBotPanel: React.FC = React.memo(() => {
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
             <h1 className="text-hierarchy-primary">Trading Bot</h1>
+            {/* Live Price Display */}
+            <div className="flex items-center space-x-2 px-3 py-2 bg-gray-800/50 border border-gray-600/30 rounded-lg">
+              <span className="text-sm text-gray-400">BTC/USDT:</span>
+              <span className={`font-mono font-bold text-lg ${
+                priceChange > 0 ? 'text-green-400' : 
+                priceChange < 0 ? 'text-red-400' : 'text-gray-300'
+              }`}>
+                ${livePrice}
+              </span>
+              {priceChange !== 0 && (
+                <span className={`text-xs ${
+                  priceChange > 0 ? 'text-green-400' : 'text-red-400'
+                }`}>
+                  {priceChange > 0 ? '+' : ''}{priceChange.toFixed(2)}
+                </span>
+              )}
+            </div>
             {/* Paper Mode Badge */}
             {botStatus?.config.paper_trading_enabled && (
               <div className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 bg-blue-500/10 border border-blue-500/20 rounded-full text-xs sm:text-sm">

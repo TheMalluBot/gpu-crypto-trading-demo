@@ -163,7 +163,8 @@ pub fn run() {
             commands::validate_price_data_batch,
             commands::validate_user_input,
             commands::validate_file_path,
-            commands::validate_comprehensive_config
+            commands::validate_comprehensive_config,
+            commands::start_websocket_feed
         ])
         .setup(|app| {
             // Initialize logging system
