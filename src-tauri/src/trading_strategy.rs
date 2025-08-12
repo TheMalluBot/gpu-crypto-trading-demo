@@ -119,6 +119,9 @@ impl DecimalUtils {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LROConfig {
+    // Trading Configuration
+    pub trading_symbol: String,     // Trading pair symbol (e.g., "BTCUSDT", "ETHUSDT")
+    pub supported_symbols: Vec<String>, // List of supported trading pairs
     // Timeframe Configuration
     pub timeframe: String,      // Timeframe ("1m", "5m", "15m", "1h", "4h", "1d", etc.)
     // Core LRO Parameters
@@ -158,6 +161,13 @@ pub struct LROConfig {
 impl Default for LROConfig {
     fn default() -> Self {
         Self {
+            trading_symbol: "BTCUSDT".to_string(),
+            supported_symbols: vec![
+                "BTCUSDT".to_string(),
+                "ETHUSDT".to_string(),
+                "ADAUSDT".to_string(),
+                "SOLUSDT".to_string(),
+            ],
             // Timeframe Configuration
             timeframe: "1h".to_string(), // Default to 1-hour timeframe
             // Core LRO Parameters
@@ -657,7 +667,7 @@ impl SwingTradingBot {
             // Level 2 Market Data
             order_book_history: VecDeque::with_capacity(50),
             market_depth_analysis: None,
-            liquidity_levels: Vec::new(),
+            liquidity_levels: Vec::with_capacity(20),
             depth_analysis_enabled: true,
             // Initialize LRO cache
             lro_cache: LroCache::new(period),
@@ -1235,8 +1245,8 @@ impl SwingTradingBot {
             return;
         }
         
-        // Store order book history
-        self.order_book_history.push_back(order_book.clone());
+        // Store order book history (avoid clone by taking ownership)
+        self.order_book_history.push_back(order_book);
         if self.order_book_history.len() > 50 {
             self.order_book_history.pop_front();
         }
@@ -1261,7 +1271,7 @@ impl SwingTradingBot {
     }
     
     fn check_market_manipulation(&mut self) {
-        if let Some(analysis) = self.market_depth_analysis.clone() {
+        if let Some(ref analysis) = self.market_depth_analysis {
             // Check for extreme order book imbalance (potential manipulation)
             if analysis.depth_imbalance.abs() > 0.8 {
                 eprintln!("Warning: Extreme order book imbalance detected: {:.2}%", analysis.depth_imbalance * 100.0);
@@ -1355,7 +1365,7 @@ impl SwingTradingBot {
         // Trigger GPU risk analysis if manager is available and we have sufficient data
         if let Some(ref gpu_manager) = self.gpu_risk_manager {
             if self.price_history.len() >= 20 { // Minimum data for meaningful analysis
-                self.schedule_gpu_risk_update(gpu_manager.clone());
+                self.schedule_gpu_risk_update(Arc::clone(gpu_manager));
             }
         }
         
@@ -1374,10 +1384,15 @@ impl SwingTradingBot {
             }
         }
         
-        // Store price for enhanced LRO before moving it
-        let price_for_enhanced_lro = price.clone();
-        
-        self.price_history.push_back(price);
+        // Store price for enhanced LRO with safe access
+        self.price_history.push_back(price.clone());
+        let price_for_enhanced_lro = match self.price_history.back() {
+            Some(price) => price,
+            None => {
+                log_error!(LogCategory::DataProcessing, "Price history is empty after push - this should not happen");
+                return;
+            }
+        };
         if self.price_history.len() > 200 {
             self.price_history.pop_front();
         }
@@ -1425,7 +1440,7 @@ impl SwingTradingBot {
                     self.signal_line_history.pop_front();
                 }
                 
-                self.signal_history.push_back(signal.clone());
+                self.signal_history.push_back(signal);
                 if self.signal_history.len() > 50 {
                     self.signal_history.pop_front();
                 }
@@ -1464,7 +1479,19 @@ impl SwingTradingBot {
         
         // Calculate using cached values
         if let Some((slope, intercept)) = self.lro_cache.calculate_regression() {
-            let current_price = self.price_history.back().map(|p| p.close.to_f64().unwrap_or(0.0)).unwrap_or(0.0);
+            let current_price = match self.price_history.back() {
+                Some(price) => match price.close.to_f64() {
+                    Some(p) if p > 0.0 => p,
+                    _ => {
+                        log_error!(LogCategory::DataProcessing, "Invalid current price for LRO calculation");
+                        return 0.0;
+                    }
+                },
+                None => {
+                    log_error!(LogCategory::DataProcessing, "No price data available for LRO calculation");
+                    return 0.0;
+                }
+            };
             let predicted_price = slope * (self.config.period - 1) as f64 + intercept;
             
             // Calculate LRO as normalized deviation
@@ -2151,10 +2178,9 @@ impl SwingTradingBot {
             // Calculate stop loss and take profit
             let (stop_loss, take_profit) = self.calculate_risk_levels(entry_price, &side, &signal);
             
-            let side_clone = side.clone();
             let position = BotPosition {
-                symbol: "BTCUSDT".to_string(), // This should be configurable
-                side,
+                symbol: self.config.trading_symbol.clone(),
+                side: side.clone(),
                 entry_price,
                 quantity,
                 entry_time: Utc::now(),
@@ -2165,8 +2191,8 @@ impl SwingTradingBot {
             
             // Only set position if we're in paper trading mode or if live trading is properly configured
             if self.config.paper_trading_enabled {
+                eprintln!("Paper trade entered: {:?} {} at ${}", side, quantity, entry_price);
                 self.current_position = Some(position);
-                eprintln!("Paper trade entered: {:?} {} at ${}", side_clone, quantity, entry_price);
             } else {
                 eprintln!("Live trading attempted but not implemented. Enable paper trading mode.");
                 // Don't set position for safety
@@ -2320,7 +2346,7 @@ impl SwingTradingBot {
     }
 
     fn check_exit_conditions(&mut self) {
-        if let Some(ref position) = self.current_position.clone() {
+        if let Some(ref position) = self.current_position {
             if let Some(latest_price) = self.price_history.back() {
                 let current_price = latest_price.close;
                 
@@ -2530,8 +2556,14 @@ impl SwingTradingBot {
     
     fn is_valid_price_data(&self, price: &PriceData) -> bool {
         // Check for valid numerical values
-        if false || false || 
-           false || false || false {
+        let open_f64 = price.open.to_f64().unwrap_or(f64::NAN);
+        let high_f64 = price.high.to_f64().unwrap_or(f64::NAN);
+        let low_f64 = price.low.to_f64().unwrap_or(f64::NAN);
+        let close_f64 = price.close.to_f64().unwrap_or(f64::NAN);
+        let volume_f64 = price.volume.to_f64().unwrap_or(f64::NAN);
+        
+        if !open_f64.is_finite() || !high_f64.is_finite() || 
+           !low_f64.is_finite() || !close_f64.is_finite() || !volume_f64.is_finite() {
             log_error!(LogCategory::DataProcessing, "Invalid price data: Non-finite values detected");
             return false;
         }
@@ -2858,6 +2890,18 @@ impl SwingTradingBot {
             volatility,
             volume_profile: 0.5, // Default neutral volume
             market_phase,
+        }
+    }
+
+    fn validate_trading_symbol(&self, symbol: &str) -> Result<(), String> {
+        if self.config.supported_symbols.contains(&symbol.to_string()) {
+            Ok(())
+        } else {
+            Err(format!(
+                "Unsupported trading symbol: {}. Supported symbols: {:?}", 
+                symbol, 
+                self.config.supported_symbols
+            ))
         }
     }
 }

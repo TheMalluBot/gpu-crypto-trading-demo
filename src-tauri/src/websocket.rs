@@ -5,7 +5,7 @@ use std::sync::Arc;
 use tokio::sync::{RwLock, mpsc};
 use std::time::{Duration, Instant};
 
-use crate::models::TickerData;
+use crate::models::{TickerData, Trade};
 use rust_decimal::Decimal;
 use chrono::Utc;
 
@@ -124,8 +124,10 @@ impl ImprovedBinanceWebSocket {
                 match msg_result {
                     Ok(Message::Text(text)) => {
                         if let Ok(data) = serde_json::from_str::<Value>(&text) {
-                            if let Some(_ticker) = Self::parse_ticker_data(&data) {
-                                // Event emission will be handled differently in production
+                            if let Some(trade) = Self::parse_trade_data(&data) {
+                                if let Err(e) = message_handle.emit("trade-update", &trade) {
+                                    eprintln!("Failed to emit trade-update event: {}", e);
+                                }
                             }
                         }
                     }
@@ -288,8 +290,8 @@ impl ImprovedBinanceWebSocket {
     }
 
     fn get_websocket_url(&self, symbol: &str) -> String {
-        // Use the official Binance WebSocket endpoint
-        format!("wss://stream.binance.com:9443/ws/{}@ticker", symbol.to_lowercase())
+        // Use the official Binance WebSocket endpoint for trade stream
+        format!("wss://stream.binance.com:9443/ws/{}@trade", symbol.to_lowercase())
     }
 
     fn parse_ticker_data(data: &Value) -> Option<TickerData> {
@@ -314,6 +316,35 @@ impl ImprovedBinanceWebSocket {
             price_change_percent,
             volume,
             timestamp: Utc::now(),
+        })
+    }
+
+    fn parse_trade_data(data: &Value) -> Option<Trade> {
+        // Handle trade stream format and potential error responses
+        if let Some(error_code) = data.get("code") {
+            eprintln!("WebSocket error: {} - {}", 
+                     error_code, 
+                     data.get("msg").and_then(|m| m.as_str()).unwrap_or("Unknown error"));
+            return None;
+        }
+
+        let symbol = data.get("s")?.as_str()?.to_string();
+        let price = data.get("p")?.as_str()?.parse::<Decimal>().ok()?;
+        let quantity = data.get("q")?.as_str()?.parse::<Decimal>().ok()?;
+        let trade_time = data.get("T")?.as_u64()?;
+        let is_buyer_maker = data.get("m")?.as_bool().unwrap_or(false);
+
+        Some(Trade {
+            symbol,
+            price,
+            quantity,
+            timestamp: chrono::DateTime::from_timestamp_millis(trade_time as i64)
+                .unwrap_or_else(|| Utc::now()),
+            side: if is_buyer_maker { 
+                crate::models::TradeSide::Sell 
+            } else { 
+                crate::models::TradeSide::Buy 
+            },
         })
     }
 

@@ -139,8 +139,8 @@ pub struct OrderRequest {
     pub order_type: OrderType,
     pub quantity: Decimal,
     pub price: Option<Decimal>,
-    pub take_profit_percent: Option<Decimal>,
-    pub stop_loss_percent: Option<Decimal>,
+    pub take_profit_percent: Option<f64>,
+    pub stop_loss_percent: Option<f64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

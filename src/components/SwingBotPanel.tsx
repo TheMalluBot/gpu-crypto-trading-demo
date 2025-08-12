@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { listen } from '@tauri-apps/api/event';
+import { invoke } from '@tauri-apps/api/core';
 import { ErrorBoundary } from './bot/ErrorBoundary';
 import { AssetManagerPanel } from './asset/AssetManagerPanel';
 import { AutomatedAssetManagerStatus } from './asset/AutomatedAssetManagerStatus';
@@ -22,6 +24,8 @@ const SwingBotPanel: React.FC = React.memo(() => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showEmergencyConfirm, setShowEmergencyConfirm] = useState(false);
   const [showAssetManager, setShowAssetManager] = useState(false);
+  const [livePrice, setLivePrice] = useState<string>('--');
+  const [priceChange, setPriceChange] = useState<number>(0);
   const {
     botStatus,
     signals,
@@ -43,11 +47,46 @@ const SwingBotPanel: React.FC = React.memo(() => {
 
   // Performance optimizations - memoized data available for future use
 
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+
+    const setupWebSocket = async () => {
+      try {
+        await invoke('start_websocket_feed');
+
+        unlisten = await listen('trade-update', (event: { payload: { price: string } }) => {
+          const trade = event.payload;
+          if (trade && trade.price) {
+            const newPrice = parseFloat(trade.price);
+            const oldPrice = parseFloat(livePrice === '--' ? '0' : livePrice);
+
+            setLivePrice(trade.price);
+            setPriceChange(newPrice - oldPrice);
+          }
+        });
+      } catch (error) {
+        // eslint-disable-next-line no-undef
+        console.error('Failed to setup WebSocket:', error);
+      }
+    };
+
+    setupWebSocket();
+
+    return () => {
+      if (unlisten) {
+        unlisten();
+      }
+    };
+  }, [livePrice]);
+
   // Check if user has seen onboarding - with improved UX
   useEffect(() => {
-    const hasSeenOnboarding = localStorage.getItem('bot-onboarding-completed');
-    const dismissedToday = localStorage.getItem('bot-onboarding-dismissed-today');
-    const remindLater = localStorage.getItem('bot-onboarding-remind-later');
+    // eslint-disable-next-line no-undef
+    const hasSeenOnboarding = window.localStorage.getItem('bot-onboarding-completed');
+    // eslint-disable-next-line no-undef
+    const dismissedToday = window.localStorage.getItem('bot-onboarding-dismissed-today');
+    // eslint-disable-next-line no-undef
+    const remindLater = window.localStorage.getItem('bot-onboarding-remind-later');
     const today = new Date().toDateString();
 
     // Don't show if already completed
@@ -61,32 +100,39 @@ const SwingBotPanel: React.FC = React.memo(() => {
 
     // Only show after a delay to avoid immediate popup
     if (botStatus) {
-      const timer = setTimeout(() => {
+      // eslint-disable-next-line no-undef
+      const timer = window.setTimeout(() => {
         setShowOnboarding(true);
       }, 3000); // 3 second delay
 
-      return () => clearTimeout(timer);
+      // eslint-disable-next-line no-undef
+      return () => window.clearTimeout(timer);
     }
   }, [botStatus]);
 
   const handleOnboardingComplete = () => {
-    localStorage.setItem('bot-onboarding-completed', 'true');
+    // eslint-disable-next-line no-undef
+    window.localStorage.setItem('bot-onboarding-completed', 'true');
     // Clear any temporary dismissals
-    localStorage.removeItem('bot-onboarding-dismissed-today');
-    localStorage.removeItem('bot-onboarding-remind-later');
+    // eslint-disable-next-line no-undef
+    window.localStorage.removeItem('bot-onboarding-dismissed-today');
+    // eslint-disable-next-line no-undef
+    window.localStorage.removeItem('bot-onboarding-remind-later');
     setShowOnboarding(false);
   };
 
   const handleOnboardingDismiss = () => {
     const today = new Date().toDateString();
-    localStorage.setItem('bot-onboarding-dismissed-today', today);
+    // eslint-disable-next-line no-undef
+    window.localStorage.setItem('bot-onboarding-dismissed-today', today);
     setShowOnboarding(false);
   };
 
   const handleRemindLater = () => {
     const remindTime = new Date();
     remindTime.setHours(remindTime.getHours() + 24); // Remind in 24 hours
-    localStorage.setItem('bot-onboarding-remind-later', remindTime.toISOString());
+    // eslint-disable-next-line no-undef
+    window.localStorage.setItem('bot-onboarding-remind-later', remindTime.toISOString());
     setShowOnboarding(false);
   };
 
@@ -112,6 +158,27 @@ const SwingBotPanel: React.FC = React.memo(() => {
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
             <h1 className="text-hierarchy-primary">Trading Bot</h1>
+            {/* Live Price Display */}
+            <div className="flex items-center space-x-2 px-3 py-2 bg-gray-800/50 border border-gray-600/30 rounded-lg">
+              <span className="text-sm text-gray-400">BTC/USDT:</span>
+              <span
+                className={`font-mono font-bold text-lg ${
+                  priceChange > 0
+                    ? 'text-green-400'
+                    : priceChange < 0
+                      ? 'text-red-400'
+                      : 'text-gray-300'
+                }`}
+              >
+                ${livePrice}
+              </span>
+              {priceChange !== 0 && (
+                <span className={`text-xs ${priceChange > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {priceChange > 0 ? '+' : ''}
+                  {priceChange.toFixed(2)}
+                </span>
+              )}
+            </div>
             {/* Paper Mode Badge */}
             {botStatus?.config.paper_trading_enabled && (
               <div className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 bg-blue-500/10 border border-blue-500/20 rounded-full text-xs sm:text-sm">
