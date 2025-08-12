@@ -355,11 +355,12 @@ impl GpuTradingAccelerator {
         
         // Initialize GPU device with Windows/NVIDIA optimizations
         let backends = if cfg!(target_os = "windows") {
-            // On Windows, prioritize DirectX 12, fallback to Vulkan, then OpenGL
+            // On Windows, prioritize DirectX 12 for NVIDIA, Vulkan for AMD, then OpenGL fallback
             wgpu::Backends::DX12 | wgpu::Backends::VULKAN | wgpu::Backends::GL
+        } else if cfg!(target_os = "linux") {
+            wgpu::Backends::VULKAN | wgpu::Backends::GL
         } else {
-            // On other platforms, use all available backends
-            wgpu::Backends::all()
+            wgpu::Backends::METAL | wgpu::Backends::VULKAN | wgpu::Backends::GL
         };
 
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
@@ -406,27 +407,38 @@ impl GpuTradingAccelerator {
                  limits.max_compute_workgroup_size_z);
         println!("   Features: {:?}", features);
         
-        // Check if it's an NVIDIA GPU and detect architecture
+        // Enhanced GPU vendor detection and optimization
         let is_nvidia = adapter_info.vendor == 0x10DE; // NVIDIA vendor ID
+        let is_amd = adapter_info.vendor == 0x1002;    // AMD vendor ID
+        let is_intel = adapter_info.vendor == 0x8086;  // Intel vendor ID
+        
         let is_rtx = adapter_info.name.to_lowercase().contains("rtx");
         let is_gtx = adapter_info.name.to_lowercase().contains("gtx");
+        let is_radeon_rx = adapter_info.name.to_lowercase().contains("rx");
+        let is_radeon_pro = adapter_info.name.to_lowercase().contains("pro");
         let is_integrated = adapter_info.name.to_lowercase().contains("intel") || 
-                           adapter_info.name.to_lowercase().contains("amd") && 
-                           adapter_info.name.to_lowercase().contains("radeon") &&
-                           !adapter_info.name.to_lowercase().contains("rx");
+                           (is_amd && adapter_info.name.to_lowercase().contains("radeon") &&
+                            !is_radeon_rx && !is_radeon_pro);
         
         if is_nvidia {
-            println!("✅ NVIDIA GPU detected - enabling optimizations");
+            println!("✅ NVIDIA GPU detected - enabling DirectX 12 optimizations");
             if is_rtx {
-                println!("   RTX series detected - enabling advanced features");
+                println!("   RTX series detected - enabling advanced compute features");
             } else if is_gtx {
                 println!("   GTX series detected - using standard optimizations");
+            }
+        } else if is_amd && !is_integrated {
+            println!("✅ AMD GPU detected - enabling Vulkan optimizations");
+            if is_radeon_rx {
+                println!("   Radeon RX series detected - enabling high-performance features");
+            } else if is_radeon_pro {
+                println!("   Radeon Pro detected - enabling professional compute features");
             }
         } else if is_integrated {
             println!("⚠️  Integrated GPU detected - using conservative settings");
             println!("   Consider using dedicated GPU for better performance");
         } else {
-            println!("⚠️  Non-NVIDIA GPU detected - using generic optimizations");
+            println!("⚠️  Unknown GPU vendor detected - using generic optimizations");
         }
 
         // Enable advanced GPU features for better performance
@@ -594,6 +606,8 @@ impl GpuTradingAccelerator {
         
         let backends = if cfg!(target_os = "windows") {
             wgpu::Backends::DX12 | wgpu::Backends::VULKAN | wgpu::Backends::GL
+        } else if cfg!(target_os = "linux") {
+            wgpu::Backends::VULKAN | wgpu::Backends::GL
         } else {
             wgpu::Backends::all()
         };

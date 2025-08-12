@@ -164,7 +164,9 @@ pub fn run() {
             commands::validate_user_input,
             commands::validate_file_path,
             commands::validate_comprehensive_config,
-            commands::start_websocket_feed
+            commands::start_websocket_feed,
+            commands::get_gpu_diagnostics,
+            commands::get_gpu_performance_stats
         ])
         .setup(|app| {
             // Initialize logging system

@@ -65,4 +65,10 @@ custom-protocol = ["tauri/custom-protocol"]
 # GPU optimization features
 gpu-optimized = []
 nvidia-cuda = []
+amd-rocm = []
 windows-optimized = ["wgpu/dx12"]
+linux-optimized = []
+cross-platform-gpu = ["windows-optimized", "linux-optimized"]
+# Dashboard enhancements
+webgl-charts = []
+gpu-dashboard = ["webgl-charts", "cross-platform-gpu"]
