@@ -1,0 +1,87 @@
+{
+  "mcpServers": {
+    "windows-build-optimizer": {
+      "command": "npx",
+      "args": ["-y", "@mcp/build-optimizer"],
+      "env": {
+        "PLATFORM": "windows",
+        "TARGET": "x86_64-pc-windows-msvc",
+        "OPTIMIZE_TOKENS": "true",
+        "GPU_FEATURES": "dx12,cuda",
+        "RUST_BACKTRACE": "1"
+      }
+    },
+    "token-usage-monitor": {
+      "command": "npx",
+      "args": ["-y", "@mcp/token-monitor"],
+      "env": {
+        "MONITOR_MODE": "aggressive",
+        "REDUCE_TOKENS": "true",
+        "WINDOWS_OPTIMIZATION": "true",
+        "CACHE_SIZE": "512MB"
+      }
+    },
+    "gpu-profiler": {
+      "command": "npx",
+      "args": ["-y", "@mcp/gpu-profiler"],
+      "env": {
+        "GPU_VENDOR": "nvidia",
+        "BACKEND": "dx12",
+        "MEMORY_OPTIMIZATION": "true",
+        "WINDOWS_PERFORMANCE": "true"
+      }
+    },
+    "rust-windows-analyzer": {
+      "command": "cargo",
+      "args": ["mcp-server", "--features", "windows-analysis"],
+      "env": {
+        "RUST_ANALYZER_FEATURES": "windows-optimized,nvidia-cuda",
+        "MEMORY_PROFILING": "true",
+        "BUILD_OPTIMIZATION": "size"
+      }
+    },
+    "playwright-windows": {
+      "command": "npx",
+      "args": ["@playwright/test"],
+      "env": {
+        "BROWSER": "chromium",
+        "PLATFORM": "win32",
+        "HEADLESS": "true",
+        "GPU": "true",
+        "WINDOWS_NATIVE": "true"
+      }
+    },
+    "memory-optimizer": {
+      "command": "npx",
+      "args": ["-y", "@mcp/memory-optimizer"],
+      "env": {
+        "TARGET_PLATFORM": "windows",
+        "MEMORY_LIMIT": "2GB",
+        "GPU_MEMORY": "true",
+        "CACHE_STRATEGY": "lru",
+        "COMPRESSION": "true"
+      }
+    },
+    "windows-performance": {
+      "command": "powershell",
+      "args": ["-Command", "& { .\windows-performance-mcp.ps1 }"],
+      "env": {
+        "PERFORMANCE_MODE": "production",
+        "GPU_MONITORING": "true",
+        "MEMORY_TRACKING": "true",
+        "BUILD_ANALYTICS": "true"
+      }
+    },
+    "crypto-trading-optimizer": {
+      "command": "npx",
+      "args": ["-y", "@mcp/crypto-trading-optimizer"],
+      "env": {
+        "OPTIMIZE_FOR": "windows",
+        "GPU_ACCELERATION": "true",
+        "MEMORY_EFFICIENCY": "true",
+        "TOKEN_REDUCTION": "aggressive",
+        "CACHE_STRATEGY": "trading-optimized"
+      }
+    }
+  }
+}
