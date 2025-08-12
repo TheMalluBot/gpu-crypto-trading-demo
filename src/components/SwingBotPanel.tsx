@@ -8,11 +8,12 @@ import { BotStatusPanel } from './bot/BotStatusPanel';
 import { BotOnboardingModal } from './bot/BotOnboardingModal';
 import { MarketConditions } from './bot/MarketConditions';
 import ImprovedBotConfigForm from './bot/ImprovedBotConfigForm';
-import { SignalChart } from './bot/SignalChart';
+import { GpuAcceleratedChart } from './charts/GpuAcceleratedChart';
 import { VirtualPortfolio } from './bot/VirtualPortfolio';
 import { PositionStatus } from './bot/PositionStatus';
 import { PerformanceMetrics } from './bot/PerformanceMetrics';
 import { RecentSignals } from './bot/RecentSignals';
+import { GpuStatusIndicator } from './gpu/GpuStatusIndicator';
 import { useBotData } from '../hooks/useBotData';
 import { getSignalColor, getMarketPhaseColor } from '../utils/formatters';
 import HelpButton from './common/HelpButton';
@@ -20,7 +21,6 @@ import { ConfirmationModal } from './common/ConfirmationModal';
 import { HELP_CONTENT } from '../utils/helpContent';
 const SwingBotPanel: React.FC = React.memo(() => {
   const [showConfig, setShowConfig] = useState(false);
-  const [showChart, setShowChart] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showEmergencyConfirm, setShowEmergencyConfirm] = useState(false);
   const [showAssetManager, setShowAssetManager] = useState(false);
@@ -65,7 +65,6 @@ const SwingBotPanel: React.FC = React.memo(() => {
           }
         });
       } catch (error) {
-        // eslint-disable-next-line no-undef
         console.error('Failed to setup WebSocket:', error);
       }
     };
@@ -81,11 +80,10 @@ const SwingBotPanel: React.FC = React.memo(() => {
 
   // Check if user has seen onboarding - with improved UX
   useEffect(() => {
-    // eslint-disable-next-line no-undef
     const hasSeenOnboarding = window.localStorage.getItem('bot-onboarding-completed');
-    // eslint-disable-next-line no-undef
+
     const dismissedToday = window.localStorage.getItem('bot-onboarding-dismissed-today');
-    // eslint-disable-next-line no-undef
+
     const remindLater = window.localStorage.getItem('bot-onboarding-remind-later');
     const today = new Date().toDateString();
 
@@ -100,30 +98,27 @@ const SwingBotPanel: React.FC = React.memo(() => {
 
     // Only show after a delay to avoid immediate popup
     if (botStatus) {
-      // eslint-disable-next-line no-undef
       const timer = window.setTimeout(() => {
         setShowOnboarding(true);
       }, 3000); // 3 second delay
 
-      // eslint-disable-next-line no-undef
       return () => window.clearTimeout(timer);
     }
   }, [botStatus]);
 
   const handleOnboardingComplete = () => {
-    // eslint-disable-next-line no-undef
     window.localStorage.setItem('bot-onboarding-completed', 'true');
     // Clear any temporary dismissals
-    // eslint-disable-next-line no-undef
+
     window.localStorage.removeItem('bot-onboarding-dismissed-today');
-    // eslint-disable-next-line no-undef
+
     window.localStorage.removeItem('bot-onboarding-remind-later');
     setShowOnboarding(false);
   };
 
   const handleOnboardingDismiss = () => {
     const today = new Date().toDateString();
-    // eslint-disable-next-line no-undef
+
     window.localStorage.setItem('bot-onboarding-dismissed-today', today);
     setShowOnboarding(false);
   };
@@ -131,7 +126,7 @@ const SwingBotPanel: React.FC = React.memo(() => {
   const handleRemindLater = () => {
     const remindTime = new Date();
     remindTime.setHours(remindTime.getHours() + 24); // Remind in 24 hours
-    // eslint-disable-next-line no-undef
+
     window.localStorage.setItem('bot-onboarding-remind-later', remindTime.toISOString());
     setShowOnboarding(false);
   };
@@ -157,7 +152,7 @@ const SwingBotPanel: React.FC = React.memo(() => {
         {/* Page Header with Help */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-            <h1 className="text-hierarchy-primary">Trading Bot</h1>
+            <h1 className="text-hierarchy-primary">GPU Trading Dashboard</h1>
             {/* Live Price Display */}
             <div className="flex items-center space-x-2 px-3 py-2 bg-gray-800/50 border border-gray-600/30 rounded-lg">
               <span className="text-sm text-gray-400">BTC/USDT:</span>
@@ -179,6 +174,9 @@ const SwingBotPanel: React.FC = React.memo(() => {
                 </span>
               )}
             </div>
+            {/* GPU Status Indicator */}
+            <GpuStatusIndicator />
+
             {/* Paper Mode Badge */}
             {botStatus?.config.paper_trading_enabled && (
               <div className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 bg-blue-500/10 border border-blue-500/20 rounded-full text-xs sm:text-sm">
@@ -189,6 +187,36 @@ const SwingBotPanel: React.FC = React.memo(() => {
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {/* Quick Action Buttons */}
+            <div className="flex items-center space-x-2 glass-morphic p-2 rounded-lg">
+              <button
+                onClick={botStatus?.status === 'running' ? toggleBot : toggleBot}
+                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                  botStatus?.status === 'running'
+                    ? 'bg-red-500 hover:bg-red-600 text-white'
+                    : 'bg-green-500 hover:bg-green-600 text-white'
+                }`}
+              >
+                {botStatus?.status === 'running' ? 'Stop' : 'Start'}
+              </button>
+
+              {botStatus?.status === 'running' && (
+                <button
+                  onClick={() => pauseBot()}
+                  className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-medium text-sm transition-all"
+                >
+                  Pause
+                </button>
+              )}
+
+              <button
+                onClick={() => setShowEmergencyConfirm(true)}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium text-sm transition-all border-2 border-red-400"
+              >
+                Emergency Stop
+              </button>
+            </div>
+
             <button
               onClick={handleShowOnboarding}
               className="btn-theme-secondary text-sm px-3 py-2 sm:px-4 sm:py-3"
@@ -249,13 +277,30 @@ const SwingBotPanel: React.FC = React.memo(() => {
           </div>
         )}
 
-        {/* Signal Chart */}
-        <SignalChart
-          chartData={chartData}
-          config={config}
-          showChart={showChart}
-          setShowChart={setShowChart}
-        />
+        {/* GPU-Accelerated Signal Chart */}
+        <div className="glass-morphic p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold text-white">GPU-Accelerated LRO Chart</h3>
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="text-xs text-green-400">WebGL Rendering</span>
+            </div>
+          </div>
+
+          {chartData.length > 0 ? (
+            <div className="h-80">
+              <GpuAcceleratedChart data={chartData} width={800} height={300} showGrid={true} />
+            </div>
+          ) : (
+            <div className="h-80 flex items-center justify-center text-white/60">
+              <div className="text-center">
+                <div className="w-12 h-12 mx-auto mb-3 opacity-50">📊</div>
+                <p>No chart data available</p>
+                <p className="text-sm">Start the bot to generate signals</p>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Virtual Portfolio (Paper Trading) */}
         <VirtualPortfolio
