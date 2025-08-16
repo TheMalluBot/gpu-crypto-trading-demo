@@ -1,6 +1,6 @@
 // Phase 1 Week 2 Test Engineer - Critical Settings Security Tests
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SettingsPanel from '../SettingsPanel';
 
@@ -29,10 +29,11 @@ describe('SettingsPanel - Critical Security Tests', () => {
 
     if (secretInput) {
       // Should be password type or masked
+      const input = secretInput as HTMLInputElement;
       expect(
-        secretInput.type === 'password' ||
-          secretInput.value.includes('*') ||
-          secretInput.getAttribute('data-masked') === 'true'
+        input.type === 'password' ||
+          input.value.includes('*') ||
+          input.getAttribute('data-masked') === 'true'
       ).toBe(true);
     }
   });
@@ -69,7 +70,8 @@ describe('SettingsPanel - Critical Security Tests', () => {
 
     if (testnetToggle) {
       // Should be enabled by default for safety
-      expect(testnetToggle.checked || testnetToggle.value === 'true').toBe(true);
+      const input = testnetToggle as HTMLInputElement;
+      expect(input.checked || input.value === 'true').toBe(true);
     }
   });
 
@@ -97,7 +99,8 @@ describe('SettingsPanel - Critical Security Tests', () => {
           screen.queryByText(/warning/i);
 
         // Either should show warning or revert to testnet URL
-        expect(warning || urlInput.value.includes('testnet')).toBeTruthy();
+        const input = urlInput as HTMLInputElement;
+        expect(warning || input.value.includes('testnet')).toBeTruthy();
       });
     }
   });
@@ -137,8 +140,9 @@ describe('SettingsPanel - Critical Security Tests', () => {
       await userEvent.type(input, '<script>alert("xss")</script>');
 
       // Input should be sanitized
-      expect(input.value).not.toContain('<script>');
-      expect(input.value).not.toContain('alert(');
+      const htmlInput = input as HTMLInputElement;
+      expect(htmlInput.value).not.toContain('<script>');
+      expect(htmlInput.value).not.toContain('alert(');
     }
   });
 
@@ -198,19 +202,22 @@ describe('SettingsPanel - Critical Security Tests', () => {
     // Find a critical setting (like switching from testnet)
     const testnetToggle = screen.getByLabelText(/testnet/i) || screen.getByLabelText(/paper/i);
 
-    if (testnetToggle && testnetToggle.checked) {
-      // Try to disable testnet mode
-      await userEvent.click(testnetToggle);
+    if (testnetToggle) {
+      const input = testnetToggle as HTMLInputElement;
+      if (input.checked) {
+        // Try to disable testnet mode
+        await userEvent.click(testnetToggle);
 
-      // Should show confirmation dialog
-      await waitFor(() => {
-        const confirmation =
-          screen.queryByText(/confirm/i) ||
-          screen.queryByText(/are you sure/i) ||
-          screen.queryByText(/warning/i);
+        // Should show confirmation dialog
+        await waitFor(() => {
+          const confirmation =
+            screen.queryByText(/confirm/i) ||
+            screen.queryByText(/are you sure/i) ||
+            screen.queryByText(/warning/i);
 
-        expect(confirmation).toBeInTheDocument();
-      });
+          expect(confirmation).toBeInTheDocument();
+        });
+      }
     }
   });
 
