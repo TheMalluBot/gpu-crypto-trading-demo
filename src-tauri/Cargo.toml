@@ -49,6 +49,34 @@ subtle = "2.5"
 # Authentication and JWT support
 jsonwebtoken = "9.2"
 
+# Native GPU support dependencies
+ash = { version = "0.38", optional = true }  # Vulkan bindings
+ash-window = { version = "0.13", optional = true }
+
+# Platform-specific GPU dependencies
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.58", features = [
+    "Win32_Graphics_Direct3D12",
+    "Win32_Graphics_Direct3D",
+    "Win32_Graphics_Dxgi",
+    "Win32_Graphics_Dxgi_Common",
+    "Win32_Foundation",
+    "Win32_System_Threading",
+], optional = true }
+
+# CUDA support (when available)
+[target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]
+cuda-sys = { version = "0.2", optional = true }
+cust = { version = "0.3", optional = true }  # High-level CUDA wrapper
+
+# OpenCL support
+ocl = { version = "0.19", optional = true }
+
+# Metal support for macOS
+[target.'cfg(target_os = "macos")'.dependencies]
+metal = { version = "0.29", optional = true }
+objc = { version = "0.2", optional = true }
+
 [dev-dependencies]
 # Phase 1 Test Engineer - Testing framework dependencies
 tokio-test = "0.4"
@@ -64,5 +92,13 @@ default = ["custom-protocol", "gpu-optimized"]
 custom-protocol = ["tauri/custom-protocol"]
 # GPU optimization features
 gpu-optimized = []
-nvidia-cuda = []
-windows-optimized = ["wgpu/dx12"]
+nvidia-cuda = ["cuda-sys", "cust"]
+windows-optimized = ["wgpu/dx12", "directx12"]
+# Native GPU backend features
+cuda = ["cuda-sys", "cust"]
+directx12 = ["windows"]
+vulkan = ["ash", "ash-window"]
+opencl = ["ocl"]
+metal = ["dep:metal", "objc"]
+# Enable all native GPU backends
+native-gpu-all = ["cuda", "directx12", "vulkan", "opencl"]

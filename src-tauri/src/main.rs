@@ -6,6 +6,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 mod gpu_renderer;
 mod gpu_trading;
 mod gpu_risk_manager;
+mod native_gpu;  // Native GPU support for CUDA, DirectX12, Vulkan
 mod cpu_worker;
 mod commands;
 mod models;
