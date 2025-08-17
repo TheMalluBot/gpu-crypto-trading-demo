@@ -20,6 +20,7 @@ const PnLChart = lazy(() => import('./components/PnLChart'));
 const SwingBotPanel = lazy(() => import('./components/SwingBotPanel'));
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const TutorialPanel = lazy(() => import('./components/TutorialPanel'));
+const AdvancedAnalytics = lazy(() => import('./components/AdvancedAnalytics').then(module => ({ default: module.AdvancedAnalytics })));
 
 interface SystemStats {
   fps: number;
@@ -177,6 +178,20 @@ function App() {
                       />
                       <Route
                         path="/analytics"
+                        element={
+                          <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ duration: 0.3 }}
+                            className="min-h-full"
+                          >
+                            <AdvancedAnalytics />
+                          </motion.div>
+                        }
+                      />
+                      <Route
+                        path="/pnl-chart"
                         element={
                           <motion.div
                             initial={{ opacity: 0, y: 20 }}

@@ -299,7 +299,7 @@ export const AdvancedAnalytics: React.FC = () => {
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <BarChart3 className="w-8 h-8 text-blue-500" />
             Advanced Analytics
-            <Badge variant="primary">Pro</Badge>
+            <Badge variant="info">Pro</Badge>
           </h1>
           <p className="text-gray-600 mt-1">Deep insights into your trading performance</p>
         </div>
@@ -308,7 +308,7 @@ export const AdvancedAnalytics: React.FC = () => {
           {/* Timeframe selector */}
           <Select
             value={timeframe}
-            onChange={(e) => setTimeframe(e.target.value as any)}
+            onChange={(value) => setTimeframe(value as any)}
             options={[
               { value: '1D', label: 'Today' },
               { value: '1W', label: 'Week' },
@@ -461,17 +461,19 @@ export const AdvancedAnalytics: React.FC = () => {
 
       {/* Tabs for different views */}
       <Tabs
-        tabs={[
-          { id: 'overview', label: 'Overview' },
-          { id: 'performance', label: 'Performance' },
-          { id: 'risk', label: 'Risk Analysis' },
-          { id: 'symbols', label: 'By Symbol' },
-          { id: 'time', label: 'Time Analysis' },
-          { id: 'trades', label: 'Trade Log' }
-        ]}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
+        defaultValue="overview"
+        value={activeTab}
+        onValueChange={setActiveTab}
+      >
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="performance">Performance</TabsTrigger>
+          <TabsTrigger value="risk">Risk Analysis</TabsTrigger>
+          <TabsTrigger value="symbols">By Symbol</TabsTrigger>
+          <TabsTrigger value="time">Time Analysis</TabsTrigger>
+          <TabsTrigger value="trades">Trade Log</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {/* Tab Content */}
       <div className="space-y-6">
@@ -555,7 +557,7 @@ export const AdvancedAnalytics: React.FC = () => {
                 <Button
                   onClick={() => setShowAdvancedMetrics(!showAdvancedMetrics)}
                   variant="outline"
-                  size="small"
+                  size="sm"
                 >
                   {showAdvancedMetrics ? 'Show Less' : 'Show More'}
                   {showAdvancedMetrics ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />}
@@ -723,45 +725,6 @@ export const AdvancedAnalytics: React.FC = () => {
                   aspectRatio={4 / 3}
                   stroke="#fff"
                   fill="#3b82f6"
-                  content={({ x, y, width, height, name, value }: any) => (
-                    <g>
-                      <rect
-                        x={x}
-                        y={y}
-                        width={width}
-                        height={height}
-                        style={{
-                          fill: value >= 0 ? '#10b981' : '#ef4444',
-                          stroke: '#fff',
-                          strokeWidth: 2,
-                          strokeOpacity: 1,
-                        }}
-                      />
-                      {width > 50 && height > 30 && (
-                        <>
-                          <text
-                            x={x + width / 2}
-                            y={y + height / 2 - 7}
-                            textAnchor="middle"
-                            fill="#fff"
-                            fontSize={14}
-                            fontWeight="bold"
-                          >
-                            {name}
-                          </text>
-                          <text
-                            x={x + width / 2}
-                            y={y + height / 2 + 7}
-                            textAnchor="middle"
-                            fill="#fff"
-                            fontSize={12}
-                          >
-                            ${value?.toFixed(0)}
-                          </text>
-                        </>
-                      )}
-                    </g>
-                  )}
                 />
               </ResponsiveContainer>
             </Card>
@@ -845,7 +808,7 @@ export const AdvancedAnalytics: React.FC = () => {
                       </td>
                       <td className="py-2">
                         <Badge variant={
-                          trade.status === 'open' ? 'primary' : 
+                          trade.status === 'open' ? 'info' : 
                           trade.status === 'closed' ? 'default' : 'warning'
                         }>
                           {trade.status}

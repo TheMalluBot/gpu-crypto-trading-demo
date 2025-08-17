@@ -127,3 +127,6 @@ export const TabsContent: React.FC<TabsContentProps> = ({
     </motion.div>
   );
 };
+
+// Export everything as named exports
+export { TabsList, TabsTrigger };
