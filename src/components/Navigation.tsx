@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Settings, TrendingUp, BarChart3, Bot, User, GraduationCap } from 'lucide-react';
+import { Settings, TrendingUp, BarChart3, Bot, User, GraduationCap, PieChart } from 'lucide-react';
 
 const Navigation: React.FC = () => {
   const location = useLocation();

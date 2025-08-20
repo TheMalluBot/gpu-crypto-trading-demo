@@ -21,6 +21,7 @@ const SwingBotPanel = lazy(() => import('./components/SwingBotPanel'));
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const TutorialPanel = lazy(() => import('./components/TutorialPanel'));
 const AdvancedAnalytics = lazy(() => import('./components/AdvancedAnalytics').then(module => ({ default: module.AdvancedAnalytics })));
+const MultiTokenPortfolioManager = lazy(() => import('./components/portfolio/MultiTokenPortfolioManager').then(module => ({ default: module.MultiTokenPortfolioManager })));
 
 interface SystemStats {
   fps: number;
@@ -201,6 +202,20 @@ function App() {
                             className="min-h-full"
                           >
                             <PnLChart />
+                          </motion.div>
+                        }
+                      />
+                      <Route
+                        path="/portfolio"
+                        element={
+                          <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ duration: 0.3 }}
+                            className="min-h-full"
+                          >
+                            <MultiTokenPortfolioManager />
                           </motion.div>
                         }
                       />
