@@ -1,7 +1,7 @@
 {
   "name": "crypto_trader",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -19,7 +19,13 @@
     "test:coverage": "vitest --coverage",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
-    "test:critical": "vitest run --testNamePattern='critical|trading|security'"
+    "test:critical": "vitest run --testNamePattern='critical|trading|security'",
+    "build:windows": "npm run build && npm run tauri build -- --target x86_64-pc-windows-msvc",
+    "build:linux": "npm run build && npm run tauri build -- --target x86_64-unknown-linux-gnu",
+    "build:all": "npm run build:windows && npm run build:linux",
+    "dev:debug": "RUST_LOG=debug npm run tauri dev",
+    "bundle:windows": "npm run build && npm run tauri build -- --target x86_64-pc-windows-msvc --bundles msi nsis",
+    "bundle:linux": "npm run build && npm run tauri build -- --target x86_64-unknown-linux-gnu --bundles appimage deb rpm"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

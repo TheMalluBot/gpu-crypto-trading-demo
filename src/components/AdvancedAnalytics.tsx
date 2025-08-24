@@ -1,3 +1,4 @@
+// Import UI components from local paths
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card } from './ui/Card';
 import { Tabs } from './ui/Tabs';
@@ -264,7 +265,7 @@ export const AdvancedAnalytics: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const convertToCSV = (data: any[]) => {
+  const convertToCSV = (data: unknown[]) => {
     if (data.length === 0) return '';
     const headers = Object.keys(data[0]).join(',');
     const rows = data.map(row => Object.values(row).join(','));
@@ -272,13 +273,13 @@ export const AdvancedAnalytics: React.FC = () => {
   };
 
   // Custom tooltip for charts
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: unknown) => {
     if (!active || !payload) return null;
     
     return (
       <div className="bg-white p-3 rounded-lg shadow-lg border">
         <p className="text-sm font-semibold">{label}</p>
-        {payload.map((entry: any, index: number) => (
+        {payload.map((entry: unknown, index: number) => (
           <p key={index} className="text-sm" style={{ color: entry.color }}>
             {entry.name}: {typeof entry.value === 'number' ? 
               entry.value.toFixed(2) : entry.value}

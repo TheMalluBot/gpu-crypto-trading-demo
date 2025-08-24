@@ -285,7 +285,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ onComplete }) => {
                   <div className="bg-blue-50 rounded-xl p-6">
                     <h3 className="font-semibold mb-3 text-blue-900">Your Settings:</h3>
                     <ul className="space-y-2">
-                      {getLevelSummary()?.settings.map((setting, idx) => (
+                      {getLevelSummary()?.settings.map((setting: unknown, idx: number) => (
                         <li key={idx} className="text-sm text-blue-700 flex items-center gap-2">
                           <Check className="w-4 h-4 text-blue-500" />
                           {setting}
@@ -296,7 +296,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ onComplete }) => {
                   <div className="bg-purple-50 rounded-xl p-6">
                     <h3 className="font-semibold mb-3 text-purple-900">Your First Steps:</h3>
                     <ol className="space-y-2">
-                      {getLevelSummary()?.firstSteps.map((step, idx) => (
+                      {getLevelSummary()?.firstSteps.map((step: unknown, idx: number) => (
                         <li key={idx} className="text-sm text-purple-700 flex items-center gap-2">
                           <span className="w-6 h-6 rounded-full bg-purple-200 flex items-center justify-center text-xs font-semibold">
                             {idx + 1}
