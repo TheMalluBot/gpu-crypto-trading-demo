@@ -5,6 +5,7 @@ pub mod bot;
 pub mod advanced_trading;
 pub mod backtesting;
 pub mod validation;
+pub mod gpu_native;
 
 // Re-export all commands for easy access
 pub use system::*;
@@ -13,4 +14,5 @@ pub use trading::*;
 pub use bot::*;
 pub use advanced_trading::*;
 pub use backtesting::*;
+pub use gpu_native::*;
 pub use validation::*;

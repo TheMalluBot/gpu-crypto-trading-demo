@@ -11,17 +11,22 @@ import TitleBar from './components/TitleBar';
 import Navigation from './components/Navigation';
 import NotificationContainer from './components/common/NotificationContainer';
 import FloatingHelpButton from './components/common/FloatingHelpButton';
-import { AppLoading } from './components/common/AppLoading';
+
+// New UX Components
+import { WelcomeModal } from './components/WelcomeModal';
+import { SimpleDashboard } from './components/SimpleDashboard';
+import { LoadingProgress, TradingDataLoader } from './components/LoadingProgress';
+import { UserFriendlyError } from './components/UserFriendlyError';
 
 // Lazy load heavy components to improve initial load time
 const TradePanel = lazy(() => import('./components/TradePanel'));
+const SimpleTradeForm = lazy(() => import('./components/SimpleTradeForm'));
 const SettingsPanel = lazy(() => import('./components/SettingsPanel'));
 const PnLChart = lazy(() => import('./components/PnLChart'));
 const SwingBotPanel = lazy(() => import('./components/SwingBotPanel'));
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const TutorialPanel = lazy(() => import('./components/TutorialPanel'));
-const AdvancedAnalytics = lazy(() => import('./components/AdvancedAnalytics').then(module => ({ default: module.AdvancedAnalytics })));
-const MultiTokenPortfolioManager = lazy(() => import('./components/portfolio/MultiTokenPortfolioManager').then(module => ({ default: module.MultiTokenPortfolioManager })));
+const GpuSelector = lazy(() => import('./components/GpuSelector'));
 
 interface SystemStats {
   fps: number;
@@ -31,6 +36,9 @@ interface SystemStats {
 
 interface AppSettings {
   disable_animations: boolean;
+  user_level?: 'beginner' | 'intermediate' | 'advanced';
+  show_welcome?: boolean;
+  simplified_mode?: boolean;
 }
 
 function App() {
@@ -40,21 +48,57 @@ function App() {
     gpu_frame_time: 0,
   });
 
-  const [settings, setSettings] = useState<AppSettings>({ disable_animations: false });
+  const [settings, setSettings] = useState<AppSettings>({ 
+    disable_animations: false,
+    show_welcome: true,
+    simplified_mode: true,
+    user_level: 'beginner'
+  });
+  
   const [isLoading, setIsLoading] = useState(true);
+  const [loadingStep, setLoadingStep] = useState('');
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [initError, setInitError] = useState<Error | null>(null);
+  const [showWelcome, setShowWelcome] = useState(false);
 
   useEffect(() => {
-    // Initialize application
+    // Initialize application with better error handling and progress
     const initApp = async () => {
       try {
-        // Initialize Binance service
-        const { binanceService } = await import('./services/BinanceService');
-        await binanceService.initialize();
+        // Step 1: Check local storage for first-time user
+        const isFirstTime = localStorage.getItem('hasVisited') !== 'true';
+        const userLevel = localStorage.getItem('userLevel') as AppSettings['user_level'];
         
-        // Simulate additional app initialization
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        if (isFirstTime && !userLevel) {
+          setShowWelcome(true);
+        }
+
+        // Step 2: Initialize core services with progress updates
+        setLoadingStep('Connecting to market data...');
+        setLoadingProgress(20);
+        
+        try {
+          const { binanceService } = await import('./services/BinanceService');
+          await binanceService.initialize();
+        } catch (error) {
+          console.warn('Market data connection optional in demo mode');
+        }
+        
+        setLoadingStep('Loading your preferences...');
+        setLoadingProgress(50);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        setLoadingStep('Preparing trading interface...');
+        setLoadingProgress(80);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        setLoadingStep('Ready to trade!');
+        setLoadingProgress(100);
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
       } catch (error) {
         console.error('Failed to initialize app:', error);
+        setInitError(error as Error);
       } finally {
         setIsLoading(false);
       }
@@ -82,11 +126,72 @@ function App() {
     if (appSettings) {
       setSettings(appSettings);
     }
+    
+    // Also check local storage
+    const userLevel = localStorage.getItem('userLevel') as AppSettings['user_level'];
+    if (userLevel) {
+      setSettings(prev => ({ ...prev, user_level: userLevel }));
+    }
   };
 
-  if (isLoading) {
-    return <AppLoading />;
+  const handleWelcomeComplete = (choice: 'beginner' | 'intermediate' | 'advanced' | 'skip') => {
+    localStorage.setItem('hasVisited', 'true');
+    
+    if (choice !== 'skip') {
+      localStorage.setItem('userLevel', choice);
+      setSettings(prev => ({ 
+        ...prev, 
+        user_level: choice,
+        simplified_mode: choice === 'beginner'
+      }));
+    }
+    
+    setShowWelcome(false);
+  };
+
+  const handleRetryInit = () => {
+    setInitError(null);
+    setIsLoading(true);
+    window.location.reload();
+  };
+
+  // Show error state if initialization failed
+  if (initError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <UserFriendlyError
+          error={initError}
+          type="connection"
+          onRetry={handleRetryInit}
+        />
+      </div>
+    );
   }
+
+  // Show loading state with progress
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <LoadingProgress
+          title="Starting Crypto Trader"
+          message={loadingStep}
+          progress={loadingProgress}
+          variant="detailed"
+        />
+      </div>
+    );
+  }
+
+  // Show welcome modal for first-time users
+  if (showWelcome) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <WelcomeModal onComplete={handleWelcomeComplete} />
+      </div>
+    );
+  }
+
+  const isSimplifiedMode = settings.simplified_mode || settings.user_level === 'beginner';
 
   return (
     <ErrorBoundary>
@@ -100,7 +205,7 @@ function App() {
               </a>
               
               {/* Particle Canvas Background - conditionally rendered */}
-              {!settings.disable_animations && (
+              {!settings.disable_animations && !isSimplifiedMode && (
                 <div className="absolute inset-0 z-background">
                   <ParticleCanvas />
                 </div>
@@ -118,9 +223,28 @@ function App() {
                 role="main"
               >
                 <ErrorBoundary>
-                  <Suspense fallback={<AppLoading />}>
+                  <Suspense fallback={<TradingDataLoader />}>
                     <Routes>
-                      <Route path="/" element={<Navigate to="/trade" replace />} />
+                      {/* Default to dashboard for better UX */}
+                      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                      
+                      {/* New simplified dashboard as default */}
+                      <Route
+                        path="/dashboard"
+                        element={
+                          <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ duration: 0.3 }}
+                            className="min-h-full"
+                          >
+                            <SimpleDashboard />
+                          </motion.div>
+                        }
+                      />
+                      
+                      {/* Simplified or advanced trade panel based on user level */}
                       <Route
                         path="/trade"
                         element={
@@ -131,10 +255,11 @@ function App() {
                             transition={{ duration: 0.3 }}
                             className="min-h-full"
                           >
-                            <TradePanel />
+                            {isSimplifiedMode ? <SimpleTradeForm /> : <TradePanel />}
                           </motion.div>
                         }
                       />
+                      
                       <Route
                         path="/bot"
                         element={
@@ -149,6 +274,7 @@ function App() {
                           </motion.div>
                         }
                       />
+                      
                       <Route
                         path="/tutorial"
                         element={
@@ -163,36 +289,9 @@ function App() {
                           </motion.div>
                         }
                       />
-                      <Route
-                        path="/dashboard"
-                        element={
-                          <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ duration: 0.3 }}
-                            className="min-h-full"
-                          >
-                            <Dashboard />
-                          </motion.div>
-                        }
-                      />
+                      
                       <Route
                         path="/analytics"
-                        element={
-                          <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ duration: 0.3 }}
-                            className="min-h-full"
-                          >
-                            <AdvancedAnalytics />
-                          </motion.div>
-                        }
-                      />
-                      <Route
-                        path="/pnl-chart"
                         element={
                           <motion.div
                             initial={{ opacity: 0, y: 20 }}
@@ -205,8 +304,9 @@ function App() {
                           </motion.div>
                         }
                       />
+                      
                       <Route
-                        path="/portfolio"
+                        path="/gpu"
                         element={
                           <motion.div
                             initial={{ opacity: 0, y: 20 }}
@@ -215,10 +315,11 @@ function App() {
                             transition={{ duration: 0.3 }}
                             className="min-h-full"
                           >
-                            <MultiTokenPortfolioManager />
+                            <GpuSelector />
                           </motion.div>
                         }
                       />
+                      
                       <Route
                         path="/settings"
                         element={
@@ -233,45 +334,54 @@ function App() {
                           </motion.div>
                         }
                       />
+                      
+                      {/* Advanced dashboard for experienced users */}
+                      {!isSimplifiedMode && (
+                        <Route
+                          path="/advanced"
+                          element={
+                            <motion.div
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -20 }}
+                              transition={{ duration: 0.3 }}
+                              className="min-h-full"
+                            >
+                              <Dashboard />
+                            </motion.div>
+                          }
+                        />
+                      )}
                     </Routes>
                   </Suspense>
                 </ErrorBoundary>
               </main>
               
-              {/* Navigation */}
+              {/* Navigation - now with better organization */}
               <div className="relative z-navigation">
-                <Navigation />
+                <Navigation userLevel={settings.user_level} />
               </div>
               
-              {/* System Stats (for background animation) */}
-              {!settings.disable_animations && (
-                <div className="fixed top-20 right-4 z-header hidden md:block">
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-3"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div
-                        className="w-2 h-2 bg-green-400 rounded-full animate-pulse"
-                        aria-hidden="true"
-                      ></div>
-                      <span
-                        className="text-white/70 text-sm font-medium"
-                        aria-label={`Current FPS: ${stats.fps.toFixed(1)}`}
-                      >
-                        {stats.fps.toFixed(1)} FPS
-                      </span>
-                    </div>
-                  </motion.div>
+              {/* Notification Container */}
+              <div className="relative z-notifications">
+                <NotificationContainer />
+              </div>
+              
+              {/* Floating Help Button - more prominent for beginners */}
+              <div className="relative z-help">
+                <FloatingHelpButton 
+                  enhanced={settings.user_level === 'beginner'}
+                />
+              </div>
+              
+              {/* Stats overlay - only for advanced users */}
+              {settings.user_level === 'advanced' && stats.fps > 0 && (
+                <div className="fixed bottom-4 left-4 z-50 bg-black bg-opacity-50 text-white text-xs p-2 rounded">
+                  <div>FPS: {stats.fps}</div>
+                  <div>CPU: {(stats.cpu_load * 100).toFixed(1)}%</div>
+                  <div>GPU: {stats.gpu_frame_time.toFixed(2)}ms</div>
                 </div>
               )}
-              
-              {/* Notification Container */}
-              <NotificationContainer />
-              
-              {/* Floating Help Button */}
-              <FloatingHelpButton />
             </div>
           </Router>
         </ToastProvider>
