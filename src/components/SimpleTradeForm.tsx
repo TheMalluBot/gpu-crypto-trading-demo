@@ -22,7 +22,7 @@ interface TradeFormData {
   takeProfitPercent: string;
 }
 
-export const SimpleTradeForm: React.FC = () => {
+const SimpleTradeForm: React.FC = () => {
   const [formData, setFormData] = useState<TradeFormData>({
     side: 'buy',
     amount: '100',
@@ -428,3 +428,4 @@ const TradeConfirmationModal: React.FC<{
 
 // Import Loader2 and Check
 import { Loader2, Check } from 'lucide-react';
+export default SimpleTradeForm;

@@ -57,7 +57,7 @@ interface PerformanceMetrics {
   temperature_celsius: number;
 }
 
-export const GpuSelector: React.FC = () => {
+const GpuSelector: React.FC = () => {
   const [systemInfo, setSystemInfo] = useState<GpuSystemInfo | null>(null);
   const [benchmarkResults, setBenchmarkResults] = useState<BenchmarkResult[]>([]);
   const [currentMetrics, setCurrentMetrics] = useState<PerformanceMetrics | null>(null);
@@ -387,3 +387,4 @@ export const GpuSelector: React.FC = () => {
     </Card>
   );
 };
+export default GpuSelector;

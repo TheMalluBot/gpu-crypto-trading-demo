@@ -4,19 +4,19 @@ import { Tabs } from './ui/Tabs';
 import { Button } from './ui/Button';
 import { Select } from './ui/Select';
 import { Badge } from './ui/Badge';
-import { HelpTooltip, TradingTermTooltip } from './HelpTooltip';
+import { TradingTermTooltip } from './HelpTooltip';
 import { 
-  LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  ComposedChart, Scatter, RadarChart, PolarGrid, PolarAngleAxis, 
+  ComposedChart, RadarChart, PolarGrid, PolarAngleAxis, 
   PolarRadiusAxis, Radar, Treemap
 } from 'recharts';
 import { 
-  TrendingUp, TrendingDown, DollarSign, Activity, AlertTriangle, 
-  Award, Target, Clock, Calendar, Download, Filter, RefreshCw,
-  ChevronUp, ChevronDown, Info, BarChart3, PieChartIcon, LineChartIcon
+  TrendingUp, TrendingDown,  
+  Award, Target, Download, RefreshCw,
+  ChevronUp, ChevronDown, Info, BarChart3
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { invoke } from '@tauri-apps/api/core';
 
 // Types
@@ -102,16 +102,16 @@ interface DrawdownPeriod {
 export const AdvancedAnalytics: React.FC = () => {
   // State
   const [timeframe, setTimeframe] = useState<'1D' | '1W' | '1M' | '3M' | '1Y' | 'ALL'>('1M');
-  const [selectedStrategy, setSelectedStrategy] = useState<string>('all');
-  const [selectedSymbol, setSelectedSymbol] = useState<string>('all');
+  const [selectedStrategy] = useState<string>('all');
+  const [selectedSymbol] = useState<string>('all');
   const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(false);
   const [trades, setTrades] = useState<TradeData[]>([]);
   const [metrics, setMetrics] = useState<PerformanceMetrics | null>(null);
   const [equityCurve, setEquityCurve] = useState<EquityCurvePoint[]>([]);
   const [showAdvancedMetrics, setShowAdvancedMetrics] = useState(false);
-  const [compareMode, setCompareMode] = useState(false);
-  const [selectedMetric, setSelectedMetric] = useState<'pnl' | 'win_rate' | 'sharpe'>('pnl');
+  const [compareMode] = useState(false);
+  const [selectedMetric] = useState<'pnl' | 'win_rate' | 'sharpe'>('pnl');
 
   // Load data
   useEffect(() => {
@@ -289,7 +289,7 @@ export const AdvancedAnalytics: React.FC = () => {
   };
 
   // Chart colors
-  const COLORS = ['#10b981', '#ef4444', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'];
+  // const COLORS = ['#10b981', '#ef4444', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'];
 
   return (
     <div className="space-y-6 p-4 max-w-7xl mx-auto">
